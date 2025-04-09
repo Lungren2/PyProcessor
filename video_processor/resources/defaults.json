@@ -1,0 +1,16 @@
+{
+  "ffmpeg_params": {
+    "video_encoder": "libx265",
+    "preset": "ultrafast",
+    "tune": "zerolatency",
+    "fps": 60,
+    "include_audio": true,
+    "bitrates": {
+      "1080p": "11000k",
+      "720p": "6500k",
+      "480p": "4000k",
+      "360p": "1500k"
+    },
+    "audio_bitrates": ["192k", "128k", "96k", "64k"]
+  }
+}

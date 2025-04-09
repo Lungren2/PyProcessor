@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: video_processor
+Version: 0.1.0
+Summary: Video processing tool for HLS encoding
+Author: Ethan Ogle
+Author-email: ethanogle012@outlook.com
+Keywords: video,encoding,ffmpeg,hls
+Requires-Python: >=3.6
+Requires-Dist: PyQt5>=5.15.0
+Requires-Dist: tqdm>=4.60.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: keywords
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

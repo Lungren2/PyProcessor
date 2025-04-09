@@ -1,0 +1,2 @@
+[console_scripts]
+video_processor = video_processor.main:main
