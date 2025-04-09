@@ -17,10 +17,6 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params):
     # Create output directory structure
     output_subfolder.mkdir(parents=True, exist_ok=True)
 
-    # Create directories for different resolutions
-    for res in ["1080p", "720p", "480p", "360p"]:
-        (output_subfolder / res).mkdir(parents=True, exist_ok=True)
-
     start_time = time.time()
 
     try:
