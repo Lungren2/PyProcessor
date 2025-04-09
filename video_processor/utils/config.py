@@ -36,6 +36,11 @@ class Config:
         self.auto_organize_folders = True
         self.last_used_profile = "default"
 
+        # Regex patterns for file operations
+        self.file_rename_pattern = r".*?(\d+-\d+).*?\.mp4$"
+        self.file_validation_pattern = r"^\d+-\d+\.mp4$"
+        self.folder_organization_pattern = r"^(\d+)-\d+"
+
         # Create directories if they don't exist
         self._ensure_directories()
 
@@ -78,6 +83,9 @@ class Config:
                 "max_parallel_jobs": self.max_parallel_jobs,
                 "auto_rename_files": self.auto_rename_files,
                 "auto_organize_folders": self.auto_organize_folders,
+                "file_rename_pattern": self.file_rename_pattern,
+                "file_validation_pattern": self.file_validation_pattern,
+                "folder_organization_pattern": self.folder_organization_pattern,
                 "last_used_profile": self.last_used_profile,
                 "saved_at": datetime.datetime.now().isoformat()
             }
@@ -152,6 +160,12 @@ class Config:
                     self.auto_rename_files = bool(config_dict["auto_rename_files"])
                 if "auto_organize_folders" in config_dict:
                     self.auto_organize_folders = bool(config_dict["auto_organize_folders"])
+                if "file_rename_pattern" in config_dict:
+                    self.file_rename_pattern = config_dict["file_rename_pattern"]
+                if "file_validation_pattern" in config_dict:
+                    self.file_validation_pattern = config_dict["file_validation_pattern"]
+                if "folder_organization_pattern" in config_dict:
+                    self.folder_organization_pattern = config_dict["folder_organization_pattern"]
                 if "last_used_profile" in config_dict:
                     self.last_used_profile = config_dict["last_used_profile"]
 
@@ -221,5 +235,17 @@ class Config:
         if not isinstance(self.max_parallel_jobs, int) or self.max_parallel_jobs < 1:
             warnings.append(f"Invalid parallel jobs: {self.max_parallel_jobs}. Recalculating.")
             self.max_parallel_jobs = self._calculate_parallel_jobs()
+
+        # Check regex patterns
+        try:
+            import re
+            re.compile(self.file_rename_pattern)
+            re.compile(self.file_validation_pattern)
+            re.compile(self.folder_organization_pattern)
+        except re.error as e:
+            warnings.append(f"Invalid regex pattern: {str(e)}. Using defaults.")
+            self.file_rename_pattern = r".*?(\d+-\d+).*?\.mp4$"
+            self.file_validation_pattern = r"^\d+-\d+\.mp4$"
+            self.folder_organization_pattern = r"^(\d+)-\d+"
 
         return errors, warnings
