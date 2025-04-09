@@ -1,0 +1,12 @@
+[2025-04-09 16:17:37][INFO] Logging initialized: C:\Users\Ethan.EASYGAMES\Desktop\Repositories\Personal\PyProcessor\video_processor\logs\vp_2025-04-09_16-17-37_info_Ethan_windows.log
+[2025-04-09 16:17:49][INFO] Starting video processing
+[2025-04-09 16:17:49][INFO] Starting file renaming process
+[2025-04-09 16:17:49][INFO] File renaming completed: 0 of 2 files renamed
+[2025-04-09 16:17:49][INFO] Found 2 valid files to process
+[2025-04-09 16:17:49][ERROR] Error in processing task: cannot pickle '_thread.RLock' object
+[2025-04-09 16:17:49][ERROR] Error in processing task: cannot pickle '_thread.RLock' object
+[2025-04-09 16:17:49][INFO] Processing completed: 0 successful, 2 failed
+[2025-04-09 16:17:49][INFO] Total processing time: 0.00 minutes
+[2025-04-09 16:17:49][INFO] Starting folder organization
+[2025-04-09 16:17:49][INFO] Folder organization completed: 0 folders moved
+[2025-04-09 16:17:49][ERROR] Processing failed: Some videos failed to process. Check the logs for details.

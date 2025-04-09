@@ -329,12 +329,11 @@ class MainWindow(QMainWindow):
 
         if success:
             self.logger.info("Processing completed successfully")
-            icon = QMessageBox.Information
+            QMessageBox.information(self, "Processing Complete", message)
         else:
             self.logger.error(f"Processing failed: {message}")
-            icon = QMessageBox.Warning
+            QMessageBox.warning(self, "Processing Failed", message)
 
-        QMessageBox.information(self, "Processing Complete", message, icon)
         self.status_bar.showMessage(message)
 
 def show_main_window(config, logger, file_manager, encoder, scheduler):
