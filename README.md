@@ -25,7 +25,7 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/video_processor.git
+git clone https://github.com/Lungren2/PyProcessor.git
 cd video_processor
 pip install -e .
 ```
@@ -133,17 +133,19 @@ The application maintains detailed logs in the `video_processor/logs/` directory
 
 ## Development
 
+For detailed information about development, please refer to the documentation in the `docs/` directory:
+
+- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute to the project
+- [Architecture Overview](docs/ARCHITECTURE.md) - Detailed explanation of the project architecture
+- [Code Style Guide](docs/CODE_STYLE.md) - Coding standards and style guidelines
+- [Development Workflow](docs/DEVELOPMENT_WORKFLOW.md) - Recommended development process
+- [Logging System](docs/LOGGING.md) - Details about the logging system
+- [FFmpeg Integration](docs/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
+
 ### Running Tests
 
 ```bash
 python -m unittest discover tests
-```
-
-### Building Documentation
-
-```bash
-cd docs
-make html
 ```
 
 ## Troubleshooting
