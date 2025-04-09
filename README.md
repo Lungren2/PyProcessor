@@ -54,6 +54,7 @@ video_processor/
 │   └── logging.py          # Logging system
 ├── resources/              # Application resources
 │   └── defaults.json       # Default configuration values
+├── profiles/               # Configuration profiles directory
 └── logs/                   # Log files directory
 ```
 
@@ -125,7 +126,7 @@ The application uses a configuration system that supports:
 
 ### Configuration Files
 
-Configuration files are stored as JSON in the `output_folder/profiles/` directory. You can create multiple profiles for different encoding scenarios.
+Configuration files are stored as JSON in the `video_processor/profiles/` directory. You can create multiple profiles for different encoding scenarios.
 
 ## Logging
 
