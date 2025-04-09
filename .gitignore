@@ -32,6 +32,10 @@ MANIFEST
 *.manifest
 *.spec
 
+# logs and profiles
+logs/
+profiles/
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
