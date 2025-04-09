@@ -32,9 +32,11 @@ MANIFEST
 *.manifest
 *.spec
 
-# logs and profiles
-logs/
-profiles/
+# logs and profiles - keep directories but ignore contents
+logs/*
+!logs/.gitkeep
+profiles/*
+!profiles/.gitkeep
 
 # Installer logs
 pip-log.txt
