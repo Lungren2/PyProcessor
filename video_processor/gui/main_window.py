@@ -8,7 +8,9 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon
 from pathlib import Path
 
-from video_processor.gui.config_dialog import ConfigDialog
+from video_processor.gui.settings_widgets import (
+    EncodingSettingsWidget, ProcessingSettingsWidget, AdvancedSettingsWidget
+)
 from video_processor.gui.progress_widget import ProcessingProgressWidget
 
 class ProcessingThread(QThread):
@@ -80,61 +82,86 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         """Initialize the user interface"""
         self.setWindowTitle("Video Processor")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 900, 700)
 
         # Create central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
 
+        # Create tab widget
+        self.tab_widget = QTabWidget()
+
+        # Create Home tab
+        home_tab = QWidget()
+        home_layout = QVBoxLayout(home_tab)
+
         # Create top control panel
         control_panel = QWidget()
         control_layout = QHBoxLayout(control_panel)
 
-        # Add directories selection
-        self.input_dir_btn = QPushButton("📁")
-        self.input_dir_btn.clicked.connect(self.select_input_directory)
-
-        self.output_dir_btn = QPushButton("📁")
-        self.output_dir_btn.clicked.connect(self.select_output_directory)
-
-        # Add configuration button
-        self.config_btn = QPushButton("Settings ⚙️")
-        self.config_btn.clicked.connect(self.show_config_dialog)
-
         # Add start processing button
-        self.start_btn = QPushButton("Start ▶️")
+        self.start_btn = QPushButton("Start Processing ▶️")
         self.start_btn.clicked.connect(self.start_processing)
+        self.start_btn.setMinimumHeight(40)  # Make button larger
 
         # Add buttons to control panel
-        control_layout.addWidget(self.config_btn)
+        control_layout.addStretch()
         control_layout.addWidget(self.start_btn)
+        control_layout.addStretch()
 
         # Add directory input fields
         dir_info = QWidget()
         dir_layout = QHBoxLayout(dir_info)
 
+        # Input directory
         dir_layout.addWidget(QLabel("Input directory:"))
         self.input_dir_edit = QLineEdit(str(self.config.input_folder))
         self.input_dir_edit.setMinimumWidth(200)  # Ensure enough space for paths
         self.input_dir_edit.editingFinished.connect(self.input_path_edited)
         dir_layout.addWidget(self.input_dir_edit)
+
+        self.input_dir_btn = QPushButton("📁")
+        self.input_dir_btn.clicked.connect(self.select_input_directory)
         dir_layout.addWidget(self.input_dir_btn)
 
+        # Output directory
         dir_layout.addWidget(QLabel("Output directory:"))
         self.output_dir_edit = QLineEdit(str(self.config.output_folder))
         self.output_dir_edit.setMinimumWidth(200)  # Ensure enough space for paths
         self.output_dir_edit.editingFinished.connect(self.output_path_edited)
         dir_layout.addWidget(self.output_dir_edit)
+
+        self.output_dir_btn = QPushButton("📁")
+        self.output_dir_btn.clicked.connect(self.select_output_directory)
         dir_layout.addWidget(self.output_dir_btn)
 
         # Create progress panel
         self.progress_widget = ProcessingProgressWidget()
 
-        # Add all panels to main layout
-        main_layout.addWidget(control_panel)
-        main_layout.addWidget(dir_info)
-        main_layout.addWidget(self.progress_widget)
+        # Add all panels to home layout
+        home_layout.addWidget(control_panel)
+        home_layout.addWidget(dir_info)
+        home_layout.addWidget(self.progress_widget)
+
+        # Create settings tabs
+        self.encoding_widget = EncodingSettingsWidget(self.config)
+        self.processing_widget = ProcessingSettingsWidget(self.config)
+        self.advanced_widget = AdvancedSettingsWidget(self.config)
+
+        # Connect settings change signals
+        self.encoding_widget.settings_changed.connect(self.on_settings_changed)
+        self.processing_widget.settings_changed.connect(self.on_settings_changed)
+        self.advanced_widget.settings_changed.connect(self.on_settings_changed)
+
+        # Add tabs to tab widget
+        self.tab_widget.addTab(home_tab, "Home")
+        self.tab_widget.addTab(self.encoding_widget, "Encoding Settings")
+        self.tab_widget.addTab(self.processing_widget, "Processing Settings")
+        self.tab_widget.addTab(self.advanced_widget, "Advanced Settings")
+
+        # Add tab widget to main layout
+        main_layout.addWidget(self.tab_widget)
 
         # Add status bar
         self.status_bar = QStatusBar()
@@ -143,6 +170,9 @@ class MainWindow(QMainWindow):
 
         # Create menu bar
         self.create_menu_bar()
+
+        # Track if settings have been modified
+        self.settings_modified = False
 
     def create_menu_bar(self):
         """Create application menu bar"""
@@ -200,8 +230,20 @@ class MainWindow(QMainWindow):
             system_theme_action.triggered.connect(self.theme_manager.follow_system)
             theme_menu.addAction(system_theme_action)
 
+    def save_settings(self):
+        """Save current settings to config"""
+        # Save settings from all widgets
+        self.encoding_widget.save_to_config()
+        self.processing_widget.save_to_config()
+        self.advanced_widget.save_to_config()
+        self.settings_modified = False
+        self.status_bar.showMessage("Settings applied")
+
     def save_config(self):
         """Save current configuration"""
+        # First save current settings
+        self.save_settings()
+
         profile_name, ok = QInputDialog.getText(
             self, "Save Configuration", "Enter profile name (leave empty for default):")
 
@@ -234,6 +276,13 @@ class MainWindow(QMainWindow):
         """Update UI elements with current configuration"""
         self.input_dir_edit.setText(str(self.config.input_folder))
         self.output_dir_edit.setText(str(self.config.output_folder))
+
+        # Update settings widgets
+        self.encoding_widget.load_config_values()
+        self.processing_widget.load_config_values()
+        self.advanced_widget.load_config_values()
+
+        self.settings_modified = False
 
     def view_logs(self):
         """View application logs"""
@@ -341,12 +390,10 @@ class MainWindow(QMainWindow):
             self.output_dir_edit.setText(directory)
             self.logger.info(f"Output directory changed to: {directory}")
 
-    def show_config_dialog(self):
-        """Show configuration dialog"""
-        dialog = ConfigDialog(self.config)
-        if dialog.exec_():
-            # Config was updated
-            self.logger.info("Configuration updated")
+    def on_settings_changed(self):
+        """Handle settings changes"""
+        self.settings_modified = True
+        self.status_bar.showMessage("Settings modified. Remember to save your configuration.")
 
     def start_processing(self):
         """Start the video processing"""
@@ -354,6 +401,9 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Processing Active",
                               "Processing is already running. Please wait for it to complete.")
             return
+
+        # Save current settings to config
+        self.save_settings()
 
         # Check if files exist in input directory
         input_files = list(self.config.input_folder.glob('*.mp4'))
@@ -376,13 +426,19 @@ class MainWindow(QMainWindow):
             if reply == QMessageBox.No:
                 return
 
+        # Switch to Home tab
+        self.tab_widget.setCurrentIndex(0)
+
         # Disable controls during processing
         self.input_dir_edit.setEnabled(False)
         self.input_dir_btn.setEnabled(False)
         self.output_dir_edit.setEnabled(False)
         self.output_dir_btn.setEnabled(False)
-        self.config_btn.setEnabled(False)
         self.start_btn.setEnabled(False)
+
+        # Disable settings tabs
+        for i in range(1, self.tab_widget.count()):
+            self.tab_widget.setTabEnabled(i, False)
 
         # Reset progress display
         self.progress_widget.reset()
@@ -418,8 +474,11 @@ class MainWindow(QMainWindow):
         self.input_dir_btn.setEnabled(True)
         self.output_dir_edit.setEnabled(True)
         self.output_dir_btn.setEnabled(True)
-        self.config_btn.setEnabled(True)
         self.start_btn.setEnabled(True)
+
+        # Re-enable settings tabs
+        for i in range(1, self.tab_widget.count()):
+            self.tab_widget.setTabEnabled(i, True)
 
         if success:
             self.logger.info("Processing completed successfully")
