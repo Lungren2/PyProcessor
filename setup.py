@@ -7,6 +7,8 @@ setup(
     install_requires=[
         "PyQt5>=5.15.0",
         "tqdm>=4.60.0",
+        "darkdetect>=0.8.0",
+        "pyqtdarktheme>=2.1.0",
     ],
     entry_points={
         'console_scripts': [

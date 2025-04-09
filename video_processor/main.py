@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QApplication
 
 from video_processor.utils.config import Config
 from video_processor.utils.logging import Logger
+from video_processor.utils.theme_manager import ThemeManager
 from video_processor.processing.file_manager import FileManager
 from video_processor.processing.encoder import FFmpegEncoder
 from video_processor.processing.scheduler import ProcessingScheduler
@@ -196,7 +197,18 @@ def main():
     if args.no_gui:
         return run_cli_mode(config, logger, file_manager, encoder, scheduler)
     else:
-        return show_main_window(config, logger, file_manager, encoder, scheduler)
+        # Create QApplication instance
+        app = QApplication(sys.argv)
+
+        # Initialize and setup theme manager
+        try:
+            theme_manager = ThemeManager(app, logger)
+            theme_manager.setup_theme()
+        except Exception as e:
+            logger.error(f"Failed to initialize theme manager: {str(e)}")
+            theme_manager = None
+
+        return show_main_window(app, config, logger, file_manager, encoder, scheduler, theme_manager)
 
 if __name__ == "__main__":
     sys.exit(main())

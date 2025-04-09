@@ -119,8 +119,8 @@ class FFmpegEncoder:
 
         return cmd
 
-    def encode_video(self, input_file, output_folder):
-        """Encode a video file to HLS format"""
+    def encode_video(self, input_file, output_folder, progress_callback=None):
+        """Encode a video file to HLS format with progress updates"""
         try:
             # Create output directory structure
             output_folder = Path(output_folder)
@@ -136,15 +136,40 @@ class FFmpegEncoder:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                universal_newlines=True
+                universal_newlines=True,
+                bufsize=1  # Line buffered
             )
 
-            # Process stdout and stderr
-            stdout, stderr = self.process.communicate()
+            # Process stderr in real-time to extract progress
+            duration_regex = re.compile(r"Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})")
+            time_regex = re.compile(r"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})")
+            duration_seconds = 0
+
+            # Read and process stderr line by line
+            for line in self.process.stderr:
+                # Extract total duration
+                duration_match = duration_regex.search(line)
+                if duration_match:
+                    h, m, s, ms = map(int, duration_match.groups())
+                    duration_seconds = h * 3600 + m * 60 + s + ms / 100
+                    continue
+
+                # Extract current time
+                time_match = time_regex.search(line)
+                if time_match and duration_seconds > 0 and progress_callback:
+                    h, m, s, ms = map(int, time_match.groups())
+                    current_seconds = h * 3600 + m * 60 + s + ms / 100
+                    progress = min(int((current_seconds / duration_seconds) * 100), 100)
+                    progress_callback(input_file.name, progress)
+
+            # Wait for process to complete
+            self.process.wait()
 
             # Check for errors
             if self.process.returncode != 0:
-                error_message = stderr.strip()
+                error_message = ""
+                for line in self.process.stderr:
+                    error_message += line
                 self.logger.error(f"FFmpeg error encoding {input_file.name}: {error_message}")
                 return False
 
@@ -153,6 +178,10 @@ class FFmpegEncoder:
             if not m3u8_file.exists():
                 self.logger.error(f"Failed to create master playlist for {input_file.name}")
                 return False
+
+            # Ensure we report 100% at the end
+            if progress_callback:
+                progress_callback(input_file.name, 100)
 
             self.logger.info(f"Successfully encoded {input_file.name}")
             return True

@@ -12,6 +12,7 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 - Automatic file organization and renaming
 - Configuration profiles for different encoding scenarios
 - Detailed logging system
+- Dark/light theme that follows system settings
 
 ## Requirements
 
@@ -19,6 +20,11 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 - FFmpeg installed and available in PATH
 - PyQt5 for the graphical interface
 - tqdm for progress display in CLI mode
+
+### Optional Dependencies
+
+- darkdetect for system theme detection
+- pyqtdarktheme for high-quality dark/light themes
 
 ## Installation
 

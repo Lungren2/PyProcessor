@@ -3,7 +3,7 @@ import os
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                            QHBoxLayout, QPushButton, QTabWidget, QLabel,
                            QFileDialog, QMessageBox, QProgressBar, QStatusBar,
-                           QMenu, QAction, QInputDialog)
+                           QMenu, QAction, QInputDialog, QLineEdit)
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize
 from PyQt5.QtGui import QIcon
 from pathlib import Path
@@ -13,7 +13,8 @@ from video_processor.gui.progress_widget import ProcessingProgressWidget
 
 class ProcessingThread(QThread):
     """Background thread for file processing operations"""
-    progress_updated = pyqtSignal(str, int, int)
+    progress_updated = pyqtSignal(str, int, int, int)  # filename, file_progress, current, total
+    output_file_created = pyqtSignal(str, str)  # filename, resolution
     processing_finished = pyqtSignal(bool, str)
 
     def __init__(self, file_manager, encoder, scheduler):
@@ -32,8 +33,14 @@ class ProcessingThread(QThread):
         try:
             # Set progress callback
             self.scheduler.set_progress_callback(
-                lambda filename, current, total:
-                    self.progress_updated.emit(filename, current, total)
+                lambda filename, file_progress, current, total:
+                    self.progress_updated.emit(filename, file_progress, current, total)
+            )
+
+            # Set output file callback
+            self.scheduler.set_output_file_callback(
+                lambda filename, resolution:
+                    self.output_file_created.emit(filename, resolution if resolution else "")
             )
 
             # Step 1: Rename files (if needed)
@@ -58,13 +65,14 @@ class ProcessingThread(QThread):
 class MainWindow(QMainWindow):
     """Main application window"""
 
-    def __init__(self, config, logger, file_manager, encoder, scheduler):
+    def __init__(self, config, logger, file_manager, encoder, scheduler, theme_manager=None):
         super().__init__()
         self.config = config
         self.logger = logger
         self.file_manager = file_manager
         self.encoder = encoder
         self.scheduler = scheduler
+        self.theme_manager = theme_manager
         self.processing_thread = None
 
         self.init_ui()
@@ -84,37 +92,41 @@ class MainWindow(QMainWindow):
         control_layout = QHBoxLayout(control_panel)
 
         # Add directories selection
-        self.input_dir_btn = QPushButton("Select Input Directory")
+        self.input_dir_btn = QPushButton("📁")
         self.input_dir_btn.clicked.connect(self.select_input_directory)
 
-        self.output_dir_btn = QPushButton("Select Output Directory")
+        self.output_dir_btn = QPushButton("📁")
         self.output_dir_btn.clicked.connect(self.select_output_directory)
 
         # Add configuration button
-        self.config_btn = QPushButton("Configure Settings")
+        self.config_btn = QPushButton("Settings ⚙️")
         self.config_btn.clicked.connect(self.show_config_dialog)
 
         # Add start processing button
-        self.start_btn = QPushButton("Start Processing")
+        self.start_btn = QPushButton("Start ▶️")
         self.start_btn.clicked.connect(self.start_processing)
 
         # Add buttons to control panel
-        control_layout.addWidget(self.input_dir_btn)
-        control_layout.addWidget(self.output_dir_btn)
         control_layout.addWidget(self.config_btn)
         control_layout.addWidget(self.start_btn)
 
-        # Add current directory labels
+        # Add directory input fields
         dir_info = QWidget()
         dir_layout = QHBoxLayout(dir_info)
 
         dir_layout.addWidget(QLabel("Input directory:"))
-        self.input_dir_label = QLabel(str(self.config.input_folder))
-        dir_layout.addWidget(self.input_dir_label)
+        self.input_dir_edit = QLineEdit(str(self.config.input_folder))
+        self.input_dir_edit.setMinimumWidth(200)  # Ensure enough space for paths
+        self.input_dir_edit.editingFinished.connect(self.input_path_edited)
+        dir_layout.addWidget(self.input_dir_edit)
+        dir_layout.addWidget(self.input_dir_btn)
 
         dir_layout.addWidget(QLabel("Output directory:"))
-        self.output_dir_label = QLabel(str(self.config.output_folder))
-        dir_layout.addWidget(self.output_dir_label)
+        self.output_dir_edit = QLineEdit(str(self.config.output_folder))
+        self.output_dir_edit.setMinimumWidth(200)  # Ensure enough space for paths
+        self.output_dir_edit.editingFinished.connect(self.output_path_edited)
+        dir_layout.addWidget(self.output_dir_edit)
+        dir_layout.addWidget(self.output_dir_btn)
 
         # Create progress panel
         self.progress_widget = ProcessingProgressWidget()
@@ -169,6 +181,25 @@ class MainWindow(QMainWindow):
         clear_output_action.triggered.connect(self.clear_output_directory)
         tools_menu.addAction(clear_output_action)
 
+        # Add Theme menu if theme manager is available
+        if self.theme_manager:
+            theme_menu = menu_bar.addMenu("Theme")
+
+            # Dark theme action
+            dark_theme_action = QAction("Dark Mode", self)
+            dark_theme_action.triggered.connect(self.theme_manager.set_dark_theme)
+            theme_menu.addAction(dark_theme_action)
+
+            # Light theme action
+            light_theme_action = QAction("Light Mode", self)
+            light_theme_action.triggered.connect(self.theme_manager.set_light_theme)
+            theme_menu.addAction(light_theme_action)
+
+            # System theme action
+            system_theme_action = QAction("Follow System Settings", self)
+            system_theme_action.triggered.connect(self.theme_manager.follow_system)
+            theme_menu.addAction(system_theme_action)
+
     def save_config(self):
         """Save current configuration"""
         profile_name, ok = QInputDialog.getText(
@@ -201,8 +232,8 @@ class MainWindow(QMainWindow):
 
     def update_ui_from_config(self):
         """Update UI elements with current configuration"""
-        self.input_dir_label.setText(str(self.config.input_folder))
-        self.output_dir_label.setText(str(self.config.output_folder))
+        self.input_dir_edit.setText(str(self.config.input_folder))
+        self.output_dir_edit.setText(str(self.config.output_folder))
 
     def view_logs(self):
         """View application logs"""
@@ -236,6 +267,60 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", f"Failed to clear directory: {str(e)}")
                 self.logger.error(f"Failed to clear output directory: {str(e)}")
 
+    def input_path_edited(self):
+        """Handle manual edits to the input directory path"""
+        new_path = self.input_dir_edit.text().strip()
+        if new_path and new_path != str(self.config.input_folder):
+            try:
+                path = Path(new_path)
+                # Create directory if it doesn't exist
+                if not path.exists():
+                    reply = QMessageBox.question(
+                        self, "Directory Not Found",
+                        f"The directory '{new_path}' does not exist. Create it?",
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
+                    )
+                    if reply == QMessageBox.Yes:
+                        path.mkdir(parents=True, exist_ok=True)
+                    else:
+                        # Revert to previous path
+                        self.input_dir_edit.setText(str(self.config.input_folder))
+                        return
+
+                self.config.input_folder = path
+                self.logger.info(f"Input directory changed to: {new_path}")
+            except Exception as e:
+                QMessageBox.warning(self, "Invalid Path", f"Error setting input path: {str(e)}")
+                # Revert to previous path
+                self.input_dir_edit.setText(str(self.config.input_folder))
+
+    def output_path_edited(self):
+        """Handle manual edits to the output directory path"""
+        new_path = self.output_dir_edit.text().strip()
+        if new_path and new_path != str(self.config.output_folder):
+            try:
+                path = Path(new_path)
+                # Create directory if it doesn't exist
+                if not path.exists():
+                    reply = QMessageBox.question(
+                        self, "Directory Not Found",
+                        f"The directory '{new_path}' does not exist. Create it?",
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
+                    )
+                    if reply == QMessageBox.Yes:
+                        path.mkdir(parents=True, exist_ok=True)
+                    else:
+                        # Revert to previous path
+                        self.output_dir_edit.setText(str(self.config.output_folder))
+                        return
+
+                self.config.output_folder = path
+                self.logger.info(f"Output directory changed to: {new_path}")
+            except Exception as e:
+                QMessageBox.warning(self, "Invalid Path", f"Error setting output path: {str(e)}")
+                # Revert to previous path
+                self.output_dir_edit.setText(str(self.config.output_folder))
+
     def select_input_directory(self):
         """Select input directory via dialog"""
         directory = QFileDialog.getExistingDirectory(
@@ -243,7 +328,7 @@ class MainWindow(QMainWindow):
 
         if directory:
             self.config.input_folder = Path(directory)
-            self.input_dir_label.setText(directory)
+            self.input_dir_edit.setText(directory)
             self.logger.info(f"Input directory changed to: {directory}")
 
     def select_output_directory(self):
@@ -253,7 +338,7 @@ class MainWindow(QMainWindow):
 
         if directory:
             self.config.output_folder = Path(directory)
-            self.output_dir_label.setText(directory)
+            self.output_dir_edit.setText(directory)
             self.logger.info(f"Output directory changed to: {directory}")
 
     def show_config_dialog(self):
@@ -292,7 +377,9 @@ class MainWindow(QMainWindow):
                 return
 
         # Disable controls during processing
+        self.input_dir_edit.setEnabled(False)
         self.input_dir_btn.setEnabled(False)
+        self.output_dir_edit.setEnabled(False)
         self.output_dir_btn.setEnabled(False)
         self.config_btn.setEnabled(False)
         self.start_btn.setEnabled(False)
@@ -306,6 +393,7 @@ class MainWindow(QMainWindow):
 
         # Connect signals
         self.processing_thread.progress_updated.connect(self.update_progress)
+        self.processing_thread.output_file_created.connect(self.output_file_created)
         self.processing_thread.processing_finished.connect(self.processing_finished)
 
         # Start processing
@@ -313,16 +401,22 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage("Processing videos...")
         self.processing_thread.start()
 
-    def update_progress(self, filename, current, total):
+    def update_progress(self, filename, file_progress, current, total):
         """Update progress display"""
-        self.progress_widget.update_file_progress(filename, 100)  # File is complete
+        self.progress_widget.update_file_progress(filename, file_progress)
         self.progress_widget.update_overall_progress(current, total)
-        self.status_bar.showMessage(f"Processing: {current} of {total} complete")
+        self.status_bar.showMessage(f"Processing: {current} of {total} complete - Current file: {file_progress}%")
+
+    def output_file_created(self, filename, resolution):
+        """Add an output file to the log"""
+        self.progress_widget.add_output_file(filename, resolution if resolution else None)
 
     def processing_finished(self, success, message):
         """Handle processing completion"""
         # Re-enable controls
+        self.input_dir_edit.setEnabled(True)
         self.input_dir_btn.setEnabled(True)
+        self.output_dir_edit.setEnabled(True)
         self.output_dir_btn.setEnabled(True)
         self.config_btn.setEnabled(True)
         self.start_btn.setEnabled(True)
@@ -336,9 +430,21 @@ class MainWindow(QMainWindow):
 
         self.status_bar.showMessage(message)
 
-def show_main_window(config, logger, file_manager, encoder, scheduler):
-    """Display the main application window"""
-    app = QApplication(sys.argv)
-    window = MainWindow(config, logger, file_manager, encoder, scheduler)
+def show_main_window(app, config, logger, file_manager, encoder, scheduler, theme_manager=None):
+    """Display the main application window
+
+    Args:
+        app: QApplication instance
+        config: Configuration instance
+        logger: Logger instance
+        file_manager: FileManager instance
+        encoder: Encoder instance
+        scheduler: Scheduler instance
+        theme_manager: ThemeManager instance for handling UI themes
+
+    Returns:
+        Application exit code
+    """
+    window = MainWindow(config, logger, file_manager, encoder, scheduler, theme_manager)
     window.show()
     return app.exec_()

@@ -4,8 +4,16 @@ from concurrent.futures import ProcessPoolExecutor
 from threading import Lock
 from pathlib import Path
 
+# Multiprocessing queue for progress updates
+from multiprocessing import Queue, Manager
+import re
+
+# Global queues that will be shared between processes
+progress_queue = None
+output_files_queue = None
+
 # Standalone function for multiprocessing that doesn't require encoder or logger
-def process_video_task(file_path, output_folder_path, ffmpeg_params):
+def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=None):
     """Process a single video file - standalone function for multiprocessing"""
     # Convert string paths to Path objects
     file = Path(file_path)
@@ -18,6 +26,7 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params):
     output_subfolder.mkdir(parents=True, exist_ok=True)
 
     start_time = time.time()
+    global progress_queue
 
     try:
         # Build FFmpeg command directly here
@@ -93,20 +102,77 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            universal_newlines=True
+            universal_newlines=True,
+            bufsize=1  # Line buffered
         )
 
-        # Process stdout and stderr
-        _, stderr = process.communicate()
+        # Process stderr in real-time to extract progress
+        duration_regex = re.compile(r"Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})")
+        time_regex = re.compile(r"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})")
+        duration_seconds = 0
+
+        # Read and process stderr line by line
+        for line in process.stderr:
+            # Extract total duration
+            duration_match = duration_regex.search(line)
+            if duration_match:
+                h, m, s, ms = map(int, duration_match.groups())
+                duration_seconds = h * 3600 + m * 60 + s + ms / 100
+                continue
+
+            # Extract current time
+            time_match = time_regex.search(line)
+            if time_match and duration_seconds > 0 and progress_queue is not None:
+                h, m, s, ms = map(int, time_match.groups())
+                current_seconds = h * 3600 + m * 60 + s + ms / 100
+                progress = min(int((current_seconds / duration_seconds) * 100), 100)
+                # Put progress update in the queue
+                if task_id is not None:
+                    progress_queue.put((task_id, file.name, progress))
+
+        # Wait for process to complete
+        process.wait()
 
         # Check for errors
         if process.returncode != 0:
-            return (file.name, False, time.time() - start_time, stderr.strip())
+            error_message = ""
+            for line in process.stderr:
+                error_message += line
+            return (file.name, False, time.time() - start_time, error_message.strip())
 
         # Check if output files were created
         m3u8_file = output_subfolder / "master.m3u8"
         if not m3u8_file.exists():
             return (file.name, False, time.time() - start_time, "Failed to create master playlist")
+
+        # Log created files
+        global output_files_queue
+        if output_files_queue is not None and task_id is not None:
+            # Log master playlist
+            output_files_queue.put((task_id, "master.m3u8", None))
+
+            # Log variant playlists and segments
+            resolutions = ["1080p", "720p", "480p", "360p"]
+            for res in resolutions:
+                variant_dir = output_subfolder / res
+                if variant_dir.exists():
+                    # Log playlist
+                    playlist_file = f"{res}/playlist.m3u8"
+                    output_files_queue.put((task_id, playlist_file, res))
+
+                    # Log a few segments (not all to avoid cluttering)
+                    segments = list(variant_dir.glob("segment_*.ts"))
+                    for i, segment in enumerate(segments[:3]):  # Log first 3 segments
+                        segment_file = f"{res}/{segment.name}"
+                        output_files_queue.put((task_id, segment_file, res))
+
+                    # If there are more segments, log a summary
+                    if len(segments) > 3:
+                        output_files_queue.put((task_id, f"... and {len(segments)-3} more segments", res))
+
+        # Ensure we report 100% at the end
+        if progress_queue is not None and task_id is not None:
+            progress_queue.put((task_id, file.name, 100))
 
         return (file.name, True, time.time() - start_time, None)
 
@@ -141,12 +207,77 @@ class ProcessingScheduler:
         self.processed_count = 0
         self.total_files = 0
         self.progress_callback = None
+        self.output_file_callback = None
         self.is_running = False
         self.abort_requested = False
 
     def set_progress_callback(self, callback):
         """Set a callback function for progress updates"""
         self.progress_callback = callback
+
+    def set_output_file_callback(self, callback):
+        """Set a callback function for output file notifications"""
+        self.output_file_callback = callback
+
+    def _monitor_progress_queue(self):
+        """Monitor the progress queue for file-level progress updates"""
+        global progress_queue
+
+        # Keep track of the current progress for each task
+        file_progress = {}
+
+        while self.is_running and progress_queue is not None:
+            try:
+                # Non-blocking get with timeout
+                try:
+                    task_id, filename, progress = progress_queue.get(timeout=0.1)
+
+                    # Store the progress for this task
+                    file_progress[task_id] = (filename, progress)
+
+                    # Call the progress callback with file-level progress
+                    if self.progress_callback:
+                        self.progress_callback(filename, progress, self.processed_count, self.total_files)
+
+                except Exception:
+                    # Queue.Empty or other exception, just continue
+                    pass
+
+            except Exception as e:
+                # Log any other errors but keep the thread running
+                if hasattr(self, 'logger'):
+                    self.logger.error(f"Error in progress monitor: {str(e)}")
+
+            # Small sleep to prevent CPU spinning
+            import time
+            time.sleep(0.01)
+
+    def _monitor_output_files_queue(self):
+        """Monitor the output files queue for file creation notifications"""
+        global output_files_queue
+
+        while self.is_running and output_files_queue is not None:
+            try:
+                # Non-blocking get with timeout
+                try:
+                    task_id, filename, resolution = output_files_queue.get(timeout=0.1)
+
+                    # Call the output file callback
+                    if self.output_file_callback:
+                        self.output_file_callback(filename, resolution)
+
+                except Exception:
+                    # Queue.Empty or other exception, just continue
+                    pass
+
+            except Exception as e:
+                # Log any other errors but keep the thread running
+                if hasattr(self, 'logger'):
+                    self.logger.error(f"Error in output files monitor: {str(e)}")
+
+            # Small sleep to prevent CPU spinning
+            import time
+            time.sleep(0.01)
 
     def request_abort(self):
         """Request abortion of the processing"""
@@ -182,20 +313,41 @@ class ProcessingScheduler:
 
             processing_start = time.time()
 
-            # We'll pass serializable parameters to the worker function
-            # No need for partial function anymore
+            # Create a manager for sharing queues between processes
+            global progress_queue, output_files_queue
+            manager = Manager()
+            progress_queue = manager.Queue()
+            output_files_queue = manager.Queue()
+
+            # Create threads to monitor the queues
+            import threading
+
+            # Thread for progress updates
+            progress_thread = threading.Thread(
+                target=self._monitor_progress_queue,
+                daemon=True
+            )
+            progress_thread.start()
+
+            # Thread for output file notifications
+            output_files_thread = threading.Thread(
+                target=self._monitor_output_files_queue,
+                daemon=True
+            )
+            output_files_thread.start()
 
             # Process files in parallel using ProcessPoolExecutor
             with ProcessPoolExecutor(max_workers=self.config.max_parallel_jobs) as executor:
                 # Submit all tasks
                 futures = []
-                for file in valid_files:
+                for i, file in enumerate(valid_files):
                     # Pass serializable parameters to the worker function
                     future = executor.submit(
                         process_video_task,
                         str(file),  # Convert Path to string for pickling
                         str(self.config.output_folder),
-                        self.config.ffmpeg_params
+                        self.config.ffmpeg_params,
+                        i  # Task ID for progress tracking
                     )
                     futures.append(future)
 
@@ -218,9 +370,10 @@ class ProcessingScheduler:
                             self.processed_count += 1
                             current = self.processed_count
 
-                        # Call progress callback if set
+                        # Call progress callback if set - this is for overall progress
+                        # File-level progress is handled by the progress_queue thread
                         if self.progress_callback:
-                            self.progress_callback(filename, current, self.total_files)
+                            self.progress_callback(filename, 100, current, self.total_files)
 
                         if success:
                             self.logger.info(f"Completed processing: {filename} ({duration:.2f}s)")
@@ -235,6 +388,11 @@ class ProcessingScheduler:
                     except Exception as e:
                         self.logger.error(f"Error in processing task: {str(e)}")
                         failed_count += 1
+
+            # Clean up the queues
+            # global progress_queue, output_files_queue
+            progress_queue = None
+            output_files_queue = None
 
             # Calculate statistics
             processing_duration = time.time() - processing_start
