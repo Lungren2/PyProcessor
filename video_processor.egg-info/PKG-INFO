@@ -6,11 +6,15 @@ Author: Ethan Ogle
 Author-email: ethanogle012@outlook.com
 Keywords: video,encoding,ffmpeg,hls
 Requires-Python: >=3.6
+License-File: LICENSE
 Requires-Dist: PyQt5>=5.15.0
 Requires-Dist: tqdm>=4.60.0
+Requires-Dist: darkdetect>=0.8.0
+Requires-Dist: pyqtdarktheme>=2.1.0
 Dynamic: author
 Dynamic: author-email
 Dynamic: keywords
+Dynamic: license-file
 Dynamic: requires-dist
 Dynamic: requires-python
 Dynamic: summary
