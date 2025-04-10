@@ -148,6 +148,7 @@ For detailed information about development, please refer to the documentation in
 - [Development Workflow](docs/DEVELOPMENT_WORKFLOW.md) - Recommended development process
 - [Logging System](docs/LOGGING.md) - Details about the logging system
 - [FFmpeg Integration](docs/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
+- [Packaging](docs/PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
 
 ### Running Tests
 

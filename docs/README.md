@@ -19,6 +19,7 @@ Welcome to the Video Processor documentation. This directory contains comprehens
 - [Logging System](LOGGING.md) - Details about the logging system
 - [FFmpeg Integration](FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
 - [Theme Support](THEME_SUPPORT.md) - Information about dark/light theme support
+- [Packaging](PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
 
 ## Additional Resources
 

@@ -31,6 +31,17 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+build/
+dist/
+
+# FFmpeg temporary files
+ffmpeg_temp/
+ffmpeg.zip
+ffmpeg.7z
+
+# Batch files and scripts (except the main run script)
+*.bat
+!run_pyprocessor.bat
 
 # logs and profiles - keep directories but ignore contents
 logs/*
@@ -38,6 +49,7 @@ logs/*
 profiles/*
 !profiles/.gitkeep
 .pyc
+.exe
 
 # Installer logs
 pip-log.txt
@@ -174,8 +186,26 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# Visual Studio Code
+.vscode/
+.history/
+*.code-workspace
+
 # Ruff stuff:
 .ruff_cache/
 
 # PyPI configuration file
 .pypirc
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# OS specific files
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini

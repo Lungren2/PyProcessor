@@ -8,6 +8,8 @@ from pathlib import Path
 from multiprocessing import Queue, Manager
 import re
 
+from video_processor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
+
 # Global queues that will be shared between processes
 progress_queue = None
 output_files_queue = None
@@ -46,7 +48,8 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
         filter_complex = "[0:v]split=4[v1][v2][v3][v4];[v1]scale=1920:1080[v1out];[v2]scale=1280:720[v2out];[v3]scale=854:480[v3out];[v4]scale=640:360[v4out]"
 
         # Build FFmpeg command
-        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "info", "-stats",
+        ffmpeg_path = get_ffmpeg_path()
+        cmd = [ffmpeg_path, "-hide_banner", "-loglevel", "info", "-stats",
                "-i", str(file), "-filter_complex", filter_complex]
 
         # Video streams for all resolutions
@@ -183,8 +186,9 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
 def check_for_audio(file_path):
     """Check if the video file has audio streams"""
     try:
+        ffprobe_path = get_ffprobe_path()
         result = subprocess.run(
-            ["ffprobe", "-i", str(file_path), "-show_streams",
+            [ffprobe_path, "-i", str(file_path), "-show_streams",
              "-select_streams", "a", "-loglevel", "error"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

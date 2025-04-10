@@ -8,9 +8,21 @@ The Video Processor uses FFmpeg as its core engine for video encoding and proces
 
 ## FFmpeg Requirements
 
+### External FFmpeg (Default Mode)
+
 - FFmpeg must be installed on the system and available in the PATH
 - Minimum recommended version: FFmpeg 4.0 or higher
 - For hardware acceleration, appropriate drivers must be installed
+
+### Bundled FFmpeg (Packaged Mode)
+
+The application can also be packaged with FFmpeg binaries included, eliminating the need for users to install FFmpeg separately. In this mode:
+
+- No external FFmpeg installation is required
+- FFmpeg binaries are included in the application package
+- The application automatically uses the bundled FFmpeg
+
+See [Packaging](PACKAGING.md) for details on how to bundle FFmpeg with the application.
 
 ## FFmpeg Wrapper
 
@@ -67,21 +79,21 @@ def build_command(self, input_file, output_folder):
     """Build FFmpeg command for HLS encoding with audio option"""
     # Check for audio streams and respect the include_audio setting
     has_audio = self.has_audio(input_file) and self.config.ffmpeg_params.get("include_audio", True)
-    
+
     # Calculate buffer sizes
     bitrates = self.config.ffmpeg_params["bitrates"]
     bufsizes = {}
     for res, bitrate in bitrates.items():
         bufsize_value = int(bitrate.rstrip('k')) * 2
         bufsizes[res] = f"{bufsize_value}k"
-    
+
     # Build filter complex string
     filter_complex = "[0:v]split=4[v1][v2][v3][v4];[v1]scale=1920:1080[v1out];[v2]scale=1280:720[v2out];[v3]scale=854:480[v3out];[v4]scale=640:360[v4out]"
-    
+
     # Build FFmpeg command
-    cmd = ["ffmpeg", "-hide_banner", "-loglevel", "info", "-stats", 
+    cmd = ["ffmpeg", "-hide_banner", "-loglevel", "info", "-stats",
            "-i", str(input_file), "-filter_complex", filter_complex]
-    
+
     # Add video and audio mapping
     # ...
 ```
@@ -97,29 +109,29 @@ def encode_video(self, input_file, output_folder):
         # Create output directory structure
         output_folder = Path(output_folder)
         output_folder.mkdir(parents=True, exist_ok=True)
-        
+
         # Build command
         cmd = self.build_command(input_file, output_folder)
         self.logger.debug(f"Executing: {' '.join(cmd)}")
-        
+
         # Execute FFmpeg
         self.process = subprocess.Popen(
-            cmd, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE, 
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             universal_newlines=True
         )
-        
+
         # Process stdout and stderr
         stdout, stderr = self.process.communicate()
-        
+
         # Check for errors
         if self.process.returncode != 0:
             error_message = stderr.strip()
             self.logger.error(f"FFmpeg error encoding {input_file.name}: {error_message}")
             return False
-        
+
         # Verify output
         # ...
 ```
@@ -172,7 +184,7 @@ Example for adding DASH support:
 def build_dash_command(self, input_file, output_folder):
     """Build FFmpeg command for DASH encoding"""
     # Implementation
-    
+
 def encode_video(self, input_file, output_folder):
     """Encode a video file to the selected format"""
     if self.config.ffmpeg_params.get("format") == "dash":
