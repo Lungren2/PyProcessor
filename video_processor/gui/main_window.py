@@ -9,7 +9,8 @@ from PyQt5.QtGui import QIcon
 from pathlib import Path
 
 from video_processor.gui.settings_widgets import (
-    EncodingSettingsWidget, ProcessingSettingsWidget, AdvancedSettingsWidget
+    EncodingSettingsWidget, ProcessingSettingsWidget, AdvancedSettingsWidget,
+    ServerOptimizationWidget
 )
 from video_processor.gui.progress_widget import ProcessingProgressWidget
 
@@ -76,6 +77,7 @@ class MainWindow(QMainWindow):
         self.scheduler = scheduler
         self.theme_manager = theme_manager
         self.processing_thread = None
+        self.server_optimization_in_progress = False
 
         self.init_ui()
 
@@ -148,17 +150,24 @@ class MainWindow(QMainWindow):
         self.encoding_widget = EncodingSettingsWidget(self.config)
         self.processing_widget = ProcessingSettingsWidget(self.config)
         self.advanced_widget = AdvancedSettingsWidget(self.config)
+        self.server_widget = ServerOptimizationWidget(self.config, self.logger)
 
         # Connect settings change signals
         self.encoding_widget.settings_changed.connect(self.on_settings_changed)
         self.processing_widget.settings_changed.connect(self.on_settings_changed)
         self.advanced_widget.settings_changed.connect(self.on_settings_changed)
+        self.server_widget.settings_changed.connect(self.on_settings_changed)
+
+        # Connect server optimization signals
+        self.server_widget.optimization_started.connect(self.on_server_optimization_started)
+        self.server_widget.optimization_finished.connect(self.on_server_optimization_finished)
 
         # Add tabs to tab widget
         self.tab_widget.addTab(home_tab, "Home")
         self.tab_widget.addTab(self.encoding_widget, "Encoding Settings")
         self.tab_widget.addTab(self.processing_widget, "Processing Settings")
         self.tab_widget.addTab(self.advanced_widget, "Advanced Settings")
+        self.tab_widget.addTab(self.server_widget, "Server Optimization")
 
         # Add tab widget to main layout
         main_layout.addWidget(self.tab_widget)
@@ -236,6 +245,7 @@ class MainWindow(QMainWindow):
         self.encoding_widget.save_to_config()
         self.processing_widget.save_to_config()
         self.advanced_widget.save_to_config()
+        self.server_widget.save_to_config()
         self.settings_modified = False
         self.status_bar.showMessage("Settings applied")
 
@@ -281,6 +291,7 @@ class MainWindow(QMainWindow):
         self.encoding_widget.load_config_values()
         self.processing_widget.load_config_values()
         self.advanced_widget.load_config_values()
+        self.server_widget.load_config_values()
 
         self.settings_modified = False
 
@@ -395,11 +406,44 @@ class MainWindow(QMainWindow):
         self.settings_modified = True
         self.status_bar.showMessage("Settings modified. Remember to save your configuration.")
 
+    def on_server_optimization_started(self):
+        """Handle server optimization started signal"""
+        self.server_optimization_in_progress = True
+        self.status_bar.showMessage("Server optimization in progress...")
+
+        # Disable tabs during optimization
+        self.tab_widget.setTabEnabled(0, False)  # Home
+        self.tab_widget.setTabEnabled(1, False)  # Encoding Settings
+        self.tab_widget.setTabEnabled(2, False)  # Processing Settings
+        self.tab_widget.setTabEnabled(3, False)  # Advanced Settings
+
+    def on_server_optimization_finished(self, success, message):
+        """Handle server optimization finished signal"""
+        self.server_optimization_in_progress = False
+
+        # Re-enable tabs
+        self.tab_widget.setTabEnabled(0, True)  # Home
+        self.tab_widget.setTabEnabled(1, True)  # Encoding Settings
+        self.tab_widget.setTabEnabled(2, True)  # Processing Settings
+        self.tab_widget.setTabEnabled(3, True)  # Advanced Settings
+
+        # Update status bar
+        if success:
+            self.status_bar.showMessage(f"Server optimization completed: {message}")
+        else:
+            self.status_bar.showMessage(f"Server optimization failed: {message}")
+
     def start_processing(self):
         """Start the video processing"""
         if self.processing_thread and self.processing_thread.is_running:
             QMessageBox.warning(self, "Processing Active",
                               "Processing is already running. Please wait for it to complete.")
+            return
+
+        # Check if server optimization is in progress
+        if self.server_optimization_in_progress:
+            QMessageBox.warning(self, "Server Optimization in Progress",
+                              "Server optimization is in progress. Please wait until it completes.")
             return
 
         # Save current settings to config
@@ -488,6 +532,48 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Processing Failed", message)
 
         self.status_bar.showMessage(message)
+
+    def closeEvent(self, event):
+        """Handle window close event"""
+        # Check if processing is running
+        if self.processing_thread and self.processing_thread.is_running:
+            reply = QMessageBox.question(
+                self, "Confirm Exit",
+                "Processing is still running. Are you sure you want to exit?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                event.ignore()
+                return
+
+        # Check if server optimization is in progress
+        if self.server_optimization_in_progress:
+            reply = QMessageBox.question(
+                self, "Confirm Exit",
+                "Server optimization is in progress. Are you sure you want to exit?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                event.ignore()
+                return
+
+        # Check for unsaved changes
+        if self.settings_modified:
+            reply = QMessageBox.question(
+                self, "Unsaved Changes",
+                "You have unsaved changes. Do you want to save before exiting?",
+                QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
+                QMessageBox.Save
+            )
+            if reply == QMessageBox.Save:
+                self.save_settings()
+                self.config.save()
+            elif reply == QMessageBox.Cancel:
+                event.ignore()
+                return
+
+        # Accept the event and close
+        event.accept()
 
 def show_main_window(app, config, logger, file_manager, encoder, scheduler, theme_manager=None):
     """Display the main application window

@@ -13,6 +13,7 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 - Configuration profiles for different encoding scenarios
 - Detailed logging system
 - Dark/light theme that follows system settings
+- Server optimization for IIS, Nginx, and Linux systems
 
 ## Requirements
 
@@ -57,11 +58,13 @@ video_processor/
 │   └── scheduler.py        # Parallelism management
 ├── utils/                  # Utility functions
 │   ├── config.py           # Configuration handling
-│   └── logging.py          # Logging system
+│   ├── logging.py          # Logging system
+│   └── server_optimizer.py # Server optimization utilities
 ├── resources/              # Application resources
 │   └── defaults.json       # Default configuration values
 ├── profiles/               # Configuration profiles directory
-└── logs/                   # Log files directory
+├── logs/                   # Log files directory
+└── optimization-utils/     # Server optimization scripts
 ```
 
 ## Usage
@@ -103,6 +106,17 @@ Available command-line options:
 --jobs NUMBER        Number of parallel encoding jobs
 --no-gui             Run without GUI
 --verbose            Enable verbose logging
+
+# Server Optimization Options
+--optimize-server    Server type to optimize (iis, nginx, linux)
+--site-name          IIS site name (for IIS optimization)
+--video-path         Path to video content directory (for IIS)
+--enable-http2       Enable HTTP/2 protocol (for IIS)
+--enable-cors        Enable CORS headers (for IIS)
+--cors-origin        CORS origin value (for IIS)
+--output-config      Output path for server configuration (for Nginx)
+--server-name        Server name for configuration (for Nginx)
+--apply-changes      Apply changes directly (for Linux)
 ```
 
 ## Configuration
@@ -129,6 +143,10 @@ The application uses a configuration system that supports:
   - Maximum parallel jobs
   - Auto-rename files
   - Auto-organize folders
+- **Server Optimization**:
+  - Server type (IIS, Nginx, Linux)
+  - Server-specific configuration options
+  - Network and performance optimizations
 
 ### Configuration Files
 
@@ -149,6 +167,7 @@ For detailed information about development, please refer to the documentation in
 - [Logging System](docs/LOGGING.md) - Details about the logging system
 - [FFmpeg Integration](docs/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
 - [Packaging](docs/PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
+- [Server Optimization](docs/SERVER_OPTIMIZATION.md) - Prerequisites and details for server optimization
 
 ### Running Tests
 

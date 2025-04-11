@@ -70,6 +70,27 @@ def parse_args():
     parser.add_argument("--verbose", action="store_true",
                        help="Enable verbose logging")
 
+    # Server optimization options
+    server_group = parser.add_argument_group('Server Optimization')
+    server_group.add_argument("--optimize-server", choices=["iis", "nginx", "linux"],
+                       help="Optimize server for video streaming")
+    server_group.add_argument("--site-name", default="Default Web Site",
+                       help="IIS site name (for --optimize-server=iis)")
+    server_group.add_argument("--video-path",
+                       help="Path to video content directory (for --optimize-server=iis)")
+    server_group.add_argument("--enable-http2", action="store_true", default=True,
+                       help="Enable HTTP/2 protocol (for --optimize-server=iis)")
+    server_group.add_argument("--enable-cors", action="store_true", default=True,
+                       help="Enable CORS headers (for --optimize-server=iis)")
+    server_group.add_argument("--cors-origin", default="*",
+                       help="CORS origin value (for --optimize-server=iis)")
+    server_group.add_argument("--output-config",
+                       help="Output path for server configuration (for --optimize-server=nginx)")
+    server_group.add_argument("--server-name", default="yourdomain.com",
+                       help="Server name for configuration (for --optimize-server=nginx)")
+    server_group.add_argument("--apply-changes", action="store_true",
+                       help="Apply changes directly (for --optimize-server=linux)")
+
     return parser.parse_args()
 
 def apply_args_to_config(args, config):
@@ -98,10 +119,88 @@ def apply_args_to_config(args, config):
     if args.jobs:
         config.max_parallel_jobs = max(1, args.jobs)
 
+    # Apply server optimization options
+    if args.optimize_server:
+        config.server_optimization["enabled"] = True
+        config.server_optimization["server_type"] = args.optimize_server
+
+        # IIS options
+        if args.optimize_server == "iis":
+            if args.site_name:
+                config.server_optimization["iis"]["site_name"] = args.site_name
+            if args.video_path:
+                config.server_optimization["iis"]["video_path"] = args.video_path
+            if args.enable_http2 is not None:
+                config.server_optimization["iis"]["enable_http2"] = args.enable_http2
+            if args.enable_cors is not None:
+                config.server_optimization["iis"]["enable_cors"] = args.enable_cors
+            if args.cors_origin:
+                config.server_optimization["iis"]["cors_origin"] = args.cors_origin
+
+        # Nginx options
+        elif args.optimize_server == "nginx":
+            if args.output_config:
+                config.server_optimization["nginx"]["output_path"] = args.output_config
+            if args.server_name:
+                config.server_optimization["nginx"]["server_name"] = args.server_name
+
+        # Linux options
+        elif args.optimize_server == "linux":
+            if args.apply_changes is not None:
+                config.server_optimization["linux"]["apply_changes"] = args.apply_changes
+
 def run_cli_mode(config, logger, file_manager, encoder, scheduler):
     """Run in command-line mode"""
     try:
         logger.info("Running in command-line mode")
+
+        # Check if server optimization is requested
+        if config.server_optimization.get("enabled", False):
+            from video_processor.utils.server_optimizer import ServerOptimizer
+            server_optimizer = ServerOptimizer(config, logger)
+
+            server_type = config.server_optimization["server_type"]
+            logger.info(f"Running server optimization for {server_type}")
+
+            success = False
+            message = ""
+            script_path = None
+
+            try:
+                if server_type == "iis":
+                    iis_config = config.server_optimization["iis"]
+                    success, message = server_optimizer.optimize_iis(
+                        site_name=iis_config["site_name"],
+                        video_path=iis_config["video_path"],
+                        enable_http2=iis_config["enable_http2"],
+                        enable_cors=iis_config["enable_cors"],
+                        cors_origin=iis_config["cors_origin"]
+                    )
+                elif server_type == "nginx":
+                    nginx_config = config.server_optimization["nginx"]
+                    success, message = server_optimizer.optimize_nginx(
+                        output_path=nginx_config["output_path"],
+                        server_name=nginx_config["server_name"],
+                        ssl_enabled=nginx_config.get("ssl_enabled", True)
+                    )
+                elif server_type == "linux":
+                    linux_config = config.server_optimization["linux"]
+                    success, message, script_path = server_optimizer.optimize_linux(
+                        apply_changes=linux_config["apply_changes"]
+                    )
+            except Exception as e:
+                success = False
+                message = f"Error during server optimization: {str(e)}"
+                logger.error(message)
+
+            if success:
+                logger.info(f"Server optimization successful: {message}")
+                if script_path:
+                    logger.info(f"Generated script at: {script_path}")
+                return 0
+            else:
+                logger.error(f"Server optimization failed: {message}")
+                return 1
 
         # Validate input/output directories
         if not config.input_folder.exists():

@@ -41,6 +41,27 @@ class Config:
         self.file_validation_pattern = r"^\d+-\d+\.mp4$"
         self.folder_organization_pattern = r"^(\d+)-\d+"
 
+        # Server optimization settings
+        self.server_optimization = {
+            "enabled": False,
+            "server_type": "iis",  # Options: iis, nginx, linux
+            "iis": {
+                "site_name": "Default Web Site",
+                "video_path": str(self.output_folder),
+                "enable_http2": True,
+                "enable_cors": True,
+                "cors_origin": "*"
+            },
+            "nginx": {
+                "output_path": str(self.output_folder / "nginx.conf"),
+                "server_name": "yourdomain.com",
+                "ssl_enabled": True
+            },
+            "linux": {
+                "apply_changes": False
+            }
+        }
+
         # Create directories if they don't exist
         self._ensure_directories()
 
@@ -87,6 +108,7 @@ class Config:
                 "file_validation_pattern": self.file_validation_pattern,
                 "folder_organization_pattern": self.folder_organization_pattern,
                 "last_used_profile": self.last_used_profile,
+                "server_optimization": self.server_optimization,
                 "saved_at": datetime.datetime.now().isoformat()
             }
 
@@ -169,6 +191,10 @@ class Config:
                 if "last_used_profile" in config_dict:
                     self.last_used_profile = config_dict["last_used_profile"]
 
+                # Load server optimization settings
+                if "server_optimization" in config_dict:
+                    self.server_optimization.update(config_dict["server_optimization"])
+
             return True
         except Exception as e:
             print(f"Error loading config: {str(e)}")
@@ -247,5 +273,28 @@ class Config:
             self.file_rename_pattern = r".*?(\d+-\d+).*?\.mp4$"
             self.file_validation_pattern = r"^\d+-\d+\.mp4$"
             self.folder_organization_pattern = r"^(\d+)-\d+"
+
+        # Validate server optimization settings
+        if not isinstance(self.server_optimization, dict):
+            warnings.append("Invalid server optimization settings. Using defaults.")
+            self.server_optimization = {
+                "enabled": False,
+                "server_type": "iis",
+                "iis": {
+                    "site_name": "Default Web Site",
+                    "video_path": str(self.output_folder),
+                    "enable_http2": True,
+                    "enable_cors": True,
+                    "cors_origin": "*"
+                },
+                "nginx": {
+                    "output_path": str(self.output_folder / "nginx.conf"),
+                    "server_name": "yourdomain.com",
+                    "ssl_enabled": True
+                },
+                "linux": {
+                    "apply_changes": False
+                }
+            }
 
         return errors, warnings
