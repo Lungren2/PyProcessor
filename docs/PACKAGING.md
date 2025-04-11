@@ -6,14 +6,17 @@ This document explains how to package the PyProcessor application into a standal
 
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
-- [Bundling FFmpeg](#bundling-ffmpeg)
-- [Creating the Executable](#creating-the-executable)
+- [Automated Build Process](#automated-build-process)
+- [Manual Build Process](#manual-build-process)
+  - [Bundling FFmpeg](#bundling-ffmpeg)
+  - [Creating the Executable](#creating-the-executable)
+  - [Creating an Installer](#creating-an-installer)
 - [Distribution](#distribution)
 - [Troubleshooting](#troubleshooting)
 
 ## Overview
 
-PyProcessor can be packaged into a standalone executable using PyInstaller. This process bundles all necessary Python dependencies and can include FFmpeg binaries, eliminating the need for users to install FFmpeg separately.
+PyProcessor can be packaged into a standalone executable using PyInstaller. This process bundles all necessary Python dependencies and includes FFmpeg binaries, eliminating the need for users to install FFmpeg separately. The packaged application can then be distributed as a standalone executable or as an installer created with NSIS (Nullsoft Scriptable Install System).
 
 ## Prerequisites
 
@@ -22,7 +25,33 @@ Before packaging the application, ensure you have:
 - Python 3.6 or higher installed
 - All required dependencies installed (`pip install -e .`)
 - PyInstaller installed (`pip install pyinstaller`)
+- NSIS installed (for creating the installer) - Download from [nsis.sourceforge.io/Download](https://nsis.sourceforge.io/Download)
 - Internet connection to download FFmpeg binaries (if not already downloaded)
+
+## Automated Build Process
+
+The easiest way to build and package PyProcessor is to use the provided build script, which automates the entire process:
+
+```bash
+python scripts/build_package.py
+```
+
+This script will:
+
+1. Check for required dependencies (PyInstaller, NSIS)
+2. Download and extract FFmpeg binaries
+3. Create the PyInstaller executable
+4. Package the executable using NSIS
+
+You can customize the build process with the following options:
+
+```bash
+python scripts/build_package.py --skip-ffmpeg     # Skip downloading FFmpeg
+python scripts/build_package.py --skip-pyinstaller # Skip PyInstaller build
+python scripts/build_package.py --skip-nsis        # Skip NSIS packaging
+```
+
+## Manual Build Process
 
 ## Bundling FFmpeg
 
@@ -266,11 +295,35 @@ python -m PyInstaller --clean pyprocessor.spec
 
 The executable will be created in the `dist/PyProcessor` directory.
 
+## Creating an Installer
+
+After creating the executable with PyInstaller, you can create an installer using NSIS (Nullsoft Scriptable Install System).
+
+### 1. Install NSIS
+
+Download and install NSIS from [nsis.sourceforge.io/Download](https://nsis.sourceforge.io/Download).
+
+### 2. Create a License File
+
+Create a `license.txt` file in the project root directory. This file will be displayed during the installation process.
+
+### 3. Build the Installer
+
+Run the NSIS compiler with the provided installer script:
+
+```powershell
+"C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+```
+
+This will create a `PyProcessorInstaller.exe` file in the project root directory.
+
+For more details on the NSIS installer script and customization options, see [NSIS_PACKAGING.md](NSIS_PACKAGING.md).
+
 ## Distribution
 
-### 1. Create a Batch File for Easy Launching
+### 1. Create a Batch File for Easy Launching (Optional)
 
-Create a batch file (run_pyprocessor.bat) to help users launch the application:
+If distributing without an installer, create a batch file (run_pyprocessor.bat) to help users launch the application:
 
 ```batch
 @echo off
@@ -280,11 +333,11 @@ start "" "%~dp0PyProcessor\PyProcessor.exe"
 
 ### 2. Package the Application
 
-The entire `dist` folder can be distributed to users. Options for distribution include:
+Options for distribution include:
 
-- ZIP archive
-- Self-extracting archive
-- Installer created with tools like NSIS or Inno Setup
+- NSIS Installer (recommended) - Created using the process described above
+- ZIP archive - Compress the entire `dist` folder
+- Self-extracting archive - Create using tools like 7-Zip SFX
 
 ### 3. Documentation
 
@@ -317,4 +370,4 @@ For debugging packaging issues:
 
 ## Conclusion
 
-By following this guide, you can create a standalone executable of PyProcessor with bundled FFmpeg, making it easier for users to install and use the application without worrying about external dependencies.
+By following this guide, you can create a standalone executable of PyProcessor with bundled FFmpeg, making it easier for users to install and use the application without worrying about external dependencies. The automated build script simplifies this process, handling all the necessary steps to create both the executable and the installer.

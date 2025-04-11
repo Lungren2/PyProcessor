@@ -1,4 +1,4 @@
-# Video Processor
+# PyProcessor
 
 A Python application for video processing and HLS encoding based on FFmpeg. This tool provides both a graphical user interface and command-line interface for processing video files with various encoding options, supporting parallel processing for improved performance.
 
@@ -38,6 +38,16 @@ pip install -e .
 ```
 
 This will install the package in development mode, making the `video_processor` command available in your environment.
+
+### Standalone Installer
+
+A standalone installer is available that includes all dependencies, including FFmpeg. To build the installer:
+
+```bash
+python scripts/build_package.py
+```
+
+This will create a `PyProcessorInstaller.exe` file that can be distributed to users. See [Packaging](docs/PACKAGING.md) for more details.
 
 ## Project Architecture
 
@@ -169,6 +179,7 @@ For detailed information about development, please refer to the documentation in
 - [Logging System](docs/LOGGING.md) - Details about the logging system
 - [FFmpeg Integration](docs/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
 - [Packaging](docs/PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
+- [NSIS Packaging](docs/NSIS_PACKAGING.md) - Detailed guide for creating an installer with NSIS
 - [Server Optimization](docs/SERVER_OPTIMIZATION.md) - Prerequisites and details for server optimization
 
 ### Running Tests

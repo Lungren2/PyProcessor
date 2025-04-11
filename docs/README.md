@@ -20,6 +20,7 @@ Welcome to the Video Processor documentation. This directory contains comprehens
 - [FFmpeg Integration](FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
 - [Theme Support](THEME_SUPPORT.md) - Information about dark/light theme support
 - [Packaging](PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
+- [NSIS Packaging](NSIS_PACKAGING.md) - Detailed guide for creating an installer with NSIS
 
 ## Additional Resources
 
