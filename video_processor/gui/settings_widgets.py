@@ -478,6 +478,16 @@ class ServerOptimizationWidget(QWidget):
         video_path_layout.addWidget(self.iis_video_path_btn)
 
         self.iis_http2_cb = QCheckBox("Enable HTTP/2")
+        self.iis_http3_cb = QCheckBox("Enable HTTP/3 with Alt-Svc headers")
+        self.iis_http3_cb.setToolTip("Enables HTTP/3 auto-upgrading via Alt-Svc headers. Improves performance for mobile users.")
+
+        # Add HTTP/3 info label
+        http3_info = QLabel(
+            "<small>HTTP/3 uses UDP/443 and improves performance for mobile users (>20% of typical user base). "
+            "Recommended for Adaptive Bitrate (ABR) streaming.</small>"
+        )
+        http3_info.setWordWrap(True)
+
         self.iis_cors_cb = QCheckBox("Enable CORS")
         self.iis_cors_origin_edit = QLineEdit()
         self.iis_cors_origin_edit.setPlaceholderText("*")
@@ -485,6 +495,8 @@ class ServerOptimizationWidget(QWidget):
         iis_layout.addRow(QLabel("Site Name:"), self.iis_site_name_edit)
         iis_layout.addRow(QLabel("Video Path:"), video_path_layout)
         iis_layout.addRow(self.iis_http2_cb)
+        iis_layout.addRow(self.iis_http3_cb)
+        iis_layout.addRow(http3_info)
         iis_layout.addRow(self.iis_cors_cb)
         iis_layout.addRow(QLabel("CORS Origin:"), self.iis_cors_origin_edit)
 
@@ -504,10 +516,21 @@ class ServerOptimizationWidget(QWidget):
         self.nginx_server_name_edit = QLineEdit()
         self.nginx_server_name_edit.setPlaceholderText("yourdomain.com")
         self.nginx_ssl_cb = QCheckBox("Enable SSL/TLS Configuration")
+        self.nginx_http3_cb = QCheckBox("Enable HTTP/3 with Alt-Svc headers")
+        self.nginx_http3_cb.setToolTip("Enables HTTP/3 auto-upgrading via Alt-Svc headers. Improves performance for mobile users.")
+
+        # Add HTTP/3 info label
+        nginx_http3_info = QLabel(
+            "<small>HTTP/3 uses UDP/443 and improves performance for mobile users (>20% of typical user base). "
+            "Recommended for Adaptive Bitrate (ABR) streaming.</small>"
+        )
+        nginx_http3_info.setWordWrap(True)
 
         nginx_layout.addRow(QLabel("Output Path:"), nginx_output_layout)
         nginx_layout.addRow(QLabel("Server Name:"), self.nginx_server_name_edit)
         nginx_layout.addRow(self.nginx_ssl_cb)
+        nginx_layout.addRow(self.nginx_http3_cb)
+        nginx_layout.addRow(nginx_http3_info)
 
         # Linux Settings Tab
         linux_tab = QWidget()
@@ -614,6 +637,7 @@ class ServerOptimizationWidget(QWidget):
         self.iis_site_name_edit.setText(iis_config.get("site_name", "Default Web Site"))
         self.iis_video_path_edit.setText(iis_config.get("video_path", str(self.config.output_folder)))
         self.iis_http2_cb.setChecked(iis_config.get("enable_http2", True))
+        self.iis_http3_cb.setChecked(iis_config.get("enable_http3", False))
         self.iis_cors_cb.setChecked(iis_config.get("enable_cors", True))
         self.iis_cors_origin_edit.setText(iis_config.get("cors_origin", "*"))
 
@@ -622,6 +646,7 @@ class ServerOptimizationWidget(QWidget):
         self.nginx_output_path_edit.setText(nginx_config.get("output_path", str(self.config.output_folder / "nginx.conf")))
         self.nginx_server_name_edit.setText(nginx_config.get("server_name", "yourdomain.com"))
         self.nginx_ssl_cb.setChecked(nginx_config.get("ssl_enabled", True))
+        self.nginx_http3_cb.setChecked(nginx_config.get("enable_http3", False))
 
         # Linux settings
         linux_config = self.config.server_optimization.get("linux", {})
@@ -638,6 +663,7 @@ class ServerOptimizationWidget(QWidget):
             "site_name": self.iis_site_name_edit.text() or "Default Web Site",
             "video_path": self.iis_video_path_edit.text() or str(self.config.output_folder),
             "enable_http2": self.iis_http2_cb.isChecked(),
+            "enable_http3": self.iis_http3_cb.isChecked(),
             "enable_cors": self.iis_cors_cb.isChecked(),
             "cors_origin": self.iis_cors_origin_edit.text() or "*"
         }
@@ -646,7 +672,8 @@ class ServerOptimizationWidget(QWidget):
         self.config.server_optimization["nginx"] = {
             "output_path": self.nginx_output_path_edit.text() or str(self.config.output_folder / "nginx.conf"),
             "server_name": self.nginx_server_name_edit.text() or "yourdomain.com",
-            "ssl_enabled": self.nginx_ssl_cb.isChecked()
+            "ssl_enabled": self.nginx_ssl_cb.isChecked(),
+            "enable_http3": self.nginx_http3_cb.isChecked()
         }
 
         # Linux settings
@@ -764,6 +791,7 @@ class ServerOptimizationWidget(QWidget):
                     site_name=iis_config["site_name"],
                     video_path=iis_config["video_path"],
                     enable_http2=iis_config["enable_http2"],
+                    enable_http3=iis_config["enable_http3"],
                     enable_cors=iis_config["enable_cors"],
                     cors_origin=iis_config["cors_origin"]
                 )
@@ -772,7 +800,8 @@ class ServerOptimizationWidget(QWidget):
                 success, message = self.server_optimizer.optimize_nginx(
                     output_path=nginx_config["output_path"],
                     server_name=nginx_config["server_name"],
-                    ssl_enabled=nginx_config["ssl_enabled"]
+                    ssl_enabled=nginx_config["ssl_enabled"],
+                    enable_http3=nginx_config["enable_http3"]
                 )
             elif server_type == "linux":
                 linux_config = self.config.server_optimization["linux"]

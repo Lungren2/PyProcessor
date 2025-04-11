@@ -49,13 +49,15 @@ class Config:
                 "site_name": "Default Web Site",
                 "video_path": str(self.output_folder),
                 "enable_http2": True,
+                "enable_http3": False,  # HTTP/3 with Alt-Svc headers
                 "enable_cors": True,
                 "cors_origin": "*"
             },
             "nginx": {
                 "output_path": str(self.output_folder / "nginx.conf"),
                 "server_name": "yourdomain.com",
-                "ssl_enabled": True
+                "ssl_enabled": True,
+                "enable_http3": False  # HTTP/3 with Alt-Svc headers
             },
             "linux": {
                 "apply_changes": False
@@ -284,13 +286,15 @@ class Config:
                     "site_name": "Default Web Site",
                     "video_path": str(self.output_folder),
                     "enable_http2": True,
+                    "enable_http3": False,
                     "enable_cors": True,
                     "cors_origin": "*"
                 },
                 "nginx": {
                     "output_path": str(self.output_folder / "nginx.conf"),
                     "server_name": "yourdomain.com",
-                    "ssl_enabled": True
+                    "ssl_enabled": True,
+                    "enable_http3": False
                 },
                 "linux": {
                     "apply_changes": False

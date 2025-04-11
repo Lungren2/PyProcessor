@@ -13,7 +13,7 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 - Configuration profiles for different encoding scenarios
 - Detailed logging system
 - Dark/light theme that follows system settings
-- Server optimization for IIS, Nginx, and Linux systems
+- Server optimization for IIS, Nginx, and Linux systems with HTTP/3 support
 
 ## Requirements
 
@@ -112,6 +112,7 @@ Available command-line options:
 --site-name          IIS site name (for IIS optimization)
 --video-path         Path to video content directory (for IIS)
 --enable-http2       Enable HTTP/2 protocol (for IIS)
+--enable-http3       Enable HTTP/3 with Alt-Svc headers (for IIS or Nginx)
 --enable-cors        Enable CORS headers (for IIS)
 --cors-origin        CORS origin value (for IIS)
 --output-config      Output path for server configuration (for Nginx)
@@ -145,6 +146,7 @@ The application uses a configuration system that supports:
   - Auto-organize folders
 - **Server Optimization**:
   - Server type (IIS, Nginx, Linux)
+  - HTTP/3 support with Alt-Svc headers for auto-upgrading
   - Server-specific configuration options
   - Network and performance optimizations
 

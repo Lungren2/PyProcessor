@@ -1,5 +1,27 @@
 # Server Optimization Prerequisites
 
+## HTTP/3 Support
+
+HTTP/3 is the latest version of the HTTP protocol that uses QUIC over UDP instead of TCP. It provides significant performance benefits, especially for mobile users (which typically represent >20% of user bases). HTTP/3 is particularly beneficial for Adaptive Bitrate (ABR) streaming.
+
+### HTTP/3 Requirements
+
+- UDP port 443 must be open and available
+- For IIS: Windows Server 2022 or later for native HTTP/3 support
+- For Nginx: Nginx 1.25.0+ with the ngx_http_v3_module
+- Client browsers that support HTTP/3 (Chrome 85+, Edge 85+, Firefox 88+, Safari 14+)
+
+### How HTTP/3 Auto-Upgrading Works
+
+The server optimization scripts implement HTTP/3 support using Alt-Svc headers. This allows clients to:
+
+1. Initially connect using HTTP/1.1 or HTTP/2
+2. Receive the Alt-Svc header indicating HTTP/3 availability
+3. Automatically upgrade to HTTP/3 for subsequent requests if supported
+4. Fall back to HTTP/2 or HTTP/1.1 if HTTP/3 is not available
+
+This approach ensures backward compatibility while providing performance benefits for supported clients.
+
 This document outlines the prerequisites for using the server optimization features in PyProcessor.
 
 ## Windows/IIS PowerShell Script
@@ -24,8 +46,9 @@ Install-WindowsFeature -Name Web-Server -IncludeManagementTools
 ```
 
 ### Network Considerations
-- Ports 80 (HTTP) and 443 (HTTPS) must be open
-- SSL certificate configured if using HTTPS
+- Ports 80 (HTTP) and 443 (HTTPS) must be open for TCP traffic
+- Port 443 must be open for UDP traffic if using HTTP/3
+- SSL certificate configured if using HTTPS (required for HTTP/3)
 
 ## Linux/NGINX Implementation
 
@@ -47,13 +70,17 @@ sudo yum install -y nginx openssl
 
 ### Configuration Requirements
 - NGINX 1.15.5+ for HTTP/2 full support
+- NGINX 1.25.0+ for HTTP/3 support
 - OpenSSL 1.1.1+ for TLS 1.3 support
+- For HTTP/3: NGINX must be compiled with QUIC and HTTP/3 support
 
 ### Firewall Configuration
 ```bash
 # Open ports (adjust for your firewall)
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
+# For HTTP/3 support
+sudo ufw allow 443/udp
 sudo ufw enable
 ```
 
@@ -118,6 +145,9 @@ sudo systemctl status nginx  # or apache2
 
 # Verify HTTP/2 support
 curl -I --http2 https://yourdomain.com
+
+# Verify HTTP/3 support
+curl -I --http3 https://yourdomain.com
 
 # Check listening ports
 sudo ss -tulnp | grep -E '(nginx|apache)'

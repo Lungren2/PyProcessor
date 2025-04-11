@@ -80,6 +80,8 @@ def parse_args():
                        help="Path to video content directory (for --optimize-server=iis)")
     server_group.add_argument("--enable-http2", action="store_true", default=True,
                        help="Enable HTTP/2 protocol (for --optimize-server=iis)")
+    server_group.add_argument("--enable-http3", action="store_true", default=False,
+                       help="Enable HTTP/3 with Alt-Svc headers for auto-upgrading (for --optimize-server=iis or nginx)")
     server_group.add_argument("--enable-cors", action="store_true", default=True,
                        help="Enable CORS headers (for --optimize-server=iis)")
     server_group.add_argument("--cors-origin", default="*",
@@ -132,6 +134,8 @@ def apply_args_to_config(args, config):
                 config.server_optimization["iis"]["video_path"] = args.video_path
             if args.enable_http2 is not None:
                 config.server_optimization["iis"]["enable_http2"] = args.enable_http2
+            if args.enable_http3 is not None:
+                config.server_optimization["iis"]["enable_http3"] = args.enable_http3
             if args.enable_cors is not None:
                 config.server_optimization["iis"]["enable_cors"] = args.enable_cors
             if args.cors_origin:
@@ -143,6 +147,8 @@ def apply_args_to_config(args, config):
                 config.server_optimization["nginx"]["output_path"] = args.output_config
             if args.server_name:
                 config.server_optimization["nginx"]["server_name"] = args.server_name
+            if args.enable_http3 is not None:
+                config.server_optimization["nginx"]["enable_http3"] = args.enable_http3
 
         # Linux options
         elif args.optimize_server == "linux":

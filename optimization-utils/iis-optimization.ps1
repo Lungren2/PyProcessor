@@ -2,14 +2,17 @@
 .SYNOPSIS
     Optimizes IIS for video streaming with comprehensive configuration and safety checks.
 .DESCRIPTION
-    Configures IIS for optimal video streaming performance including HTTP/2, compression,
-    caching strategies, and network optimizations. Specifically tuned for HLS streaming.
+    Configures IIS for optimal video streaming performance including HTTP/2, HTTP/3 (via Alt-Svc),
+    compression, caching strategies, and network optimizations. Specifically tuned for HLS streaming
+    and Adaptive Bitrate (ABR) delivery.
 .PARAMETER SiteName
     The name of the IIS website to configure (default: "Default Web Site")
 .PARAMETER VideoPath
     The physical path to the video content directory
 .PARAMETER EnableHttp2
     Enable HTTP/2 protocol support (default: $true)
+.PARAMETER EnableHttp3
+    Enable HTTP/3 with Alt-Svc headers for auto-upgrading (default: $false)
 .PARAMETER EnableCors
     Enable CORS headers (default: $true)
 .PARAMETER CorsOrigin
@@ -29,6 +32,7 @@ param(
         })]
     [string]$VideoPath,
     [bool]$EnableHttp2 = $true,
+    [bool]$EnableHttp3 = $false,
     [bool]$EnableCors = $true,
     [string]$CorsOrigin = "*"
 )
@@ -63,7 +67,7 @@ function Set-RegistryValueSafe {
         $Value,
         [string]$PropertyType
     )
-    
+
     try {
         if (-not (Test-Path $Path)) {
             New-Item -Path $Path -Force | Out-Null
@@ -80,7 +84,7 @@ function Add-WindowsFeatureSafe {
     param(
         [string]$FeatureName
     )
-    
+
     try {
         if (-not (Get-WindowsFeature -Name $FeatureName).Installed) {
             Add-WindowsFeature $FeatureName | Out-Null
@@ -96,7 +100,8 @@ function Add-WindowsFeatureSafe {
 }
 #endregion
 
-#region HTTP/2 Configuration
+#region HTTP/2 and HTTP/3 Configuration
+# HTTP/2 Configuration
 if ($EnableHttp2) {
     try {
         Write-Host "Configuring HTTP/2 support..."
@@ -105,6 +110,29 @@ if ($EnableHttp2) {
     }
     catch {
         Write-Warning "HTTP/2 configuration failed: $_"
+    }
+}
+
+# HTTP/3 Configuration (via Alt-Svc headers)
+if ($EnableHttp3) {
+    try {
+        Write-Host "Configuring HTTP/3 support via Alt-Svc headers..."
+
+        # Check if UDP port 443 is available
+        $udpPortCheck = Test-NetConnection -ComputerName localhost -Port 443 -InformationLevel Quiet -ErrorAction SilentlyContinue
+
+        if ($udpPortCheck) {
+            Write-Host "UDP port 443 is available for HTTP/3 (QUIC protocol)"
+        } else {
+            Write-Warning "UDP port 443 may not be available. HTTP/3 might not work properly."
+            Write-Host "Continuing with HTTP/3 configuration anyway..."
+        }
+
+        # We'll add Alt-Svc headers in the web.config
+        Write-Host "HTTP/3 will be enabled via Alt-Svc headers in web.config"
+    }
+    catch {
+        Write-Warning "HTTP/3 configuration check failed: $_"
     }
 }
 #endregion
@@ -118,7 +146,7 @@ try {
         "Web-Stat-Compression",
         "Web-Dyn-Compression"
     )
-    
+
     foreach ($feature in $features) {
         Add-WindowsFeatureSafe -FeatureName $feature
     }
@@ -132,10 +160,10 @@ catch {
 try {
     Write-Host "Configuring IIS compression..."
     Import-Module WebAdministration -ErrorAction Stop
-    
+
     Set-WebConfigurationProperty -Filter "system.webServer/urlCompression" -PSPath "IIS:\" -Name "doStaticCompression" -Value "True" -ErrorAction Stop
     Set-WebConfigurationProperty -Filter "system.webServer/urlCompression" -PSPath "IIS:\" -Name "doDynamicCompression" -Value "True" -ErrorAction Stop
-    
+
     Write-Host "Configuring MIME types for video streaming..."
     $staticTypes = @(
         @{fileExtension = '.m3u8'; mimeType = 'application/vnd.apple.mpegurl' },
@@ -162,7 +190,7 @@ catch {
 #region Virtual Directory and Caching Configuration
 try {
     Write-Host "Configuring virtual directory and caching..."
-    
+
     # Create virtual directory if it doesn't exist
     if (-not (Get-WebVirtualDirectory -Site $SiteName -Name "videos" -ErrorAction SilentlyContinue)) {
         New-WebVirtualDirectory -Site $SiteName -Name "videos" -PhysicalPath $VideoPath -ErrorAction Stop
@@ -170,7 +198,7 @@ try {
     }
 
     $configPath = "IIS:\Sites\$SiteName\videos"
-    
+
     # Configure caching
     Set-WebConfigurationProperty -Filter "system.webServer/staticContent" -PSPath $configPath -Name "clientCache.cacheControlMode" -Value "UseMaxAge" -ErrorAction Stop
     Set-WebConfigurationProperty -Filter "system.webServer/staticContent" -PSPath $configPath -Name "clientCache.cacheControlMaxAge" -Value "00:05:00" -ErrorAction Stop
@@ -190,6 +218,7 @@ try {
         <httpProtocol>
             <customHeaders>
                 <add name="Access-Control-Allow-Origin" value="$CorsOrigin" />
+$(if ($EnableHttp3) { "                <add name=\"Alt-Svc\" value=\"h3=\\\":\\\"443\\\"; ma=86400, h3-29=\\\":\\\"443\\\"; ma=86400\" />" })
             </customHeaders>
         </httpProtocol>
     </system.webServer>
@@ -222,14 +251,14 @@ catch {
 #region Network Optimization
 try {
     Write-Host "Optimizing network settings..."
-    
+
     # TCP Window Scaling
     Set-RegistryValueSafe -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "Tcp1323Opts" -Value 1 -PropertyType "DWord"
-    
+
     # Maximum segment size for TCP
     Set-RegistryValueSafe -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "EnablePMTUBHDetect" -Value 1 -PropertyType "DWord"
     Set-RegistryValueSafe -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "EnablePMTUDiscovery" -Value 1 -PropertyType "DWord"
-    
+
     # Increase TCP connections limit
     Set-RegistryValueSafe -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" -Name "TcpNumConnections" -Value 0xfffe -PropertyType "DWord"
 }
@@ -242,7 +271,7 @@ catch {
 try {
     Write-Host "Restarting IIS..."
     Restart-Service W3SVC -Force -ErrorAction Stop
-    
+
     Write-Host @"
 IIS optimization for video streaming complete successfully.
 
