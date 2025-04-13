@@ -7,6 +7,7 @@ This directory contains utility scripts for optimizing web servers for HLS conte
 ### IIS Server Optimization
 
 - **optimize_iis.ps1**: PowerShell script for optimizing IIS servers
+
   ```powershell
   .\optimize_iis.ps1 -SiteName "MyVideoSite" -VideoPath "C:\inetpub\wwwroot\videos" -EnableHTTP2 $true -EnableHTTP3 $true -EnableCORS $true -CORSOrigin "*"
   ```
@@ -14,15 +15,33 @@ This directory contains utility scripts for optimizing web servers for HLS conte
 ### Nginx Server Optimization
 
 - **optimize_nginx.sh**: Bash script for optimizing Nginx servers
+
   ```bash
   ./optimize_nginx.sh --server-name example.com --output-config /etc/nginx/sites-available/hls --enable-http2 --enable-http3 --enable-cors --cors-origin "*"
   ```
 
 ### Linux System Optimization
 
-- **optimize_linux.sh**: Bash script for optimizing Linux systems
+- **linux-optimizations.bash**: Bash script for optimizing Linux systems
+
   ```bash
-  ./optimize_linux.sh --apply-changes
+  # Run in dry-run mode (shows what would be done without making changes)
+  ./linux-optimizations.bash
+
+  # Apply changes
+  ./linux-optimizations.bash --apply-changes
+
+  # Apply changes with verbose output
+  ./linux-optimizations.bash --apply-changes --verbose
+
+  # Apply changes without backing up configuration files
+  ./linux-optimizations.bash --apply-changes --no-backup
+
+  # Specify a custom log file
+  ./linux-optimizations.bash --apply-changes --log-file=/var/log/optimization.log
+
+  # Show help
+  ./linux-optimizations.bash --help
   ```
 
 ## Prerequisites
@@ -54,8 +73,9 @@ These utilities are integrated into PyProcessor and can be accessed through:
 
 1. The GUI: Server Optimization tab
 2. The command line:
+
    ```bash
-   python -m video_processor --optimize-server iis --site-name "MyVideoSite" --video-path "C:\inetpub\wwwroot\videos" --enable-http2 --enable-http3 --enable-cors --cors-origin "*"
+   python -m pyprocessor --optimize-server iis --site-name "MyVideoSite" --video-path "C:\inetpub\wwwroot\videos" --enable-http2 --enable-http3 --enable-cors --cors-origin "*"
    ```
 
 ## Manual Usage
@@ -85,17 +105,20 @@ chmod +x optimize_nginx.sh
 ./optimize_nginx.sh --server-name example.com --output-config /etc/nginx/sites-available/hls --enable-http2 --enable-http3 --enable-cors --cors-origin "*"
 ```
 
-### Linux System Optimization
+### Linux System Optimization Script
 
 ```bash
 # Navigate to the optimization-utils directory
 cd optimization-utils
 
 # Make the script executable
-chmod +x optimize_linux.sh
+chmod +x linux-optimizations.bash
 
-# Run the Linux optimization script
-./optimize_linux.sh --apply-changes
+# Run the Linux optimization script in dry-run mode (no changes applied)
+./linux-optimizations.bash
+
+# Apply changes with verbose output
+./linux-optimizations.bash --apply-changes --verbose
 ```
 
 ## Customization

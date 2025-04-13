@@ -11,8 +11,9 @@ import platform
 import shutil
 from pathlib import Path
 import tempfile
+import shlex
 
-from video_processor.utils.logging import Logger
+from pyprocessor.utils.logging import Logger
 
 
 class ServerOptimizer:
@@ -67,12 +68,14 @@ class ServerOptimizer:
             return False, f"IIS optimization script not found: {script_path}"
 
         # Build the PowerShell command
+        safe_site_name = shlex.quote(site_name)
+        safe_video_path = shlex.quote(video_path)
         command = [
             "powershell.exe",
             "-ExecutionPolicy", "Bypass",
             "-File", str(script_path),
-            "-SiteName", site_name,
-            "-VideoPath", video_path,
+            "-SiteName", safe_site_name,
+            "-VideoPath", safe_video_path,
             "-EnableHttp2", "$true" if enable_http2 else "$false",
             "-EnableHttp3", "$true" if enable_http3 else "$false",
             "-EnableCors", "$true" if enable_cors else "$false",

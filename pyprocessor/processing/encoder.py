@@ -1,10 +1,10 @@
-import os
 import re
 import subprocess
 import time
 from pathlib import Path
 
-from video_processor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
+from pyprocessor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
+
 
 class FFmpegEncoder:
     """FFmpeg encoder with advanced options including audio control"""
@@ -24,10 +24,10 @@ class FFmpegEncoder:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                timeout=5
+                timeout=5,
             )
             if "ffmpeg version" in result.stdout:
-                self.logger.info(f"Found FFmpeg: {result.stdout.split('\\n')[0]}")
+                self.logger.info(f"Found FFmpeg: {result.stdout.split(chr(10))[0]}")
                 return True
             return False
         except (subprocess.SubprocessError, FileNotFoundError) as e:
@@ -39,12 +39,20 @@ class FFmpegEncoder:
         try:
             ffprobe_path = get_ffprobe_path()
             result = subprocess.run(
-                [ffprobe_path, "-i", str(file_path), "-show_streams",
-                 "-select_streams", "a", "-loglevel", "error"],
+                [
+                    ffprobe_path,
+                    "-i",
+                    str(file_path),
+                    "-show_streams",
+                    "-select_streams",
+                    "a",
+                    "-loglevel",
+                    "error",
+                ],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                timeout=10
+                timeout=10,
             )
             return bool(result.stdout.strip())
         except subprocess.SubprocessError as e:
@@ -54,13 +62,15 @@ class FFmpegEncoder:
     def build_command(self, input_file, output_folder):
         """Build FFmpeg command for HLS encoding with audio option"""
         # Check for audio streams and respect the include_audio setting
-        has_audio = self.has_audio(input_file) and self.config.ffmpeg_params.get("include_audio", True)
+        has_audio = self.has_audio(input_file) and self.config.ffmpeg_params.get(
+            "include_audio", True
+        )
 
         # Calculate buffer sizes
         bitrates = self.config.ffmpeg_params["bitrates"]
         bufsizes = {}
         for res, bitrate in bitrates.items():
-            bufsize_value = int(bitrate.rstrip('k')) * 2
+            bufsize_value = int(bitrate.rstrip("k")) * 2
             bufsizes[res] = f"{bufsize_value}k"
 
         # Build filter complex string
@@ -68,17 +78,36 @@ class FFmpegEncoder:
 
         # Build FFmpeg command
         ffmpeg_path = get_ffmpeg_path()
-        cmd = [ffmpeg_path, "-hide_banner", "-loglevel", "info", "-stats",
-               "-i", str(input_file), "-filter_complex", filter_complex]
+        cmd = [
+            ffmpeg_path,
+            "-hide_banner",
+            "-loglevel",
+            "info",
+            "-stats",
+            "-i",
+            str(input_file),
+            "-filter_complex",
+            filter_complex,
+        ]
 
         # Video streams for all resolutions
-        for i, (res, bitrate) in enumerate([("1080p", bitrates["1080p"]),
-                                           ("720p", bitrates["720p"]),
-                                           ("480p", bitrates["480p"]),
-                                           ("360p", bitrates["360p"])]):
+        for i, (res, bitrate) in enumerate(
+            [
+                ("1080p", bitrates["1080p"]),
+                ("720p", bitrates["720p"]),
+                ("480p", bitrates["480p"]),
+                ("360p", bitrates["360p"]),
+            ]
+        ):
             # Map video stream
-            cmd.extend(["-map", f"[v{i+1}out]",
-                       "-c:v:" + str(i), self.config.ffmpeg_params["video_encoder"]])
+            cmd.extend(
+                [
+                    "-map",
+                    f"[v{i+1}out]",
+                    "-c:v:" + str(i),
+                    self.config.ffmpeg_params["video_encoder"],
+                ]
+            )
 
             # Add preset and tune if applicable
             if self.config.ffmpeg_params["preset"]:
@@ -87,40 +116,70 @@ class FFmpegEncoder:
                 cmd.extend([f"-tune:v:{i}", self.config.ffmpeg_params["tune"]])
 
             # Bitrate settings
-            cmd.extend([f"-b:v:{i}", bitrate,
-                       f"-maxrate:v:{i}", bitrate,
-                       f"-bufsize:v:{i}", bufsizes[res]])
+            cmd.extend(
+                [
+                    f"-b:v:{i}",
+                    bitrate,
+                    f"-maxrate:v:{i}",
+                    bitrate,
+                    f"-bufsize:v:{i}",
+                    bufsizes[res],
+                ]
+            )
 
         # Audio streams if available and enabled
         audio_bitrates = self.config.ffmpeg_params["audio_bitrates"]
         if has_audio:
             for i, bitrate in enumerate(audio_bitrates):
-                cmd.extend(["-map", "a:0",
-                           f"-c:a:{i}", "aac",
-                           f"-b:a:{i}", bitrate,
-                           "-ac", "2"])
+                cmd.extend(
+                    [
+                        "-map",
+                        "a:0",
+                        f"-c:a:{i}",
+                        "aac",
+                        f"-b:a:{i}",
+                        bitrate,
+                        "-ac",
+                        "2",
+                    ]
+                )
             var_stream_map = "v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3"
         else:
             var_stream_map = "v:0 v:1 v:2 v:3"
 
             # If we're intentionally excluding audio, log it
             if not self.config.ffmpeg_params.get("include_audio", True):
-                self.logger.info(f"Audio excluded per user settings for {input_file.name}")
+                self.logger.info(
+                    f"Audio excluded per user settings for {input_file.name}"
+                )
 
         # HLS parameters
         segment_path = str(output_folder) + "/%v/segment_%03d.ts"
         playlist_path = str(output_folder) + "/%v/playlist.m3u8"
 
-        cmd.extend(["-f", "hls",
-                   "-g", str(self.config.ffmpeg_params["fps"]),
-                   "-hls_time", "1",
-                   "-hls_playlist_type", "vod",
-                   "-hls_flags", "independent_segments",
-                   "-hls_segment_type", "mpegts",
-                   "-hls_segment_filename", segment_path,
-                   "-master_pl_name", "master.m3u8",
-                   "-var_stream_map", var_stream_map,
-                   playlist_path])
+        cmd.extend(
+            [
+                "-f",
+                "hls",
+                "-g",
+                str(self.config.ffmpeg_params["fps"]),
+                "-hls_time",
+                "1",
+                "-hls_playlist_type",
+                "vod",
+                "-hls_flags",
+                "independent_segments",
+                "-hls_segment_type",
+                "mpegts",
+                "-hls_segment_filename",
+                segment_path,
+                "-master_pl_name",
+                "master.m3u8",
+                "-var_stream_map",
+                var_stream_map,
+                playlist_path,
+            ]
+        )
 
         return cmd
 
@@ -142,7 +201,7 @@ class FFmpegEncoder:
                 stderr=subprocess.PIPE,
                 text=True,
                 universal_newlines=True,
-                bufsize=1  # Line buffered
+                bufsize=1,  # Line buffered
             )
 
             # Process stderr in real-time to extract progress
@@ -175,13 +234,17 @@ class FFmpegEncoder:
                 error_message = ""
                 for line in self.process.stderr:
                     error_message += line
-                self.logger.error(f"FFmpeg error encoding {input_file.name}: {error_message}")
+                self.logger.error(
+                    f"FFmpeg error encoding {input_file.name}: {error_message}"
+                )
                 return False
 
             # Check if output files were created
             m3u8_file = output_folder / "master.m3u8"
             if not m3u8_file.exists():
-                self.logger.error(f"Failed to create master playlist for {input_file.name}")
+                self.logger.error(
+                    f"Failed to create master playlist for {input_file.name}"
+                )
                 return False
 
             # Ensure we report 100% at the end
@@ -210,7 +273,9 @@ class FFmpegEncoder:
 
                 # Force kill if still running
                 if self.process.poll() is None:
-                    self.logger.warning("FFmpeg process did not terminate gracefully, force killing")
+                    self.logger.warning(
+                        "FFmpeg process did not terminate gracefully, force killing"
+                    )
                     self.process.kill()
                     self.process.wait()
 

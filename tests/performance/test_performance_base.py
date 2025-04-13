@@ -4,13 +4,11 @@ Base framework for performance testing in PyProcessor.
 import os
 import sys
 import time
-import tempfile
 import statistics
-import pytest
 import psutil
 import gc
 from pathlib import Path
-from typing import List, Dict, Any, Callable, Optional, Tuple, NamedTuple
+from typing import List, Dict, Any, Callable, Tuple, NamedTuple
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
@@ -47,11 +45,9 @@ class PerformanceTest:
 
     def setup(self) -> None:
         """Set up the test environment. Override in subclasses."""
-        pass
 
     def teardown(self) -> None:
         """Clean up the test environment. Override in subclasses."""
-        pass
 
     def run_iteration(self) -> PerformanceResult:
         """

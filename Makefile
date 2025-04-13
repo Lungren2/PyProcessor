@@ -1,6 +1,6 @@
 # Makefile for PyProcessor
 
-.PHONY: setup clean test perf-test lint format build package run all
+.PHONY: setup clean test perf-test lint format clean-code build package run all
 
 # Default target
 all: clean test build
@@ -23,11 +23,15 @@ perf-test:
 
 # Run linting
 lint:
-	flake8 video_processor
+	flake8 pyprocessor
 
 # Format code
 format:
-	black video_processor tests scripts
+	black pyprocessor tests scripts
+
+# Clean code (remove unused imports and comment unused variables)
+clean-code:
+	python scripts/clean_code.py
 
 # Build executable
 build:
@@ -39,4 +43,4 @@ package:
 
 # Run the application
 run:
-	python -m video_processor
+	python -m pyprocessor

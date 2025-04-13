@@ -84,7 +84,7 @@ For a detailed overview of the architecture, see [ARCHITECTURE.md](ARCHITECTURE.
 
 5. **Format Code**: Ensure your code follows the project's style guidelines
    ```bash
-   black video_processor
+   black pyprocessor
    ```
 
 6. **Submit a Pull Request**: Push your changes and create a pull request
@@ -112,7 +112,7 @@ python -m pytest
 
 To run tests with coverage:
 ```bash
-python -m pytest --cov=video_processor
+python -m pytest --cov=pyprocessor
 ```
 
 ## Documentation

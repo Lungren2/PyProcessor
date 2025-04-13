@@ -1,21 +1,18 @@
 """
 Unit tests for file manager edge cases and error handling.
 """
-import pytest
 import os
 import sys
 import tempfile
-import shutil
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 # Import the modules to test
-from video_processor.utils.config import Config
-from video_processor.utils.logging import Logger
-from video_processor.processing.file_manager import FileManager
+from pyprocessor.utils.config import Config
+from pyprocessor.utils.logging import Logger
+from pyprocessor.processing.file_manager import FileManager
 
 class TestFileManagerEdgeCases:
     """Test edge cases and error handling in the FileManager class"""

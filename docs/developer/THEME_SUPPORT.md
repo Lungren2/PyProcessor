@@ -49,4 +49,4 @@ The theme system uses:
 - `pyqtdarktheme` (qdarktheme) to apply high-quality themes to the application
 - PyQt's built-in styling capabilities as a fallback
 
-The theme manager is implemented in `video_processor/utils/theme_manager.py`.
+The theme manager is implemented in `pyprocessor/utils/theme_manager.py`.

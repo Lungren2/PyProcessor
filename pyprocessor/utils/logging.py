@@ -6,13 +6,15 @@ from pathlib import Path
 class Logger:
     """Advanced logging system with rotation and detailed levels"""
 
-    def __init__(self, unused_param=None, max_logs=10, level=logging.INFO):
-        # Get the video_processor package directory
-        import video_processor
-        package_dir = Path(video_processor.__file__).parent
-
-        # Use a dedicated logs directory in the package
-        self.log_dir = package_dir / "logs"
+    def __init__(self, log_dir=None, max_logs=10, level=logging.INFO):
+        # Get the pyprocessor package directory
+        if log_dir is None:
+            import pyprocessor
+            package_dir = Path(pyprocessor.__file__).parent
+            # Use a dedicated logs directory in the package
+            self.log_dir = package_dir / "logs"
+        else:
+            self.log_dir = Path(log_dir)
         self.max_logs = max_logs
 
         # Create logs directory if it doesn't exist
@@ -49,7 +51,7 @@ class Logger:
         self.log_file = self.log_dir / filename
 
         # Set up logger
-        self.logger = logging.getLogger('video_processor')
+        self.logger = logging.getLogger('pyprocessor')
         self.logger.setLevel(level)
 
         # Remove existing handlers if necessary
@@ -141,3 +143,16 @@ class Logger:
                 return ''.join(all_lines[-lines:])
         except Exception as e:
             return f"Error reading log: {str(e)}"
+
+    def close(self):
+        """Close all handlers to release file locks"""
+        try:
+            # Remove and close handlers
+            if self.logger.hasHandlers():
+                for handler in self.logger.handlers:
+                    handler.close()
+                    self.logger.removeHandler(handler)
+            return True
+        except Exception as e:
+            print(f"Error closing logger: {str(e)}")
+            return False

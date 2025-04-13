@@ -83,7 +83,7 @@ def run_tests(unit_only=False, integration_only=False, coverage=False, html_repo
 
     # Add coverage options if requested
     if coverage:
-        cmd.extend(["--cov=video_processor", "--cov-report=term"])
+        cmd.extend(["--cov=pyprocessor", "--cov-report=term"])
         if html_report:
             cmd.append("--cov-report=html")
 

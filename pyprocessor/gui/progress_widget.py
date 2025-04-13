@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                            QProgressBar, QGroupBox, QTextEdit, QSizePolicy)
-from PyQt5.QtCore import Qt, pyqtSignal
 
 class ProcessingProgressWidget(QWidget):
     """Widget for displaying processing progress"""

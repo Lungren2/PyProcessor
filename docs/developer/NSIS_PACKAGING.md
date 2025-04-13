@@ -6,6 +6,7 @@ This document explains how to use the NSIS (Nullsoft Scriptable Install System) 
 
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
+- [Creating the License File](#creating-the-license-file)
 - [NSIS Script Explanation](#nsis-script-explanation)
 - [Building the Installer](#building-the-installer)
 - [Customizing the Installer](#customizing-the-installer)
@@ -27,6 +28,56 @@ Before you can build the NSIS installer, you need:
 1. **NSIS Installed**: Download and install NSIS from [nsis.sourceforge.io/Download](https://nsis.sourceforge.io/Download)
 2. **PyInstaller Build**: Complete the PyInstaller build process to create the executable (see [PACKAGING.md](PACKAGING.md))
 3. **License File**: Create a `license.txt` file in the project root (or use the automated build script)
+
+## Creating the License File
+
+The NSIS installer requires a `license.txt` file that will be displayed during installation. This file should contain the software license agreement that users must accept before installing PyProcessor.
+
+### License File Requirements
+
+- Create a plain text file named `license.txt` in the project root directory
+- Use UTF-8 encoding to ensure proper display of special characters
+- Keep line length reasonable (under 80 characters) for better readability in the installer
+
+### License File Template
+
+Here's a basic template you can use for your license file:
+
+```text
+PyProcessor License Agreement
+===========================
+
+Copyright (c) [Year] [Your Name/Organization]
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+[Add your license conditions here]
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+You can use standard licenses like MIT, GPL, Apache, etc., or create a custom license for your project. Make sure to replace the placeholders with your actual information.
+
+### Automated License File Creation
+
+If you're using the automated build script (`scripts/build_package.py`), it will automatically generate a basic MIT license file for you if one doesn't exist. The generated license includes:
+
+- Copyright attribution to Lungren2
+- Standard MIT license terms
+- Current year in the copyright notice
+
+While this automatic generation is convenient, it's recommended to review and customize the license file to ensure it accurately represents your project's licensing terms.
 
 ## NSIS Script Explanation
 
@@ -71,18 +122,18 @@ RequestExecutionLevel admin
 ```nsis
 Section "Main Application" SecMain
   SectionIn RO  ; Read-only, always installed
-  
+
   SetOutPath "$INSTDIR"
-  
+
   ; Extract files from your zip
   File /r "dist\*.*"
-  
+
   ; Store installation folder
   WriteRegStr HKCU "Software\PyProcessor" "" $INSTDIR
-  
+
   ; Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
-  
+
   ; Add uninstaller information to Add/Remove Programs
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PyProcessor" "DisplayName" "PyProcessor"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PyProcessor" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
@@ -117,10 +168,10 @@ SectionEnd
 Section "Uninstall"
   ; Remove application files
   RMDir /r "$INSTDIR"
-  
+
   ; Remove desktop shortcut
   Delete "$DESKTOP\PyProcessor.lnk"
-  
+
   ; Remove registry keys
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PyProcessor"
   DeleteRegKey HKCU "Software\PyProcessor"
@@ -142,6 +193,7 @@ python scripts/build_package.py
 ```
 
 This script will:
+
 1. Check for required dependencies (PyInstaller, NSIS)
 2. Download and extract FFmpeg binaries (if needed)
 3. Create the PyInstaller executable

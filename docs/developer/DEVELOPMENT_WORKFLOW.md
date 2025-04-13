@@ -21,7 +21,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e .
 
 # Install development dependencies
-pip install pytest pytest-cov flake8 black isort mypy
+pip install pytest pytest-cov flake8 black isort mypy autoflake vulture
 ```
 
 ### 2. Creating a Feature Branch
@@ -74,7 +74,7 @@ Always test your changes before submitting them:
 python -m pytest
 
 # Run tests with coverage
-python -m pytest --cov=video_processor
+python -m pytest --cov=pyprocessor
 
 # Run tests for a specific module
 python -m pytest tests/test_encoder.py
@@ -88,16 +88,24 @@ Run code quality tools before submitting your changes:
 
 ```bash
 # Format code with Black
-black video_processor
+black pyprocessor
 
 # Sort imports
-isort video_processor
+isort pyprocessor
 
 # Run linting
-flake8 video_processor
+flake8 pyprocessor
 
 # Run type checking
-mypy video_processor
+mypy pyprocessor
+
+# Remove unused imports and comment unused variables
+python scripts/clean_code.py
+
+# Or use the Makefile targets
+make format     # Run Black formatter
+make lint       # Run Flake8 linter
+make clean-code # Remove unused imports and comment unused variables
 ```
 
 ### 6. Updating Documentation

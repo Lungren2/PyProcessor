@@ -11,7 +11,7 @@ We follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) with some specific 
 - **Indentation**: Use 4 spaces for indentation (no tabs)
 - **Line Length**: Maximum line length of 88 characters (as per Black formatter)
 - **Line Breaks**: Use line breaks to enhance readability
-- **Blank Lines**: 
+- **Blank Lines**:
   - 2 blank lines before top-level classes and functions
   - 1 blank line before methods within a class
   - Use blank lines to separate logical sections within functions
@@ -42,8 +42,8 @@ from pathlib import Path
 from PyQt5.QtWidgets import QApplication, QMainWindow
 import ffmpeg
 
-from video_processor.utils.config import Config
-from video_processor.processing.encoder import FFmpegEncoder
+from pyprocessor.utils.config import Config
+from pyprocessor.processing.encoder import FFmpegEncoder
 ```
 
 ### Comments and Documentation
@@ -54,16 +54,16 @@ from video_processor.processing.encoder import FFmpegEncoder
 ```python
 def function_name(param1, param2):
     """Short description of the function.
-    
+
     Longer description explaining the function in detail.
-    
+
     Args:
         param1: Description of param1
         param2: Description of param2
-        
+
     Returns:
         Description of return value
-        
+
     Raises:
         ExceptionType: When and why this exception is raised
     """
@@ -80,11 +80,11 @@ def function_name(param1, param2):
 ```python
 def process_video(file_path: Path, output_dir: Path) -> bool:
     """Process a video file.
-    
+
     Args:
         file_path: Path to the input video file
         output_dir: Directory to save processed files
-        
+
     Returns:
         True if processing was successful, False otherwise
     """
@@ -167,7 +167,7 @@ Example:
 # In test_encoder.py
 def test_encode_video_with_valid_input():
     # Test implementation
-    
+
 def test_encode_video_with_missing_file():
     # Test implementation
 ```
@@ -180,14 +180,25 @@ We use the following tools to enforce code style:
 - **Flake8**: For linting
 - **isort**: For import sorting
 - **mypy**: For type checking
+- **autoflake**: For removing unused imports
+- **vulture**: For detecting unused variables
 
 Run these tools before submitting changes:
 
 ```bash
-black video_processor
-flake8 video_processor
-isort video_processor
-mypy video_processor
+black pyprocessor
+flake8 pyprocessor
+isort pyprocessor
+mypy pyprocessor
+python scripts/clean_code.py
+```
+
+Alternatively, you can use the Makefile targets:
+
+```bash
+make format    # Run Black formatter
+make lint      # Run Flake8 linter
+make clean-code # Remove unused imports and comment unused variables
 ```
 
 ## Pre-commit Hooks
@@ -199,4 +210,4 @@ pip install pre-commit
 pre-commit install
 ```
 
-Our pre-commit configuration runs Black, Flake8, and isort automatically.
+Our pre-commit configuration runs Black, Flake8, isort, and autoflake automatically to ensure code quality and remove unused imports.

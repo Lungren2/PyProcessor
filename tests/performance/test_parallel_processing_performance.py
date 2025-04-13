@@ -5,24 +5,22 @@ import os
 import sys
 import time
 import tempfile
-import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 from concurrent.futures import ProcessPoolExecutor
-from typing import List, Dict, Any
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 # Import the modules to test
-from video_processor.utils.config import Config
-from video_processor.utils.logging import Logger
-from video_processor.processing.file_manager import FileManager
-from video_processor.processing.encoder import FFmpegEncoder
-from video_processor.processing.scheduler import ProcessingScheduler, process_video_task
+from pyprocessor.utils.config import Config
+from pyprocessor.utils.logging import Logger
+from pyprocessor.processing.file_manager import FileManager
+from pyprocessor.processing.encoder import FFmpegEncoder
+from pyprocessor.processing.scheduler import ProcessingScheduler
 
 # Import performance test base
-from tests.performance.test_performance_base import PerformanceTest, PerformanceResult, MemoryUsage, time_and_memory_function
+from tests.performance.test_performance_base import PerformanceTest, PerformanceResult, time_and_memory_function
 
 class ParallelProcessingEfficiencyTest(PerformanceTest):
     """Test the efficiency of parallel processing with different numbers of workers."""
@@ -90,8 +88,8 @@ class ParallelProcessingEfficiencyTest(PerformanceTest):
         if self.temp_dir:
             self.temp_dir.cleanup()
     
-    @patch('video_processor.processing.scheduler.process_video_task')
-    @patch('video_processor.processing.scheduler.ProcessPoolExecutor')
+    @patch('pyprocessor.processing.scheduler.process_video_task')
+    @patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
     def run_iteration(self, mock_executor_class, mock_process_video_task) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock the process_video_task function to simulate work
@@ -147,11 +145,9 @@ class ProcessPoolScalingTest(PerformanceTest):
     
     def setup(self) -> None:
         """Set up the test environment."""
-        pass
     
     def teardown(self) -> None:
         """Clean up the test environment."""
-        pass
     
     def run_iteration(self) -> PerformanceResult:
         """Run a single iteration of the test."""
@@ -171,8 +167,8 @@ class ProcessPoolScalingTest(PerformanceTest):
         
         return PerformanceResult(execution_time, memory_usage)
 
-@patch('video_processor.processing.scheduler.process_video_task')
-@patch('video_processor.processing.scheduler.ProcessPoolExecutor')
+@patch('pyprocessor.processing.scheduler.process_video_task')
+@patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
 def test_parallel_processing_efficiency(mock_executor_class, mock_process_video_task):
     """Test the efficiency of parallel processing with different numbers of workers."""
     # Define test parameters

@@ -30,8 +30,7 @@ from datetime import datetime
 def ensure_dependencies():
     """Ensure that all required dependencies are installed."""
     try:
-        import psutil
-        import pytest
+        pass
     except ImportError:
         print("Installing required dependencies...")
         subprocess.check_call([sys.executable, "scripts/install_performance_deps.py"])
@@ -104,6 +103,13 @@ def run_performance_tests(module=None, track_memory=True, html_report=False, ver
 
 def save_results(module, track_memory, execution_time):
     """Save test results to a JSON file."""
+
+    # Ensure psutil is available
+    try:
+        import psutil
+    except ImportError:
+        ensure_dependencies()
+
     # Create results directory if it doesn't exist
     results_dir = Path("performance_results")
     results_dir.mkdir(exist_ok=True)

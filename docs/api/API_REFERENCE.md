@@ -4,7 +4,7 @@ This document provides a reference for the PyProcessor API, which can be used to
 
 ## Core Modules
 
-### video_processor.processing.encoder
+### pyprocessor.processing.encoder
 
 The encoder module provides a wrapper around FFmpeg for video encoding operations.
 
@@ -15,7 +15,7 @@ The encoder module provides a wrapper around FFmpeg for video encoding operation
 Main encoder class that handles video encoding operations.
 
 ```python
-from video_processor.processing.encoder import FFmpegEncoder
+from pyprocessor.processing.encoder import FFmpegEncoder
 
 encoder = FFmpegEncoder(
     input_path="input.mp4",
@@ -42,7 +42,7 @@ encoder.stop()
 Specialized encoder for HLS packaging.
 
 ```python
-from video_processor.processing.encoder import HLSEncoder
+from pyprocessor.processing.encoder import HLSEncoder
 
 encoder = HLSEncoder(
     input_path="input.mp4",
@@ -61,7 +61,7 @@ encoder = HLSEncoder(
 encoder.encode()
 ```
 
-### video_processor.processing.scheduler
+### pyprocessor.processing.scheduler
 
 The scheduler module handles parallel processing of multiple files.
 
@@ -72,7 +72,7 @@ The scheduler module handles parallel processing of multiple files.
 Manages parallel processing of multiple files.
 
 ```python
-from video_processor.processing.scheduler import ProcessingScheduler
+from pyprocessor.processing.scheduler import ProcessingScheduler
 
 scheduler = ProcessingScheduler(
     input_dir="input_directory",
@@ -97,7 +97,7 @@ progress = scheduler.get_progress()
 scheduler.stop()
 ```
 
-### video_processor.utils.config
+### pyprocessor.utils.config
 
 The config module handles configuration management.
 
@@ -108,7 +108,7 @@ The config module handles configuration management.
 Manages application configuration.
 
 ```python
-from video_processor.utils.config import ConfigManager
+from pyprocessor.utils.config import ConfigManager
 
 # Load configuration
 config = ConfigManager()
@@ -130,7 +130,7 @@ config.load_profile("high_quality")
 config.save_profile("high_quality")
 ```
 
-### video_processor.utils.logging
+### pyprocessor.utils.logging
 
 The logging module provides logging functionality.
 
@@ -141,7 +141,7 @@ The logging module provides logging functionality.
 Sets up the application logger.
 
 ```python
-from video_processor.utils.logging import setup_logger
+from pyprocessor.utils.logging import setup_logger
 
 logger = setup_logger(
     name="my_logger",
@@ -153,7 +153,7 @@ logger.info("This is an info message")
 logger.error("This is an error message")
 ```
 
-### video_processor.utils.server_optimizer
+### pyprocessor.utils.server_optimizer
 
 The server_optimizer module provides server optimization functionality.
 
@@ -168,7 +168,7 @@ Base class for server optimization.
 Optimizes IIS servers for HLS content delivery.
 
 ```python
-from video_processor.utils.server_optimizer import IISOptimizer
+from pyprocessor.utils.server_optimizer import IISOptimizer
 
 optimizer = IISOptimizer(
     site_name="MyVideoSite",
@@ -187,7 +187,7 @@ optimizer.optimize()
 Optimizes Nginx servers for HLS content delivery.
 
 ```python
-from video_processor.utils.server_optimizer import NginxOptimizer
+from pyprocessor.utils.server_optimizer import NginxOptimizer
 
 optimizer = NginxOptimizer(
     server_name="example.com",
@@ -206,7 +206,7 @@ optimizer.optimize()
 PyProcessor provides a command-line interface for automation and scripting.
 
 ```bash
-python -m video_processor --no-gui [options]
+python -m pyprocessor --no-gui [options]
 ```
 
 Available command-line options:

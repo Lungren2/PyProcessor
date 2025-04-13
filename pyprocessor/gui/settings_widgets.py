@@ -1,14 +1,13 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                            QRadioButton, QButtonGroup, QGroupBox,
-                           QCheckBox, QSpinBox, QSlider, QLineEdit,
-                           QPushButton, QFormLayout, QToolTip, QComboBox,
-                           QFileDialog, QMessageBox, QTabWidget)
-from PyQt5.QtCore import Qt, pyqtSignal
+                           QCheckBox, QSpinBox, QLineEdit, QPushButton,
+                           QFormLayout, QComboBox, QFileDialog, QMessageBox,
+                           QTabWidget)
+from PyQt5.QtCore import pyqtSignal
 import os
 import platform
-from pathlib import Path
 
-from video_processor.utils.server_optimizer import ServerOptimizer
+from pyprocessor.utils.server_optimizer import ServerOptimizer
 
 class EncodingSettingsWidget(QWidget):
     """Widget for encoding settings"""
@@ -321,7 +320,8 @@ class AdvancedSettingsWidget(QWidget):
         self.rename_pattern_edit.setToolTip(
             "Pattern used to extract the correct filename from existing files.\n"
             "Must include a capture group (in parentheses) that will be used as the new filename.\n"
-            "Default: r\".*?(\\d+-\\d+).*?\\.mp4$\" - extracts numbers-numbers pattern."
+            "Default: r\"(\\d+-\\d+)(?:[_-].*?)?\\.mp4$\" - extracts numbers-numbers pattern.\n"
+            "Example: 'video-123-456.mp4' or '123-456_720p.mp4' will be renamed to '123-456.mp4'."
         )
         reset_rename_btn = QPushButton("Reset")
         reset_rename_btn.clicked.connect(self.reset_rename_pattern)
@@ -388,7 +388,7 @@ class AdvancedSettingsWidget(QWidget):
 
     def reset_rename_pattern(self):
         """Reset the rename pattern to default"""
-        self.rename_pattern_edit.setText(r".*?(\d+-\d+).*?\.mp4$")
+        self.rename_pattern_edit.setText(r"(\d+-\d+)(?:[_-].*?)?\.mp4$")
 
     def reset_validation_pattern(self):
         """Reset the validation pattern to default"""

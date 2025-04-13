@@ -1,18 +1,15 @@
-import sys
-import os
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
-                           QHBoxLayout, QPushButton, QTabWidget, QLabel,
-                           QFileDialog, QMessageBox, QProgressBar, QStatusBar,
-                           QMenu, QAction, QInputDialog, QLineEdit)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, QSize
-from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+                           QPushButton, QTabWidget, QLabel, QFileDialog,
+                           QMessageBox, QStatusBar, QAction, QInputDialog,
+                           QLineEdit)
+from PyQt5.QtCore import QThread, pyqtSignal
 from pathlib import Path
 
-from video_processor.gui.settings_widgets import (
+from pyprocessor.gui.settings_widgets import (
     EncodingSettingsWidget, ProcessingSettingsWidget, AdvancedSettingsWidget,
     ServerOptimizationWidget
 )
-from video_processor.gui.progress_widget import ProcessingProgressWidget
+from pyprocessor.gui.progress_widget import ProcessingProgressWidget
 
 class ProcessingThread(QThread):
     """Background thread for file processing operations"""
@@ -297,7 +294,7 @@ class MainWindow(QMainWindow):
 
     def view_logs(self):
         """View application logs"""
-        from video_processor.gui.log_viewer import LogViewerDialog
+        from pyprocessor.gui.log_viewer import LogViewerDialog
         log_viewer = LogViewerDialog(self.logger)
         log_viewer.exec_()
 

@@ -2,45 +2,45 @@ name: Update Dependencies
 
 on:
   schedule:
-    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
-  workflow_dispatch:  # Allow manual triggering
+    - cron: "0 0 * * 0" # Run weekly on Sunday at midnight
+  workflow_dispatch: # Allow manual triggering
 
 jobs:
   update-dependencies:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pip-tools
-    
-    - name: Update dependencies
-      run: |
-        # Create requirements.in if it doesn't exist
-        if [ ! -f requirements.in ]; then
-          cp requirements.txt requirements.in
-        fi
-        
-        # Update dependencies
-        pip-compile --upgrade requirements.in
-    
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: Update dependencies
-        title: Update dependencies
-        body: |
-          This PR updates the project dependencies to their latest versions.
-          
-          This is an automated PR created by the GitHub Actions workflow.
-        branch: update-dependencies
-        base: dev
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-tools
+
+      - name: Update dependencies
+        run: |
+          # Create requirements.in if it doesn't exist
+          if [ ! -f requirements.in ]; then
+            cp requirements.txt requirements.in
+          fi
+
+          # Update dependencies
+          pip-compile --upgrade requirements.in
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update dependencies
+          title: Update dependencies
+          body: |
+            This PR updates the project dependencies to their latest versions.
+
+            This is an automated PR created by the GitHub Actions workflow.
+          branch: update-dependencies
+          base: dev

@@ -18,7 +18,7 @@ If you prefer to run from source:
 git clone https://github.com/Lungren2/PyProcessor.git
 cd PyProcessor
 pip install -e .
-python -m video_processor
+python -m pyprocessor
 ```
 
 ## Getting Started
@@ -61,6 +61,35 @@ When you launch PyProcessor, you'll see the main interface with the following co
 - **Parallel Processing**: Set the number of files to process simultaneously
 - **File Organization**: Configure automatic file organization options
 - **Custom Patterns**: Set custom regex patterns for file processing
+
+## File Processing and Pattern Usage
+
+PyProcessor uses regular expression patterns to handle file naming and organization. These patterns are controlled by configuration flags that determine when they are applied.
+
+### Auto Rename Files
+
+When the `auto_rename_files` option is enabled, input files are renamed according to the `file_rename_pattern` before processing.
+
+- **Flag**: `auto_rename_files` (true/false)
+- **Pattern**: `file_rename_pattern`
+- **Example**: With the default pattern `(\d+-\d+)(?:[_-].*?)?\.mp4$`, a file named `video-123-456.mp4` or `123-456_720p.mp4` will be renamed to `123-456.mp4`
+
+### Auto Organize Folders
+
+When the `auto_organize_folders` option is enabled, output folders are organized according to the `folder_organization_pattern` after processing.
+
+- **Flag**: `auto_organize_folders` (true/false)
+- **Pattern**: `folder_organization_pattern`
+- **Example**: With the default pattern `^(\d+)-\d+`, a folder named `123-456` will be moved into a parent folder named `123`, creating a structure like `123/123-456`
+
+### File Validation
+
+All files are validated against the `file_validation_pattern` before processing. Files that don't match this pattern are considered invalid and will be skipped.
+
+- **Pattern**: `file_validation_pattern`
+- **Example**: With the default pattern `^\d+-\d+\.mp4$`, only files named like `123-456.mp4` will be processed
+
+You can customize these patterns in the Advanced Settings tab to match your specific naming conventions.
 
 ## Using Profiles
 
@@ -109,7 +138,7 @@ PyProcessor includes tools to optimize your web server for HLS content delivery.
 
 ### Viewing Logs
 
-You can view logs either through the GUI (Tools > View Logs) or by examining the log files in the `video_processor/logs/` directory.
+You can view logs either through the GUI (Tools > View Logs) or by examining the log files in the `pyprocessor/logs/` directory.
 
 ## Getting Help
 

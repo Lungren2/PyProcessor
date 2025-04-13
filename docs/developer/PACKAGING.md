@@ -90,7 +90,7 @@ Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg_temp
 Create a utility module to help the application find the bundled FFmpeg executables:
 
 ```python
-# video_processor/utils/ffmpeg_locator.py
+# pyprocessor/utils/ffmpeg_locator.py
 import os
 import sys
 from pathlib import Path
@@ -149,7 +149,7 @@ Update the encoder.py file to use the FFmpeg locator:
 
 ```python
 # Add import at the top of the file
-from video_processor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
+from pyprocessor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
 
 # Replace FFmpeg calls in check_ffmpeg method
 def check_ffmpeg(self):
@@ -187,8 +187,8 @@ block_cipher = None
 base_dir = os.path.abspath(os.getcwd())
 
 # Define paths for data files
-profiles_dir = os.path.join(base_dir, 'video_processor', 'profiles')
-logs_dir = os.path.join(base_dir, 'video_processor', 'logs')
+profiles_dir = os.path.join(base_dir, 'pyprocessor', 'profiles')
+logs_dir = os.path.join(base_dir, 'pyprocessor', 'logs')
 
 # Create directories if they don't exist
 Path(profiles_dir).mkdir(parents=True, exist_ok=True)
@@ -197,9 +197,9 @@ Path(logs_dir).mkdir(parents=True, exist_ok=True)
 # Define data files to include
 added_files = [
     # Include profiles directory
-    (profiles_dir, 'video_processor/profiles'),
+    (profiles_dir, 'pyprocessor/profiles'),
     # Include logs directory
-    (logs_dir, 'video_processor/logs'),
+    (logs_dir, 'pyprocessor/logs'),
     # Include FFmpeg binaries
     ('ffmpeg_temp/ffmpeg-7.1.1-essentials_build/bin/ffmpeg.exe', 'ffmpeg/ffmpeg.exe'),
     ('ffmpeg_temp/ffmpeg-7.1.1-essentials_build/bin/ffprobe.exe', 'ffmpeg/ffprobe.exe'),
@@ -207,7 +207,7 @@ added_files = [
 ]
 
 a = Analysis(
-    ['video_processor/__main__.py'],  # Entry point
+    ['pyprocessor/__main__.py'],  # Entry point
     pathex=[base_dir],
     binaries=[],
     datas=added_files,

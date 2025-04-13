@@ -1,19 +1,18 @@
 """
 Unit tests for the logging system.
 """
-import pytest
 import os
 import sys
 import tempfile
 import logging
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 # Import the module to test
-from video_processor.utils.logging import Logger
+from pyprocessor.utils.logging import Logger
 
 class TestLogger:
     """Test the Logger class functionality"""

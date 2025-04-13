@@ -2,60 +2,60 @@ name: Build and Package
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python 3.9
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.9
-        cache: 'pip'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pyinstaller
-        pip install -r requirements.txt
-        pip install -e .
-    
-    - name: Download FFmpeg
-      run: |
-        python scripts/download_ffmpeg.py
-    
-    - name: Build with PyInstaller
-      run: |
-        python scripts/build_package.py --skip-nsis
-    
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: pyprocessor-build
-        path: dist/PyProcessor/
-    
-    - name: Create installer (if tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      run: |
-        # Install NSIS
-        choco install nsis -y
-        
-        # Create installer
-        python scripts/build_package.py --skip-ffmpeg --skip-pyinstaller
-    
-    - name: Create Release (if tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          PyProcessorInstaller.exe
-        draft: true
-        prerelease: false
-        generate_release_notes: true
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Download FFmpeg
+        run: |
+          python scripts/download_ffmpeg.py
+
+      - name: Build with PyInstaller
+        run: |
+          python scripts/build_package.py --skip-nsis
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyprocessor-build
+          path: dist/PyProcessor/
+
+      - name: Create installer (if tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          # Install NSIS
+          choco install nsis -y
+
+          # Create installer
+          python scripts/build_package.py --skip-ffmpeg --skip-pyinstaller
+
+      - name: Create Release (if tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            PyProcessorInstaller.exe
+          draft: true
+          prerelease: false
+          generate_release_notes: true

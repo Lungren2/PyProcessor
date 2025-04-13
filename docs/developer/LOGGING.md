@@ -13,7 +13,7 @@ The Video Processor application uses a comprehensive logging system that provide
 
 ## Log Location
 
-Logs are stored in the `video_processor/logs/` directory. Each log file is named with a descriptive pattern that includes:
+Logs are stored in the `pyprocessor/logs/` directory. Each log file is named with a descriptive pattern that includes:
 
 - Date and time
 - Log level
@@ -45,13 +45,13 @@ Example:
 
 The logging system uses standard Python logging levels:
 
-| Level | Value | Description |
-|-------|-------|-------------|
-| DEBUG | 10 | Detailed information, typically of interest only when diagnosing problems |
-| INFO | 20 | Confirmation that things are working as expected |
-| WARNING | 30 | An indication that something unexpected happened, or may happen in the near future |
-| ERROR | 40 | Due to a more serious problem, the software has not been able to perform a function |
-| CRITICAL | 50 | A serious error, indicating that the program itself may be unable to continue running |
+| Level    | Value | Description                                                                           |
+| -------- | ----- | ------------------------------------------------------------------------------------- |
+| DEBUG    | 10    | Detailed information, typically of interest only when diagnosing problems             |
+| INFO     | 20    | Confirmation that things are working as expected                                      |
+| WARNING  | 30    | An indication that something unexpected happened, or may happen in the near future    |
+| ERROR    | 40    | Due to a more serious problem, the software has not been able to perform a function   |
+| CRITICAL | 50    | A serious error, indicating that the program itself may be unable to continue running |
 
 ## Using the Logger
 
@@ -60,7 +60,7 @@ The logging system uses standard Python logging levels:
 The logger is initialized in the main application and passed to components that need it:
 
 ```python
-from video_processor.utils.logging import Logger
+from pyprocessor.utils.logging import Logger
 
 # Initialize logger
 logger = Logger()

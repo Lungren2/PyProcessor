@@ -16,7 +16,7 @@ RequestExecutionLevel admin
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "license.txt"  ; Replace with your license file or remove
+!insertmacro MUI_PAGE_LICENSE "LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
@@ -28,6 +28,9 @@ RequestExecutionLevel admin
 
 ; Language
 !insertmacro MUI_LANGUAGE "English"
+
+; Define version information
+!define PRODUCT_VERSION "a0.0.1"
 
 ; Installer sections
 Section "Main Application" SecMain
@@ -46,6 +49,7 @@ Section "Main Application" SecMain
   
   ; Add uninstaller information to Add/Remove Programs
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PyProcessor" "DisplayName" "PyProcessor"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PyProcessor" "DisplayVersion" "${PRODUCT_VERSION}"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PyProcessor" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PyProcessor" "QuietUninstallString" "$\"$INSTDIR\Uninstall.exe$\" /S"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\PyProcessor" "InstallLocation" "$\"$INSTDIR$\""

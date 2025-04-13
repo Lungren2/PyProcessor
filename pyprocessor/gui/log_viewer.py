@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QTextEdit, QPushButton,
                            QHBoxLayout, QLabel, QComboBox)
-from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QFont, QTextCursor
 
 class LogViewerDialog(QDialog):

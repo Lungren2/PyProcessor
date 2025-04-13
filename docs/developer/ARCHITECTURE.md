@@ -34,18 +34,18 @@ The Video Processor application follows a modular architecture with clear separa
 
 ## Key Components
 
-### 1. GUI Module (`video_processor/gui/`)
+### 1. GUI Module (`pyprocessor/gui/`)
 
 The GUI module provides the graphical user interface for the application.
 
 #### Components:
 
 - **Main Window** (`main_window.py`): The primary application window that integrates all GUI components and provides the main user interface.
-  
+
 - **Configuration Dialog** (`config_dialog.py`): Dialog for configuring encoding and processing options.
-  
+
 - **Progress Widget** (`progress_widget.py`): Widget for displaying processing progress, including file-specific and overall progress.
-  
+
 - **Log Viewer** (`log_viewer.py`): Dialog for viewing application logs with filtering and refresh options.
 
 #### Responsibilities:
@@ -55,16 +55,16 @@ The GUI module provides the graphical user interface for the application.
 - Allow viewing of logs and configuration settings
 - Handle user interactions and trigger appropriate actions
 
-### 2. Processing Module (`video_processor/processing/`)
+### 2. Processing Module (`pyprocessor/processing/`)
 
 The processing module contains the core logic for video processing.
 
 #### Components:
 
 - **Encoder** (`encoder.py`): Wrapper for FFmpeg that handles video encoding operations.
-  
+
 - **File Manager** (`file_manager.py`): Manages file operations, including renaming, validation, and organization.
-  
+
 - **Scheduler** (`scheduler.py`): Orchestrates parallel processing of video files.
 
 #### Responsibilities:
@@ -74,14 +74,14 @@ The processing module contains the core logic for video processing.
 - Schedule and coordinate parallel processing tasks
 - Track processing progress and handle errors
 
-### 3. Utils Module (`video_processor/utils/`)
+### 3. Utils Module (`pyprocessor/utils/`)
 
 The utils module provides utility functions and services used throughout the application.
 
 #### Components:
 
 - **Config** (`config.py`): Manages application configuration, including loading, saving, and validating settings.
-  
+
 - **Logger** (`logging.py`): Provides logging functionality with different levels and output options.
 
 #### Responsibilities:
@@ -128,6 +128,17 @@ Configuration is managed through a hierarchical approach:
 2. **User Configuration**: Saved in JSON format
 3. **Profiles**: Named configurations for different scenarios
 4. **Command-line Overrides**: Options specified via command line
+
+### Flag-Pattern Relationships
+
+The configuration includes several flags that control whether certain patterns are applied during processing:
+
+- **auto_rename_files**: When enabled, the `file_rename_pattern` is used to extract parts of filenames for renaming before processing
+- **auto_organize_folders**: When enabled, the `folder_organization_pattern` is used to organize output folders into a hierarchical structure after processing
+
+The `file_validation_pattern` is always used to validate files before processing, regardless of the flag settings.
+
+For detailed information about these relationships, see the [Configuration Documentation](CONFIGURATION.md) and [Regex Patterns Documentation](../regex_patterns.md).
 
 ## Error Handling
 

@@ -33,11 +33,11 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 
 ```bash
 git clone https://github.com/Lungren2/PyProcessor.git
-cd video_processor
+cd pyprocessor
 pip install -e .
 ```
 
-This will install the package in development mode, making the `video_processor` command available in your environment.
+This will install the package in development mode, making the `pyprocessor` command available in your environment.
 
 ### Standalone Installer
 
@@ -68,7 +68,7 @@ PyProcessor/
 ├── tests/                     # Test suite
 │   ├── unit/                  # Unit tests
 │   └── integration/           # Integration tests
-├── video_processor/           # Main package
+├── pyprocessor/           # Main package
 │   ├── gui/                   # GUI components
 │   ├── processing/            # Processing logic
 │   ├── utils/                 # Utility functions
@@ -94,13 +94,13 @@ PyProcessor/
 To start the application with the graphical interface:
 
 ```bash
-video_processor
+pyprocessor
 ```
 
 or
 
 ```bash
-python -m video_processor
+python -m pyprocessor
 ```
 
 ### Command Line Interface
@@ -108,7 +108,7 @@ python -m video_processor
 To use the command-line interface:
 
 ```bash
-video_processor --no-gui [options]
+pyprocessor --no-gui [options]
 ```
 
 Available command-line options:
@@ -172,11 +172,16 @@ The application uses a configuration system that supports:
 
 ### Configuration Files
 
-Configuration files are stored as JSON in the `video_processor/profiles/` directory. You can create multiple profiles for different encoding scenarios.
+Configuration files are stored as JSON in the `pyprocessor/profiles/` directory. You can create multiple profiles for different encoding scenarios. The configuration includes flags that control file processing behavior:
+
+- `auto_rename_files`: When enabled, input files are renamed according to the `file_rename_pattern`
+- `auto_organize_folders`: When enabled, output folders are organized according to the `folder_organization_pattern`
+
+For detailed information about configuration options and flag-pattern relationships, see the [Configuration Documentation](docs/developer/CONFIGURATION.md) and [Regex Patterns Documentation](docs/regex_patterns.md).
 
 ## Logging
 
-The application maintains detailed logs in the `video_processor/logs/` directory. Log files include timestamps, log levels, and detailed information about the processing operations.
+The application maintains detailed logs in the `pyprocessor/logs/` directory. Log files include timestamps, log levels, and detailed information about the processing operations.
 
 ## Development
 
@@ -251,7 +256,7 @@ python scripts/run_tests.py --integration # Run only integration tests
 
 ### Common Issues
 
-1. **ModuleNotFoundError**: If you encounter `ModuleNotFoundError: No module named 'video_processor'`, make sure you've installed the package with `pip install -e .`
+1. **ModuleNotFoundError**: If you encounter `ModuleNotFoundError: No module named 'pyprocessor'`, make sure you've installed the package with `pip install -e .`
 
 2. **FFmpeg Not Found**: Ensure FFmpeg is installed and available in your system PATH
 
@@ -259,7 +264,7 @@ python scripts/run_tests.py --integration # Run only integration tests
 
 ### Viewing Logs
 
-You can view logs either through the GUI (Tools > View Logs) or by examining the log files in the `video_processor/logs/` directory.
+You can view logs either through the GUI (Tools > View Logs) or by examining the log files in the `pyprocessor/logs/` directory.
 
 ## License
 

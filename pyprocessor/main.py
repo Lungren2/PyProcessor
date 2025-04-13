@@ -1,5 +1,4 @@
 import sys
-import os
 import argparse
 import signal
 from pathlib import Path
@@ -7,13 +6,13 @@ import time
 
 from PyQt5.QtWidgets import QApplication
 
-from video_processor.utils.config import Config
-from video_processor.utils.logging import Logger
-from video_processor.utils.theme_manager import ThemeManager
-from video_processor.processing.file_manager import FileManager
-from video_processor.processing.encoder import FFmpegEncoder
-from video_processor.processing.scheduler import ProcessingScheduler
-from video_processor.gui.main_window import show_main_window
+from pyprocessor.utils.config import Config
+from pyprocessor.utils.logging import Logger
+from pyprocessor.utils.theme_manager import ThemeManager
+from pyprocessor.processing.file_manager import FileManager
+from pyprocessor.processing.encoder import FFmpegEncoder
+from pyprocessor.processing.scheduler import ProcessingScheduler
+from pyprocessor.gui.main_window import show_main_window
 
 # Global references for clean shutdown
 config = None
@@ -162,7 +161,7 @@ def run_cli_mode(config, logger, file_manager, encoder, scheduler):
 
         # Check if server optimization is requested
         if config.server_optimization.get("enabled", False):
-            from video_processor.utils.server_optimizer import ServerOptimizer
+            from pyprocessor.utils.server_optimizer import ServerOptimizer
             server_optimizer = ServerOptimizer(config, logger)
 
             server_type = config.server_optimization["server_type"]

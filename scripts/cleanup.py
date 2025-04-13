@@ -18,7 +18,6 @@ Options:
 """
 
 import os
-import sys
 import shutil
 import argparse
 from pathlib import Path
@@ -93,7 +92,7 @@ def clean_logs():
     print("Cleaning up log files...")
     
     # Find log files
-    log_dir = Path("video_processor/logs")
+    log_dir = Path("pyprocessor/logs")
     if not log_dir.exists():
         print("✓ No log directory found")
         return True

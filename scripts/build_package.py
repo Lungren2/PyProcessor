@@ -20,11 +20,9 @@ import os
 import sys
 import subprocess
 import argparse
-import shutil
 import platform
 import winreg
 from pathlib import Path
-from importlib import import_module
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -32,7 +30,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 def check_pyinstaller():
     """Check if PyInstaller is installed."""
     try:
-        import PyInstaller
         print("✓ PyInstaller is installed.")
         return True
     except ImportError:
@@ -166,8 +163,8 @@ block_cipher = None
 base_dir = os.path.abspath(os.getcwd())
 
 # Define paths for data files
-profiles_dir = os.path.join(base_dir, 'video_processor', 'profiles')
-logs_dir = os.path.join(base_dir, 'video_processor', 'logs')
+profiles_dir = os.path.join(base_dir, 'pyprocessor', 'profiles')
+logs_dir = os.path.join(base_dir, 'pyprocessor', 'logs')
 
 # Create directories if they don't exist
 Path(profiles_dir).mkdir(parents=True, exist_ok=True)
@@ -189,9 +186,9 @@ if not ffmpeg_dir:
 # Define data files to include
 added_files = [
     # Include profiles directory
-    (profiles_dir, 'video_processor/profiles'),
+    (profiles_dir, 'pyprocessor/profiles'),
     # Include logs directory
-    (logs_dir, 'video_processor/logs'),
+    (logs_dir, 'pyprocessor/logs'),
     # Include FFmpeg binaries
     (os.path.join(ffmpeg_dir, 'ffmpeg.exe'), 'ffmpeg/ffmpeg.exe'),
     (os.path.join(ffmpeg_dir, 'ffprobe.exe'), 'ffmpeg/ffprobe.exe'),
@@ -199,7 +196,7 @@ added_files = [
 ]
 
 a = Analysis(
-    ['video_processor/__main__.py'],  # Entry point
+    ['pyprocessor/__main__.py'],  # Entry point
     pathex=[base_dir],
     binaries=[],
     datas=added_files,

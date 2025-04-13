@@ -1,12 +1,10 @@
 """
 Unit tests for FFmpeg encoder error conditions.
 """
-import pytest
 import os
 import sys
 import tempfile
 import subprocess
-import re
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -14,9 +12,9 @@ from unittest.mock import MagicMock, patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 # Import the modules to test
-from video_processor.utils.config import Config
-from video_processor.utils.logging import Logger
-from video_processor.processing.encoder import FFmpegEncoder
+from pyprocessor.utils.config import Config
+from pyprocessor.utils.logging import Logger
+from pyprocessor.processing.encoder import FFmpegEncoder
 
 class TestEncoderErrorConditions:
     """Test error conditions in the FFmpegEncoder class"""
@@ -70,7 +68,7 @@ class TestEncoderErrorConditions:
         
         self.temp_dir.cleanup()
     
-    @patch('video_processor.processing.encoder.subprocess.run')
+    @patch('pyprocessor.processing.encoder.subprocess.run')
     def test_ffmpeg_not_installed(self, mock_run):
         """Test when FFmpeg is not installed"""
         # Mock subprocess.run to raise FileNotFoundError
@@ -82,7 +80,7 @@ class TestEncoderErrorConditions:
         # Verify the result
         assert result is False
     
-    @patch('video_processor.processing.encoder.subprocess.run')
+    @patch('pyprocessor.processing.encoder.subprocess.run')
     def test_ffmpeg_timeout(self, mock_run):
         """Test when FFmpeg check times out"""
         # Mock subprocess.run to raise TimeoutExpired
@@ -94,7 +92,7 @@ class TestEncoderErrorConditions:
         # Verify the result
         assert result is False
     
-    @patch('video_processor.processing.encoder.subprocess.run')
+    @patch('pyprocessor.processing.encoder.subprocess.run')
     def test_ffmpeg_error_output(self, mock_run):
         """Test when FFmpeg returns error output"""
         # Mock subprocess.run to return error output
@@ -136,7 +134,7 @@ class TestEncoderErrorConditions:
             # Restore permissions for cleanup
             os.chmod(self.output_dir, 0o700)  # rwx------
     
-    @patch('video_processor.processing.encoder.subprocess.Popen')
+    @patch('pyprocessor.processing.encoder.subprocess.Popen')
     def test_ffmpeg_process_error(self, mock_popen):
         """Test when FFmpeg process returns an error"""
         # Mock the FFmpeg process to return an error
@@ -154,7 +152,7 @@ class TestEncoderErrorConditions:
         # Verify the result
         assert result is False
     
-    @patch('video_processor.processing.encoder.subprocess.Popen')
+    @patch('pyprocessor.processing.encoder.subprocess.Popen')
     def test_ffmpeg_process_crash(self, mock_popen):
         """Test when FFmpeg process crashes"""
         # Mock the FFmpeg process to crash
@@ -173,7 +171,7 @@ class TestEncoderErrorConditions:
         # Verify the result
         assert result is False
     
-    @patch('video_processor.processing.encoder.subprocess.Popen')
+    @patch('pyprocessor.processing.encoder.subprocess.Popen')
     def test_ffmpeg_invalid_duration(self, mock_popen):
         """Test when FFmpeg returns invalid duration"""
         # Mock the FFmpeg process with invalid duration
@@ -191,7 +189,7 @@ class TestEncoderErrorConditions:
         # Verify the result
         assert result is True  # Should still succeed even with invalid duration
     
-    @patch('video_processor.processing.encoder.subprocess.Popen')
+    @patch('pyprocessor.processing.encoder.subprocess.Popen')
     def test_ffmpeg_invalid_time(self, mock_popen):
         """Test when FFmpeg returns invalid time"""
         # Mock the FFmpeg process with invalid time
@@ -209,7 +207,7 @@ class TestEncoderErrorConditions:
         # Verify the result
         assert result is True  # Should still succeed even with invalid time
     
-    @patch('video_processor.processing.encoder.subprocess.Popen')
+    @patch('pyprocessor.processing.encoder.subprocess.Popen')
     def test_stop_nonexistent_process(self, mock_popen):
         """Test stopping a nonexistent process"""
         # Ensure no process is running
@@ -221,7 +219,7 @@ class TestEncoderErrorConditions:
         # Verify that no exception was raised
         assert self.encoder.process is None
     
-    @patch('video_processor.processing.encoder.subprocess.Popen')
+    @patch('pyprocessor.processing.encoder.subprocess.Popen')
     def test_stop_terminated_process(self, mock_popen):
         """Test stopping an already terminated process"""
         # Mock a terminated process
@@ -235,7 +233,7 @@ class TestEncoderErrorConditions:
         # Verify that terminate was not called
         mock_process.terminate.assert_not_called()
     
-    @patch('video_processor.processing.encoder.subprocess.Popen')
+    @patch('pyprocessor.processing.encoder.subprocess.Popen')
     def test_stop_with_exception(self, mock_popen):
         """Test stopping a process that raises an exception"""
         # Mock a process that raises an exception when terminated
@@ -253,7 +251,7 @@ class TestEncoderErrorConditions:
         # Verify that the exception was handled
         assert self.encoder.process is mock_process  # Process reference should still be there
     
-    @patch('video_processor.processing.encoder.get_ffmpeg_path')
+    @patch('pyprocessor.processing.encoder.get_ffmpeg_path')
     def test_invalid_ffmpeg_path(self, mock_get_ffmpeg_path):
         """Test with an invalid FFmpeg path"""
         # Mock get_ffmpeg_path to return a nonexistent path

@@ -1,5 +1,4 @@
 import threading
-import sys
 
 # Try to import theme-related packages
 try:
@@ -14,7 +13,7 @@ except ImportError:
     qdarktheme = None
     print("Warning: qdarktheme module not found. Please install it with 'pip install pyqtdarktheme'")
 
-from PyQt5.QtWidgets import QApplication, QStyleFactory
+from PyQt5.QtWidgets import QStyleFactory
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtCore import Qt
 

@@ -5,10 +5,10 @@ from threading import Lock
 from pathlib import Path
 
 # Multiprocessing queue for progress updates
-from multiprocessing import Queue, Manager
+from multiprocessing import Manager
 import re
 
-from video_processor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
+from pyprocessor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
 
 # Global queues that will be shared between processes
 progress_queue = None
@@ -217,11 +217,17 @@ class ProcessingScheduler:
 
     def set_progress_callback(self, callback):
         """Set a callback function for progress updates"""
-        self.progress_callback = callback
+        if callable(callback):
+            self.progress_callback = callback
+        else:
+            self.logger.warning(f"Invalid progress callback: {callback} is not callable")
 
     def set_output_file_callback(self, callback):
         """Set a callback function for output file notifications"""
-        self.output_file_callback = callback
+        if callable(callback):
+            self.output_file_callback = callback
+        else:
+            self.logger.warning(f"Invalid output file callback: {callback} is not callable")
 
     def _monitor_progress_queue(self):
         """Monitor the progress queue for file-level progress updates"""
@@ -282,6 +288,12 @@ class ProcessingScheduler:
             # Small sleep to prevent CPU spinning
             import time
             time.sleep(0.01)
+
+    def get_progress(self):
+        """Get the current progress as a ratio (0.0 to 1.0)"""
+        if self.total_files == 0:
+            return 0.0
+        return self.processed_count / self.total_files
 
     def request_abort(self):
         """Request abortion of the processing"""
@@ -364,7 +376,8 @@ class ProcessingScheduler:
                     if self.abort_requested:
                         executor.shutdown(wait=False)
                         self.logger.warning("Processing aborted by user")
-                        break
+                        self.is_running = False
+                        return False
 
                     try:
                         filename, success, duration, error_msg = future.result()

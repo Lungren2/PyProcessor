@@ -132,7 +132,7 @@ Example:
 ```python
 # tests/unit/test_encoder.py
 import unittest
-from video_processor.processing.encoder import FFmpegEncoder
+from pyprocessor.processing.encoder import FFmpegEncoder
 
 class TestFFmpegEncoder(unittest.TestCase):
     def test_initialization(self):
@@ -157,30 +157,82 @@ Integration tests should be placed in the `tests/integration/` directory and fol
 Example:
 
 ```python
-# tests/integration/test_processing_workflow.py
-import unittest
+# tests/integration/test_basic_functionality.py
 import os
+import sys
 import tempfile
-from video_processor.processing.scheduler import ProcessingScheduler
+from pathlib import Path
 
-class TestProcessingWorkflow(unittest.TestCase):
-    def setUp(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.input_dir = os.path.join(self.temp_dir.name, "input")
-        self.output_dir = os.path.join(self.temp_dir.name, "output")
-        os.makedirs(self.input_dir, exist_ok=True)
-        os.makedirs(self.output_dir, exist_ok=True)
+# Add the project root to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
-        # Create test files
-        with open(os.path.join(self.input_dir, "test.mp4"), "wb") as f:
-            f.write(b"test")
+# Import the modules to test
+from pyprocessor.utils.config import Config
+from pyprocessor.utils.logging import Logger
+from pyprocessor.processing.file_manager import FileManager
 
-    def tearDown(self):
-        self.temp_dir.cleanup()
+def create_test_video(directory, filename, size_mb=1):
+    """Create a test video file of the specified size."""
+    file_path = directory / filename
 
-    def test_scheduler_workflow(self):
-        # Test the entire processing workflow
-        pass
+    # Create a file with random data
+    with open(file_path, 'wb') as f:
+        f.write(os.urandom(size_mb * 1024 * 1024))
+
+    return file_path
+
+def test_file_renaming():
+    """Test that the file renaming functionality works correctly."""
+    # Setup test environment
+    temp_dir = tempfile.TemporaryDirectory()
+    base_dir = Path(temp_dir.name)
+    input_dir = base_dir / "input"
+    logs_dir = base_dir / "logs"
+
+    # Create directories
+    input_dir.mkdir(exist_ok=True)
+    logs_dir.mkdir(exist_ok=True)
+
+    try:
+        # Create test video files
+        test_files = [
+            "101-001.mp4",  # Already correctly named
+            "movie_102-002_1080p.mp4",  # Needs renaming
+            "tv_show_103-003_720p.mp4",  # Needs renaming
+            "invalid_file.mp4"  # Invalid naming pattern
+        ]
+
+        for filename in test_files:
+            create_test_video(input_dir, filename)
+
+        # Configure the processor
+        config = Config()
+        config.input_folder = input_dir
+        config.auto_rename_files = True
+        config.file_rename_pattern = r".*?(\d+-\d+).*?\.mp4$"
+
+        # Create logger
+        logger = Logger(log_dir=logs_dir, level="INFO")
+
+        try:
+            # Create file manager
+            file_manager = FileManager(config, logger)
+
+            # Execute file renaming
+            renamed_count = file_manager.rename_files()
+
+            # Verify expected outputs
+            assert renamed_count == 2  # Two files should be renamed
+            assert (input_dir / "101-001.mp4").exists()  # Already correct
+            assert (input_dir / "102-002.mp4").exists()  # Renamed
+            assert (input_dir / "103-003.mp4").exists()  # Renamed
+            assert (input_dir / "invalid_file.mp4").exists()  # Not renamed (invalid)
+        finally:
+            # Close logger to release file handles
+            logger.close()
+    finally:
+        # Cleanup test artifacts
+        temp_dir.cleanup()
 ```
 
 ### Writing Performance Tests
@@ -235,12 +287,16 @@ Unit tests focus on testing individual components in isolation. Key unit test ca
 - **Scheduler Tests**: Test task scheduling and progress tracking
 - **GUI Component Tests**: Test individual GUI components
 - **Server Optimizer Tests**: Test server optimization functionality
+- **Logger Tests**: Test logging functionality and log rotation
+- **Error Handling Tests**: Test error handling and recovery mechanisms
 
 ### Integration Test Categories
 
 Integration tests focus on testing interactions between components. Key integration test categories include:
 
 - **Processing Workflow Tests**: Test the end-to-end video processing workflow
+- **File Management Tests**: Test file renaming, validation, and folder organization
+- **Video Processing Tests**: Test the video encoding and processing pipeline
 - **CLI Interface Tests**: Test command-line argument parsing and execution
 - **GUI Workflow Tests**: Test user interactions with the GUI
 
@@ -306,5 +362,18 @@ Performance test results are displayed in the console and saved in the `performa
 ## Continuous Integration
 
 PyProcessor uses GitHub Actions for continuous integration. The CI pipeline runs all functional tests on each pull request and push to the main branches.
+
+### CI/CD Pipeline
+
+The CI/CD pipeline includes the following steps:
+
+1. **Setup**: Install Python and dependencies
+2. **Linting**: Run linting checks with flake8
+3. **Unit Tests**: Run unit tests with pytest
+4. **Integration Tests**: Run integration tests with pytest
+5. **Coverage**: Generate coverage reports
+6. **Performance Tests**: Run performance tests on scheduled runs
+7. **Build**: Build the application package
+8. **Deploy**: Deploy the application (on release branches only)
 
 For more details on the CI/CD setup, see the [TESTING_AND_CICD.md](../docs/developer/TESTING_AND_CICD.md) document.

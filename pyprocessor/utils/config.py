@@ -78,7 +78,7 @@ class Config:
             self.input_folder.mkdir(parents=True, exist_ok=True)
             self.output_folder.mkdir(parents=True, exist_ok=True)
 
-            # Create a profiles directory in the video_processor folder
+            # Create a profiles directory in the pyprocessor folder
             # Get the base directory of the application
             base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             profiles_dir = base_dir / "profiles"
@@ -302,3 +302,33 @@ class Config:
             }
 
         return errors, warnings
+
+    def apply_args(self, args):
+        """Apply command line arguments to configuration
+
+        Args:
+            args: Command line arguments object
+        """
+        if hasattr(args, 'input') and args.input:
+            self.input_folder = Path(args.input)
+
+        if hasattr(args, 'output') and args.output:
+            self.output_folder = Path(args.output)
+
+        if hasattr(args, 'encoder') and args.encoder:
+            self.ffmpeg_params["video_encoder"] = args.encoder
+
+        if hasattr(args, 'preset') and args.preset:
+            self.ffmpeg_params["preset"] = args.preset
+
+        if hasattr(args, 'tune') and args.tune:
+            self.ffmpeg_params["tune"] = args.tune
+
+        if hasattr(args, 'fps') and args.fps is not None:
+            self.ffmpeg_params["fps"] = args.fps
+
+        if hasattr(args, 'no_audio') and args.no_audio:
+            self.ffmpeg_params["include_audio"] = False
+
+        if hasattr(args, 'jobs') and args.jobs is not None:
+            self.max_parallel_jobs = args.jobs
