@@ -1,0 +1,61 @@
+{
+  // Path to the directory containing input video files
+  // Supports environment variables in ${VAR} format
+  // Example: "${MEDIA_ROOT}/input" will use the MEDIA_ROOT environment variable
+  "input_folder": "${MEDIA_ROOT}/input",
+  // Path to the directory where processed videos will be saved
+  // Supports environment variables in ${VAR} format
+  // Example: "${MEDIA_ROOT}/output" will use the MEDIA_ROOT environment variable
+  "output_folder": "${MEDIA_ROOT}/output",
+  // FFmpeg encoding parameters
+  "ffmpeg_params": {
+    // Video encoder to use (libx265, h264_nvenc, libx264)
+    "video_encoder": "libx265",
+    // Encoding preset (ultrafast, veryfast, medium, slow, etc.)
+    "preset": "medium",
+    // Encoding tune parameter (film, animation, zerolatency, etc.)
+    "tune": "film",
+    // Target frames per second for the output video
+    "fps": 60,
+    // Whether to include audio in the output video
+    "include_audio": true,
+    // Video bitrates for different resolutions
+    "bitrates": {
+      "1080p": "15000k",
+      "720p": "8500k",
+      "480p": "5000k",
+      "360p": "2500k"
+    },
+    // Audio bitrates for different quality levels
+    "audio_bitrates": [
+      "256k",
+      "192k",
+      "128k",
+      "96k"
+    ]
+  },
+  // Maximum number of parallel encoding jobs to run
+  "max_parallel_jobs": 2,
+  // When enabled, input files will be renamed according to the file_rename_pattern before processing
+  // This flag controls whether the file_rename_pattern is applied
+  "auto_rename_files": true,
+  // When enabled, output folders will be organized according to the folder_organization_pattern after processing
+  // This flag controls whether the folder_organization_pattern is applied
+  "auto_organize_folders": true,
+  // Regular expression pattern used to extract parts of filenames for renaming
+  // Used when auto_rename_files is true
+  // Example: With this pattern, a file named "video-123-456.mp4" will be renamed to "123-456.mp4"
+  "file_rename_pattern": "(\\d+-\\d+)(?:[_-].*?)?\\.mp4$",
+  // Regular expression pattern used to validate filenames before processing
+  // Files that don't match this pattern will be considered invalid and skipped
+  // Example: With this pattern, only files named like "123-456.mp4" will be processed
+  "file_validation_pattern": "^\\d+-\\d+\\.mp4$",
+  // Regular expression pattern used to organize folders after processing
+  // Used when auto_organize_folders is true
+  // Example: With this pattern, a folder named "123-456" will be moved into a parent folder named "123"
+  "folder_organization_pattern": "^(\\d+)-\\d+",
+  // Name of the last used profile
+  "last_used_profile": "high_quality",
+  // Timestamp when the configuration was last saved
+  "saved_at": "2023-07-15T12:30:00.000000"
+}
