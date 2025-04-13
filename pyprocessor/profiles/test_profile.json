@@ -1,53 +1,48 @@
 {
-    "input_folder": "C:\\Users\\ETHAN~1.EAS\\AppData\\Local\\Temp\\tmpg6o_isd2\\input",
-    "output_folder": "C:\\Users\\ETHAN~1.EAS\\AppData\\Local\\Temp\\tmpg6o_isd2\\output",
-    "ffmpeg_params": {
-        "video_encoder": "libx264",
-        "preset": "medium",
-        "tune": "film",
-        "fps": 30,
-        "include_audio": true,
-        "audio_encoder": "aac",
-        "audio_bitrates": [
-            "192k",
-            "128k",
-            "96k",
-            "64k"
-        ],
-        "bitrates": {
-            "1080p": "5000k",
-            "720p": "3000k",
-            "480p": "1500k",
-            "360p": "800k"
-        }
+  "input_folder": "${MEDIA_ROOT}/input",
+  "output_folder": "${MEDIA_ROOT}/output",
+  "ffmpeg_params": {
+    "video_encoder": "libx264",
+    "preset": "medium",
+    "tune": "film",
+    "fps": 30,
+    "include_audio": true,
+    "audio_encoder": "aac",
+    "audio_bitrates": ["192k", "128k", "96k", "64k"],
+    "bitrates": {
+      "1080p": "5000k",
+      "720p": "3000k",
+      "480p": "1500k",
+      "360p": "800k"
+    }
+  },
+  "max_parallel_jobs": 2,
+  "auto_rename_files": true,
+  "auto_organize_folders": true,
+  "file_rename_pattern": "(.+?)_\\d+p",
+  "file_validation_pattern": "(.+?)(\\.mp4$|_\\d+p\\.mp4$)",
+  "folder_organization_pattern": "(.+?)_",
+  "last_used_profile": "default",
+  "server_optimization": {
+    "enabled": false,
+    "server_type": "iis",
+    "iis": {
+      "site_name": "Default Web Site",
+      "video_path": "${MEDIA_ROOT}/output",
+      "enable_http2": true,
+      "enable_http3": false,
+      "enable_cors": true,
+      "cors_origin": "*"
     },
-    "max_parallel_jobs": 2,
-    "auto_rename_files": true,
-    "auto_organize_folders": true,
-    "file_rename_pattern": "(.+?)_\\d+p",
-    "file_validation_pattern": "(.+?)(\\.mp4$|_\\d+p\\.mp4$)",
-    "folder_organization_pattern": "(.+?)_",
-    "last_used_profile": "default",
-    "server_optimization": {
-        "enabled": false,
-        "server_type": "iis",
-        "iis": {
-            "site_name": "Default Web Site",
-            "video_path": "C:\\inetpub\\wwwroot\\media\\output",
-            "enable_http2": true,
-            "enable_http3": false,
-            "enable_cors": true,
-            "cors_origin": "*"
-        },
-        "nginx": {
-            "output_path": "C:\\inetpub\\wwwroot\\media\\output\\nginx.conf",
-            "server_name": "yourdomain.com",
-            "ssl_enabled": true,
-            "enable_http3": false
-        },
-        "linux": {
-            "apply_changes": false
-        }
+    "nginx": {
+      "output_path": "${MEDIA_ROOT}/output/nginx.conf",
+      "server_name": "yourdomain.com",
+      "ssl_enabled": true,
+      "enable_http3": false
     },
-    "saved_at": "2025-04-13T14:26:36.401275"
+    "linux": {
+      "apply_changes": false
+    }
+  },
+  "saved_at": "2025-04-13T14:26:36.401275"
 }

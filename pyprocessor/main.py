@@ -1,45 +1,11 @@
-import sys
 import argparse
-import signal
-from pathlib import Path
+import sys
 import time
+from pathlib import Path
 
-from PyQt5.QtWidgets import QApplication
+from pyprocessor.utils.application_context import ApplicationContext
 
-from pyprocessor.utils.config import Config
-from pyprocessor.utils.logging import Logger
-from pyprocessor.utils.theme_manager import ThemeManager
-from pyprocessor.processing.file_manager import FileManager
-from pyprocessor.processing.encoder import FFmpegEncoder
-from pyprocessor.processing.scheduler import ProcessingScheduler
-from pyprocessor.gui.main_window import show_main_window
-
-# Global references for clean shutdown
-config = None
-logger = None
-encoder = None
-scheduler = None
-
-
-def signal_handler(sig, frame):
-    """Handle termination signals for clean shutdown"""
-    global logger, encoder, scheduler
-
-    if logger:
-        logger.info("Termination signal received. Shutting down...")
-
-    # Stop any active FFmpeg process
-    if encoder:
-        encoder.terminate()
-
-    # Request abort for scheduler
-    if scheduler and scheduler.is_running:
-        scheduler.request_abort()
-
-    if logger:
-        logger.info("Shutdown complete")
-
-    sys.exit(0)
+# Signal handling is now managed by ApplicationContext
 
 
 def parse_args():
@@ -198,19 +164,19 @@ def apply_args_to_config(args, config):
                 ] = args.apply_changes
 
 
-def run_cli_mode(config, logger, file_manager, encoder, scheduler):
+def run_cli_mode(app_context):
     """Run in command-line mode"""
     try:
-        logger.info("Running in command-line mode")
+        app_context.logger.info("Running in command-line mode")
 
         # Check if server optimization is requested
-        if config.server_optimization.get("enabled", False):
+        if app_context.config.server_optimization.get("enabled", False):
             from pyprocessor.utils.server_optimizer import ServerOptimizer
 
-            server_optimizer = ServerOptimizer(config, logger)
+            server_optimizer = ServerOptimizer(app_context.config, app_context.logger)
 
-            server_type = config.server_optimization["server_type"]
-            logger.info(f"Running server optimization for {server_type}")
+            server_type = app_context.config.server_optimization["server_type"]
+            app_context.logger.info(f"Running server optimization for {server_type}")
 
             success = False
             message = ""
@@ -218,7 +184,7 @@ def run_cli_mode(config, logger, file_manager, encoder, scheduler):
 
             try:
                 if server_type == "iis":
-                    iis_config = config.server_optimization["iis"]
+                    iis_config = app_context.config.server_optimization["iis"]
                     success, message = server_optimizer.optimize_iis(
                         site_name=iis_config["site_name"],
                         video_path=iis_config["video_path"],
@@ -227,140 +193,82 @@ def run_cli_mode(config, logger, file_manager, encoder, scheduler):
                         cors_origin=iis_config["cors_origin"],
                     )
                 elif server_type == "nginx":
-                    nginx_config = config.server_optimization["nginx"]
+                    nginx_config = app_context.config.server_optimization["nginx"]
                     success, message = server_optimizer.optimize_nginx(
                         output_path=nginx_config["output_path"],
                         server_name=nginx_config["server_name"],
                         ssl_enabled=nginx_config.get("ssl_enabled", True),
                     )
                 elif server_type == "linux":
-                    linux_config = config.server_optimization["linux"]
+                    linux_config = app_context.config.server_optimization["linux"]
                     success, message, script_path = server_optimizer.optimize_linux(
                         apply_changes=linux_config["apply_changes"]
                     )
             except Exception as e:
                 success = False
                 message = f"Error during server optimization: {str(e)}"
-                logger.error(message)
+                app_context.logger.error(message)
 
             if success:
-                logger.info(f"Server optimization successful: {message}")
+                app_context.logger.info(f"Server optimization successful: {message}")
                 if script_path:
-                    logger.info(f"Generated script at: {script_path}")
+                    app_context.logger.info(f"Generated script at: {script_path}")
                 return 0
             else:
-                logger.error(f"Server optimization failed: {message}")
+                app_context.logger.error(f"Server optimization failed: {message}")
                 return 1
 
         # Validate input/output directories
-        if not config.input_folder.exists():
-            logger.error(f"Input directory does not exist: {config.input_folder}")
+        if not app_context.config.input_folder.exists():
+            app_context.logger.error(f"Input directory does not exist: {app_context.config.input_folder}")
             return 1
 
         # Ensure output directory exists
-        config.output_folder.mkdir(parents=True, exist_ok=True)
-
-        # Validate configuration
-        errors, warnings = config.validate()
-        if errors:
-            for error in errors:
-                logger.error(f"Configuration error: {error}")
-            return 1
-
-        if warnings:
-            for warning in warnings:
-                logger.warning(f"Configuration warning: {warning}")
+        app_context.config.output_folder.mkdir(parents=True, exist_ok=True)
 
         # Process files
         start_time = time.time()
 
         # Step 1: Rename files (if enabled)
-        if config.auto_rename_files:
-            logger.info("Renaming files...")
-            file_manager.rename_files()
+        if app_context.config.auto_rename_files:
+            app_context.logger.info("Renaming files...")
+            app_context.file_manager.rename_files()
 
         # Step 2: Process videos
-        logger.info("Processing videos...")
-        success = scheduler.process_videos()
+        app_context.logger.info("Processing videos...")
+        success = app_context.scheduler.process_videos()
 
         # Step 3: Organize folders (if enabled)
-        if config.auto_organize_folders:
-            logger.info("Organizing folders...")
-            file_manager.organize_folders()
+        if app_context.config.auto_organize_folders:
+            app_context.logger.info("Organizing folders...")
+            app_context.file_manager.organize_folders()
 
         # Log summary
         elapsed_time = time.time() - start_time
-        logger.info(f"Processing completed in {elapsed_time/60:.2f} minutes")
+        app_context.logger.info(f"Processing completed in {elapsed_time/60:.2f} minutes")
 
         return 0 if success else 1
 
     except Exception as e:
-        logger.error(f"Error in command-line mode: {str(e)}")
+        app_context.logger.error(f"Error in command-line mode: {str(e)}")
         return 1
 
 
 def main():
     """Main application entry point"""
-    global config, logger, encoder, scheduler
-
     # Parse command line arguments
     args = parse_args()
 
-    # Initialize config
-    config = Config()
-
-    # Load configuration from file or profile
-    if args.config:
-        config.load(args.config)
-    elif args.profile:
-        config.load(profile_name=args.profile)
-
-    # Apply command line arguments
-    apply_args_to_config(args, config)
-
-    # Validate configuration
-    errors, warnings = config.validate()
-
-    # Initialize logger
-    log_level = "DEBUG" if args.verbose else "INFO"
-    logger = Logger(level=log_level)
-
-    if errors:
-        for error in errors:
-            logger.error(f"Configuration error: {error}")
+    # Create and initialize application context
+    app_context = ApplicationContext()
+    if not app_context.initialize(args):
         return 1
-
-    if warnings:
-        for warning in warnings:
-            logger.warning(f"Configuration warning: {warning}")
-
-    # Initialize components
-    file_manager = FileManager(config, logger)
-    encoder = FFmpegEncoder(config, logger)
-    scheduler = ProcessingScheduler(config, logger, file_manager, encoder)
-
-    # Register signal handlers
-    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
-    signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
 
     # Run in CLI or GUI mode
     if args.no_gui:
-        return run_cli_mode(config, logger, file_manager, encoder, scheduler)
+        return run_cli_mode(app_context)
     else:
-        # Create QApplication instance
-        app = QApplication(sys.argv)
-
-        # Initialize and setup theme manager
-        try:
-            theme_manager = ThemeManager(app, logger)
-            theme_manager.setup_theme()
-        except Exception as e:
-            logger.error(f"Failed to initialize theme manager: {str(e)}")
-            theme_manager = None
-
-        return show_main_window(
-            app, config, logger, file_manager, encoder, scheduler, theme_manager
-        )
+        return app_context.run_gui_mode()
 
 
 if __name__ == "__main__":

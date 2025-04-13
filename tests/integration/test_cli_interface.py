@@ -6,13 +6,13 @@ import os
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
-from pyprocessor.main import parse_args, apply_args_to_config, run_cli_mode
+from pyprocessor.main import apply_args_to_config, parse_args, run_cli_mode
 from pyprocessor.utils.config import Config
 from pyprocessor.utils.logging import Logger
 

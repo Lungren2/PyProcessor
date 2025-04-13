@@ -198,6 +198,8 @@ For detailed information about development, please refer to the documentation in
 - [NSIS Packaging](docs/developer/NSIS_PACKAGING.md) - Detailed guide for creating an installer with NSIS
 - [Server Optimization](docs/developer/SERVER_OPTIMIZATION.md) - Prerequisites and details for server optimization
 - [API Reference](docs/api/API_REFERENCE.md) - Reference for the PyProcessor API
+- [Path Handling](docs/developer/PATH_HANDLING.md) - How paths and environment variables are handled
+- [Application Context](docs/developer/APPLICATION_CONTEXT.md) - How application state and lifecycle are managed
 
 ### Development Setup
 
@@ -261,6 +263,8 @@ python scripts/run_tests.py --integration # Run only integration tests
 2. **FFmpeg Not Found**: Ensure FFmpeg is installed and available in your system PATH
 
 3. **Permission Errors**: Make sure the application has write permissions for the output directory
+
+4. **Path Issues**: If you encounter path-related issues, check the [Path Handling](docs/developer/PATH_HANDLING.md) documentation for information on using environment variables and platform-agnostic paths
 
 ### Viewing Logs
 

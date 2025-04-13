@@ -1,17 +1,31 @@
 import os
 import json
 import multiprocessing
+import platform
 from pathlib import Path
 import datetime
+
+from pyprocessor.utils.path_utils import (
+    normalize_path,
+    expand_env_vars,
+    get_default_media_root,
+    get_app_data_dir
+)
 
 
 class Config:
     """Enhanced configuration management for video processor"""
 
     def __init__(self):
-        # Base directories
-        self.input_folder = Path(r"C:\inetpub\wwwroot\media\input")
-        self.output_folder = Path(r"C:\inetpub\wwwroot\media\output")
+        # Base directories with platform-agnostic paths
+        media_root = get_default_media_root()
+
+        # Check for environment variables
+        if "MEDIA_ROOT" in os.environ:
+            media_root = normalize_path(os.environ["MEDIA_ROOT"])
+
+        self.input_folder = media_root / "input"
+        self.output_folder = media_root / "output"
 
         # FFmpeg parameters
         self.ffmpeg_params = {
@@ -78,10 +92,15 @@ class Config:
             self.output_folder.mkdir(parents=True, exist_ok=True)
 
             # Create a profiles directory in the pyprocessor folder
-            # Get the base directory of the application
-            base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            profiles_dir = base_dir / "profiles"
-            profiles_dir.mkdir(exist_ok=True)
+            # Check for environment variable first
+            if "PYPROCESSOR_PROFILES_DIR" in os.environ:
+                profiles_dir = normalize_path(os.environ["PYPROCESSOR_PROFILES_DIR"])
+            else:
+                # Get the base directory of the application
+                base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                profiles_dir = base_dir / "profiles"
+
+            profiles_dir.mkdir(parents=True, exist_ok=True)
 
             return True
         except Exception as e:
@@ -113,12 +132,17 @@ class Config:
                 "saved_at": datetime.datetime.now().isoformat(),
             }
 
-            # Get the base directory of the application
-            base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            # Check for environment variable first
+            if "PYPROCESSOR_PROFILES_DIR" in os.environ:
+                profiles_dir = normalize_path(os.environ["PYPROCESSOR_PROFILES_DIR"])
+            else:
+                # Get the base directory of the application
+                base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                profiles_dir = base_dir / "profiles"
 
             # If profile name is provided, save as a profile
             if profile_name:
-                profile_path = base_dir / "profiles" / f"{profile_name}.json"
+                profile_path = profiles_dir / f"{profile_name}.json"
                 filepath = profile_path
                 self.last_used_profile = profile_name
 
@@ -147,12 +171,17 @@ class Config:
             profile_name: Optional profile name to load
         """
         try:
-            # Get the base directory of the application
-            base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            # Check for environment variable first
+            if "PYPROCESSOR_PROFILES_DIR" in os.environ:
+                profiles_dir = normalize_path(os.environ["PYPROCESSOR_PROFILES_DIR"])
+            else:
+                # Get the base directory of the application
+                base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                profiles_dir = base_dir / "profiles"
 
             # If profile name is provided, load from profiles directory
             if profile_name:
-                filepath = base_dir / "profiles" / f"{profile_name}.json"
+                filepath = profiles_dir / f"{profile_name}.json"
                 self.last_used_profile = profile_name
 
             # If no filepath is specified, use default
@@ -166,11 +195,11 @@ class Config:
             with open(filepath, "r") as f:
                 config_dict = json.load(f)
 
-                # Load paths
+                # Load paths with environment variable expansion
                 if "input_folder" in config_dict:
-                    self.input_folder = Path(config_dict["input_folder"])
+                    self.input_folder = normalize_path(config_dict["input_folder"])
                 if "output_folder" in config_dict:
-                    self.output_folder = Path(config_dict["output_folder"])
+                    self.output_folder = normalize_path(config_dict["output_folder"])
 
                 # Load FFmpeg parameters
                 if "ffmpeg_params" in config_dict:
@@ -209,9 +238,13 @@ class Config:
 
     def get_available_profiles(self):
         """Get a list of available configuration profiles"""
-        # Get the base directory of the application
-        base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        profiles_dir = base_dir / "profiles"
+        # Check for environment variable first
+        if "PYPROCESSOR_PROFILES_DIR" in os.environ:
+            profiles_dir = normalize_path(os.environ["PYPROCESSOR_PROFILES_DIR"])
+        else:
+            # Get the base directory of the application
+            base_dir = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            profiles_dir = base_dir / "profiles"
 
         if not profiles_dir.exists():
             return []
@@ -228,15 +261,15 @@ class Config:
         # Check directories
         if not isinstance(self.input_folder, Path):
             try:
-                self.input_folder = Path(self.input_folder)
-            except:
-                errors.append("Invalid input folder path")
+                self.input_folder = normalize_path(self.input_folder)
+            except Exception as e:
+                errors.append(f"Invalid input folder path: {str(e)}")
 
         if not isinstance(self.output_folder, Path):
             try:
-                self.output_folder = Path(self.output_folder)
-            except:
-                errors.append("Invalid output folder path")
+                self.output_folder = normalize_path(self.output_folder)
+            except Exception as e:
+                errors.append(f"Invalid output folder path: {str(e)}")
 
         # Check FFmpeg parameters
         valid_encoders = ["libx265", "h264_nvenc", "libx264"]
@@ -322,10 +355,10 @@ class Config:
             args: Command line arguments object
         """
         if hasattr(args, "input") and args.input:
-            self.input_folder = Path(args.input)
+            self.input_folder = normalize_path(args.input)
 
         if hasattr(args, "output") and args.output:
-            self.output_folder = Path(args.output)
+            self.output_folder = normalize_path(args.output)
 
         if hasattr(args, "encoder") and args.encoder:
             self.ffmpeg_params["video_encoder"] = args.encoder

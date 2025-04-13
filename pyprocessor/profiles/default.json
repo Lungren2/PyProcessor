@@ -1,6 +1,6 @@
 {
-  "input_folder": "C:\\inetpub\\wwwroot\\media\\input",
-  "output_folder": "C:\\inetpub\\wwwroot\\media\\output",
+  "input_folder": "${MEDIA_ROOT}/input",
+  "output_folder": "${MEDIA_ROOT}/output",
   "ffmpeg_params": {
     "video_encoder": "libx265",
     "preset": "ultrafast",

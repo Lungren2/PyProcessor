@@ -40,7 +40,7 @@ class TestEncoderErrorConditions:
         self.config.input_folder = self.input_dir
         self.config.output_folder = self.output_dir
         self.config.ffmpeg_params = {
-            "encoder": "libx264",
+            "video_encoder": "libx264",
             "preset": "medium",
             "tune": "film",
             "fps": 30,
@@ -286,7 +286,7 @@ class TestEncoderErrorConditions:
     def test_invalid_encoder(self):
         """Test with an invalid encoder"""
         # Set an invalid encoder
-        self.config.ffmpeg_params["encoder"] = "invalid_encoder"
+        self.config.ffmpeg_params["video_encoder"] = "invalid_encoder"
 
         # Build command
         cmd = self.encoder.build_command(self.test_video, self.output_dir)

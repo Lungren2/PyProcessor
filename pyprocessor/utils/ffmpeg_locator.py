@@ -20,16 +20,18 @@ def get_base_dir():
 def get_ffmpeg_path():
     """Get the path to the FFmpeg executable"""
     base_dir = get_base_dir()
+    # Determine executable extension based on platform
+    exe_ext = ".exe" if sys.platform == "win32" else ""
 
     # Check for bundled FFmpeg first
     if getattr(sys, "frozen", False):
         # When running as a bundled executable
-        ffmpeg_path = base_dir / "ffmpeg" / "ffmpeg.exe"
+        ffmpeg_path = base_dir / "ffmpeg" / f"ffmpeg{exe_ext}"
         if ffmpeg_path.exists():
             return str(ffmpeg_path)
     else:
         # When running in development mode, check relative path
-        ffmpeg_path = base_dir.parent / "ffmpeg" / "ffmpeg.exe"
+        ffmpeg_path = base_dir.parent / "ffmpeg" / f"ffmpeg{exe_ext}"
         if ffmpeg_path.exists():
             return str(ffmpeg_path)
 
@@ -40,16 +42,18 @@ def get_ffmpeg_path():
 def get_ffprobe_path():
     """Get the path to the FFprobe executable"""
     base_dir = get_base_dir()
+    # Determine executable extension based on platform
+    exe_ext = ".exe" if sys.platform == "win32" else ""
 
     # Check for bundled FFprobe first
     if getattr(sys, "frozen", False):
         # When running as a bundled executable
-        ffprobe_path = base_dir / "ffmpeg" / "ffprobe.exe"
+        ffprobe_path = base_dir / "ffmpeg" / f"ffprobe{exe_ext}"
         if ffprobe_path.exists():
             return str(ffprobe_path)
     else:
         # When running in development mode, check relative path
-        ffprobe_path = base_dir.parent / "ffmpeg" / "ffprobe.exe"
+        ffprobe_path = base_dir.parent / "ffmpeg" / f"ffprobe{exe_ext}"
         if ffprobe_path.exists():
             return str(ffprobe_path)
 

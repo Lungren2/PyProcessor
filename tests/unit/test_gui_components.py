@@ -43,7 +43,7 @@ class TestMainWindow:
         self.config.input_folder = "/test/input"
         self.config.output_folder = "/test/output"
         self.config.ffmpeg_params = {
-            "encoder": "libx264",
+            "video_encoder": "libx264",
             "preset": "medium",
             "tune": "film",
             "fps": 30,

@@ -51,7 +51,7 @@ class TestProcessingScheduler:
         self.config.max_parallel_jobs = 2
         self.config.file_validation_pattern = r".+_\d+p\.mp4$"
         self.config.ffmpeg_params = {
-            "encoder": "libx264",
+            "video_encoder": "libx264",
             "preset": "medium",
             "tune": "film",
             "fps": 30,

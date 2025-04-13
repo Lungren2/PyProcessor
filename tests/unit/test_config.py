@@ -2,11 +2,12 @@
 Unit tests for the configuration management system.
 """
 
+import json
 import os
 import sys
-import json
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -25,12 +26,16 @@ class TestConfig:
         self.profiles_dir = Path(self.temp_dir.name) / "profiles"
         self.profiles_dir.mkdir(exist_ok=True)
 
+        # Set environment variables for testing
+        os.environ["MEDIA_ROOT"] = str(Path(self.temp_dir.name))
+        os.environ["PYPROCESSOR_PROFILES_DIR"] = str(self.profiles_dir)
+
         # Create a test config
         self.test_config = {
             "input_folder": str(Path(self.temp_dir.name) / "input"),
             "output_folder": str(Path(self.temp_dir.name) / "output"),
             "ffmpeg_params": {
-                "encoder": "libx264",
+                "video_encoder": "libx264",
                 "preset": "medium",
                 "tune": "film",
                 "fps": 30,
@@ -67,7 +72,7 @@ class TestConfig:
             "input_folder": str(Path(self.temp_dir.name) / "profile_input"),
             "output_folder": str(Path(self.temp_dir.name) / "profile_output"),
             "ffmpeg_params": {
-                "encoder": "libx265",
+                "video_encoder": "libx265",
                 "preset": "slow",
                 "tune": "animation",
                 "fps": 24,
@@ -91,6 +96,12 @@ class TestConfig:
 
     def teardown_method(self):
         """Clean up after each test method"""
+        # Clean up environment variables
+        if "MEDIA_ROOT" in os.environ:
+            del os.environ["MEDIA_ROOT"]
+        if "PYPROCESSOR_PROFILES_DIR" in os.environ:
+            del os.environ["PYPROCESSOR_PROFILES_DIR"]
+
         self.temp_dir.cleanup()
 
     def test_config_initialization(self):
@@ -118,7 +129,7 @@ class TestConfig:
         assert str(config.output_folder) == self.test_config["output_folder"]
         assert (
             config.ffmpeg_params["video_encoder"]
-            == self.test_config["ffmpeg_params"]["encoder"]
+            == self.test_config["ffmpeg_params"]["video_encoder"]
         )
         assert (
             config.ffmpeg_params["preset"]
@@ -132,8 +143,8 @@ class TestConfig:
         """Test loading a configuration profile"""
         config = Config()
 
-        # Override the profiles directory for testing
-        config.profiles_dir = self.profiles_dir
+        # The profiles directory is already set via environment variable in setup_method
+        # No need to manually set profiles_dir as it's not an attribute of Config
 
         # Load the test profile
         config.load(profile_name="test_profile")
@@ -143,7 +154,7 @@ class TestConfig:
         assert str(config.output_folder) == self.test_profile["output_folder"]
         assert (
             config.ffmpeg_params["video_encoder"]
-            == self.test_profile["ffmpeg_params"]["encoder"]
+            == self.test_profile["ffmpeg_params"]["video_encoder"]
         )
         assert (
             config.ffmpeg_params["preset"]
@@ -188,8 +199,8 @@ class TestConfig:
         """Test saving a configuration profile"""
         config = Config()
 
-        # Override the profiles directory for testing
-        config.profiles_dir = self.profiles_dir
+        # The profiles directory is already set via environment variable in setup_method
+        # No need to manually set profiles_dir as it's not an attribute of Config
 
         # Set some custom values
         config.input_folder = Path("/profile/input")
@@ -211,7 +222,7 @@ class TestConfig:
         assert saved_profile["input_folder"] == str(config.input_folder)
         assert saved_profile["output_folder"] == str(config.output_folder)
         assert (
-            saved_profile["ffmpeg_params"]["encoder"]
+            saved_profile["ffmpeg_params"]["video_encoder"]
             == config.ffmpeg_params["video_encoder"]
         )
         assert saved_profile["max_parallel_jobs"] == config.max_parallel_jobs
@@ -223,14 +234,17 @@ class TestConfig:
         # Test with valid configuration
         config.input_folder = Path(self.temp_dir.name)
         config.output_folder = Path(self.temp_dir.name)
-        errors, warnings = config.validate()
+        errors, _ = config.validate()  # Ignoring warnings for this test
         assert len(errors) == 0
 
         # Test with invalid input folder
         config.input_folder = Path("/nonexistent/folder")
-        errors, warnings = config.validate()
-        assert len(errors) > 0
-        assert any("input folder does not exist" in error.lower() for error in errors)
+
+        # Patch the exists method to return False for the input folder
+        with patch.object(Path, 'exists', return_value=False):
+            errors, _ = config.validate()  # Ignoring warnings for this test
+            assert len(errors) > 0
+            assert any("input folder does not exist" in error.lower() for error in errors)
 
     def test_apply_command_line_args(self):
         """Test applying command line arguments to configuration"""
