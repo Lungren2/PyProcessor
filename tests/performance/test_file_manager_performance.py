@@ -1,13 +1,14 @@
 """
 Performance tests for the file manager component.
 """
+
 import os
 import sys
 import tempfile
 from pathlib import Path
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -15,7 +16,13 @@ from pyprocessor.utils.logging import Logger
 from pyprocessor.processing.file_manager import FileManager
 
 # Import performance test base
-from tests.performance.test_performance_base import PerformanceTest, PerformanceResult, time_and_memory_function, create_test_videos
+from tests.performance.test_performance_base import (
+    PerformanceTest,
+    PerformanceResult,
+    time_and_memory_function,
+    create_test_videos,
+)
+
 
 class FileValidationPerformanceTest(PerformanceTest):
     """Test the performance of file validation."""
@@ -69,8 +76,11 @@ class FileValidationPerformanceTest(PerformanceTest):
 
     def run_iteration(self) -> PerformanceResult:
         """Run a single iteration of the test."""
-        _, execution_time, memory_usage = time_and_memory_function(self.file_manager.validate_files)
+        _, execution_time, memory_usage = time_and_memory_function(
+            self.file_manager.validate_files
+        )
         return PerformanceResult(execution_time, memory_usage)
+
 
 class FileRenamingPerformanceTest(PerformanceTest):
     """Test the performance of file renaming."""
@@ -127,8 +137,11 @@ class FileRenamingPerformanceTest(PerformanceTest):
         self.test_files = create_test_videos(self.input_dir, self.file_count, size_mb=1)
 
         # Time the renaming operation
-        _, execution_time, memory_usage = time_and_memory_function(self.file_manager.rename_files)
+        _, execution_time, memory_usage = time_and_memory_function(
+            self.file_manager.rename_files
+        )
         return PerformanceResult(execution_time, memory_usage)
+
 
 class FolderOrganizationPerformanceTest(PerformanceTest):
     """Test the performance of folder organization."""
@@ -181,11 +194,16 @@ class FolderOrganizationPerformanceTest(PerformanceTest):
     def run_iteration(self) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Create new test files in the output directory for each iteration
-        self.test_files = create_test_videos(self.output_dir, self.file_count, size_mb=1)
+        self.test_files = create_test_videos(
+            self.output_dir, self.file_count, size_mb=1
+        )
 
         # Time the organization operation
-        _, execution_time, memory_usage = time_and_memory_function(self.file_manager.organize_folders)
+        _, execution_time, memory_usage = time_and_memory_function(
+            self.file_manager.organize_folders
+        )
         return PerformanceResult(execution_time, memory_usage)
+
 
 def test_file_validation_performance():
     """Test the performance of file validation with different file counts."""
@@ -199,11 +217,18 @@ def test_file_validation_performance():
         # Assert that the performance is reasonable
         # These thresholds should be adjusted based on your specific requirements
         if file_count == 10:
-            assert results["avg_time"] < 0.1, f"File validation for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"File validation for {file_count} files is too slow"
         elif file_count == 100:
-            assert results["avg_time"] < 1.0, f"File validation for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 1.0
+            ), f"File validation for {file_count} files is too slow"
         elif file_count == 1000:
-            assert results["avg_time"] < 10.0, f"File validation for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 10.0
+            ), f"File validation for {file_count} files is too slow"
+
 
 def test_file_renaming_performance():
     """Test the performance of file renaming with different file counts."""
@@ -216,9 +241,14 @@ def test_file_renaming_performance():
 
         # Assert that the performance is reasonable
         if file_count == 10:
-            assert results["avg_time"] < 0.2, f"File renaming for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 0.2
+            ), f"File renaming for {file_count} files is too slow"
         elif file_count == 100:
-            assert results["avg_time"] < 2.0, f"File renaming for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 2.0
+            ), f"File renaming for {file_count} files is too slow"
+
 
 def test_folder_organization_performance():
     """Test the performance of folder organization with different file counts."""
@@ -231,9 +261,14 @@ def test_folder_organization_performance():
 
         # Assert that the performance is reasonable
         if file_count == 10:
-            assert results["avg_time"] < 0.2, f"Folder organization for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 0.2
+            ), f"Folder organization for {file_count} files is too slow"
         elif file_count == 100:
-            assert results["avg_time"] < 2.0, f"Folder organization for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 2.0
+            ), f"Folder organization for {file_count} files is too slow"
+
 
 if __name__ == "__main__":
     test_file_validation_performance()

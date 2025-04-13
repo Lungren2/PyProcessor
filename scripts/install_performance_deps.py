@@ -35,7 +35,7 @@ from typing import Dict, List, Optional, Tuple
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("install_performance_deps")
 
@@ -54,15 +54,15 @@ DEPENDENCIES = {
     "pytest-cov": "==4.1.0",  # Coverage reporting
     "pytest-html": "==3.2.0",  # HTML test reports
     "pytest-benchmark": "==4.0.0",  # Benchmarking
-
     # Development dependencies
     "dev": {
         "black": "==23.3.0",  # Code formatting
         "flake8": "==6.0.0",  # Linting
         "mypy": "==1.3.0",  # Type checking
         "isort": "==5.12.0",  # Import sorting
-    }
+    },
 }
+
 
 def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments.
@@ -74,22 +74,21 @@ def parse_arguments() -> argparse.Namespace:
         description="Install dependencies required for performance testing."
     )
     parser.add_argument(
-        "--dev",
-        action="store_true",
-        help="Install development dependencies as well"
+        "--dev", action="store_true", help="Install development dependencies as well"
     )
     parser.add_argument(
         "--upgrade",
         action="store_true",
-        help="Upgrade existing packages to specified versions"
+        help="Upgrade existing packages to specified versions",
     )
     parser.add_argument(
         "--verbose",
         action="store_true",
-        help="Show detailed output during installation"
+        help="Show detailed output during installation",
     )
 
     return parser.parse_args()
+
 
 def get_pip_command() -> List[str]:
     """Get the appropriate pip command based on the environment.
@@ -98,21 +97,26 @@ def get_pip_command() -> List[str]:
         List[str]: The pip command as a list of strings
     """
     # Check if we're in a virtual environment
-    in_venv = hasattr(sys, 'real_prefix') or \
-              (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+    in_venv = hasattr(sys, "real_prefix") or (
+        hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+    )
 
     # Use pip directly if in a virtual environment, otherwise use python -m pip
-    if in_venv and os.path.exists(os.path.join(sys.prefix, 'bin', 'pip')) or \
-       (platform.system() == "Windows" and
-        os.path.exists(os.path.join(sys.prefix, 'Scripts', 'pip.exe'))):
+    if (
+        in_venv
+        and os.path.exists(os.path.join(sys.prefix, "bin", "pip"))
+        or (
+            platform.system() == "Windows"
+            and os.path.exists(os.path.join(sys.prefix, "Scripts", "pip.exe"))
+        )
+    ):
         return ["pip"]
     else:
         return [sys.executable, "-m", "pip"]
 
+
 def build_install_command(
-    dependencies: Dict[str, str],
-    upgrade: bool = False,
-    verbose: bool = False
+    dependencies: Dict[str, str], upgrade: bool = False, verbose: bool = False
 ) -> List[str]:
     """Build the pip install command with the specified dependencies.
 
@@ -140,6 +144,7 @@ def build_install_command(
 
     return cmd
 
+
 def run_command(cmd: List[str], description: str) -> Tuple[bool, Optional[str]]:
     """Run a command and handle its output and errors.
 
@@ -161,7 +166,7 @@ def run_command(cmd: List[str], description: str) -> Tuple[bool, Optional[str]]:
             stdout=subprocess.PIPE if logger.level != logging.DEBUG else None,
             stderr=subprocess.PIPE if logger.level != logging.DEBUG else None,
             universal_newlines=True,
-            text=True
+            text=True,
         )
 
         stdout, stderr = process.communicate()
@@ -179,6 +184,7 @@ def run_command(cmd: List[str], description: str) -> Tuple[bool, Optional[str]]:
     except Exception as e:
         logger.error(f"Exception while running command: {e}")
         return False, str(e)
+
 
 def verify_installation(packages: List[str]) -> Tuple[bool, List[str]]:
     """Verify that the specified packages are installed correctly.
@@ -221,7 +227,10 @@ def verify_installation(packages: List[str]) -> Tuple[bool, List[str]]:
 
     return len(failed_packages) == 0, failed_packages
 
-def install_dependencies(dev: bool = False, upgrade: bool = False, verbose: bool = False) -> int:
+
+def install_dependencies(
+    dev: bool = False, upgrade: bool = False, verbose: bool = False
+) -> int:
     """Install dependencies required for performance testing.
 
     Args:
@@ -266,8 +275,16 @@ def install_dependencies(dev: bool = False, upgrade: bool = False, verbose: bool
 
     # Verify installation
     # We only verify the importable packages (excluding dev tools for simplicity)
-    packages_to_verify = ["psutil", "pytest", "pytest-cov", "pytest-html", "pytest-benchmark"]
-    success, failed_packages = verify_installation([p.split('==')[0] for p in packages_to_verify])
+    packages_to_verify = [
+        "psutil",
+        "pytest",
+        "pytest-cov",
+        "pytest-html",
+        "pytest-benchmark",
+    ]
+    success, failed_packages = verify_installation(
+        [p.split("==")[0] for p in packages_to_verify]
+    )
 
     if not success:
         logger.error(f"Failed to verify these packages: {', '.join(failed_packages)}")
@@ -275,6 +292,7 @@ def install_dependencies(dev: bool = False, upgrade: bool = False, verbose: bool
 
     logger.info("All dependencies installed and verified successfully")
     return EXIT_SUCCESS
+
 
 def main() -> int:
     """Main entry point for the script.
@@ -292,8 +310,10 @@ def main() -> int:
         logger.error(f"Unexpected error: {e}")
         if logger.level == logging.DEBUG:
             import traceback
+
             logger.debug(traceback.format_exc())
         return EXIT_GENERAL_ERROR
+
 
 if __name__ == "__main__":
     sys.exit(main())

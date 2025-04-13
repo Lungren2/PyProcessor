@@ -11,8 +11,8 @@ setup(
         "pyqtdarktheme>=2.1.0",
     ],
     entry_points={
-        'console_scripts': [
-            'pyprocessor=pyprocessor.main:main',
+        "console_scripts": [
+            "pyprocessor=pyprocessor.main:main",
         ],
     },
     author="Ethan Ogle",

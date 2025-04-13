@@ -1,6 +1,7 @@
 """
 Unit tests for the server optimization utilities.
 """
+
 import pytest
 import os
 import sys
@@ -10,11 +11,12 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.logging import Logger
 from pyprocessor.utils.server_optimizer import ServerOptimizer
+
 
 class TestServerOptimizer:
     """Test the ServerOptimizer base class"""
@@ -24,7 +26,7 @@ class TestServerOptimizer:
         # Create a logger
         self.logger = Logger(level="INFO")
         # Create a mock config
-        self.config = type('MockConfig', (), {})()
+        self.config = type("MockConfig", (), {})()
 
     def test_initialization(self):
         """Test that the ServerOptimizer initializes correctly"""
@@ -35,6 +37,7 @@ class TestServerOptimizer:
         assert optimizer.logger == self.logger
         assert optimizer.config == self.config
 
+
 class TestIISOptimizer:
     """Test the IIS optimization method"""
 
@@ -43,7 +46,7 @@ class TestIISOptimizer:
         # Create a logger
         self.logger = Logger(level="INFO")
         # Create a mock config
-        self.config = type('MockConfig', (), {})()
+        self.config = type("MockConfig", (), {})()
 
         # Create temporary directories
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -54,7 +57,7 @@ class TestIISOptimizer:
         """Clean up after each test method"""
         self.temp_dir.cleanup()
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_optimize_iis(self, mock_run):
         """Test the optimize_iis method"""
         # Mock subprocess.run to return success
@@ -72,7 +75,7 @@ class TestIISOptimizer:
             enable_http2=True,
             enable_http3=True,
             enable_cors=True,
-            cors_origin="*"
+            cors_origin="*",
         )
 
         # Verify result
@@ -81,7 +84,7 @@ class TestIISOptimizer:
         # Verify that subprocess.run was called
         assert mock_run.call_count > 0
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_optimize_iis_failure(self, mock_run):
         """Test the optimize_iis method with a failure"""
         # Mock subprocess.run to return failure
@@ -99,11 +102,12 @@ class TestIISOptimizer:
             enable_http2=True,
             enable_http3=True,
             enable_cors=True,
-            cors_origin="*"
+            cors_origin="*",
         )
 
         # Verify result
         assert success is False
+
 
 class TestNginxOptimizer:
     """Test the Nginx optimization method"""
@@ -113,7 +117,7 @@ class TestNginxOptimizer:
         # Create a logger
         self.logger = Logger(level="INFO")
         # Create a mock config
-        self.config = type('MockConfig', (), {})()
+        self.config = type("MockConfig", (), {})()
 
         # Create temporary directories
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -123,8 +127,12 @@ class TestNginxOptimizer:
         """Clean up after each test method"""
         self.temp_dir.cleanup()
 
-    @patch('os.path.exists')
-    @patch('builtins.open', new_callable=unittest.mock.mock_open, read_data="server_name yourdomain.com;\nlisten 443 ssl http2;")
+    @patch("os.path.exists")
+    @patch(
+        "builtins.open",
+        new_callable=unittest.mock.mock_open,
+        read_data="server_name yourdomain.com;\nlisten 443 ssl http2;",
+    )
     def test_optimize_nginx(self, mock_open, mock_exists):
         """Test the optimize_nginx method"""
         # Mock file existence
@@ -138,11 +146,12 @@ class TestNginxOptimizer:
             output_path=str(self.output_config),
             server_name="example.com",
             ssl_enabled=True,
-            enable_http3=True
+            enable_http3=True,
         )
 
         # Verify result
         assert success is True
+
 
 class TestLinuxOptimizer:
     """Test the Linux optimization method"""
@@ -152,12 +161,14 @@ class TestLinuxOptimizer:
         # Create a logger
         self.logger = Logger(level="INFO")
         # Create a mock config
-        self.config = type('MockConfig', (), {})()
+        self.config = type("MockConfig", (), {})()
 
-    @patch('os.path.exists')
-    @patch('tempfile.mkdtemp')
-    @patch('shutil.copy2')
-    def test_optimize_linux_without_applying(self, mock_copy, mock_mkdtemp, mock_exists):
+    @patch("os.path.exists")
+    @patch("tempfile.mkdtemp")
+    @patch("shutil.copy2")
+    def test_optimize_linux_without_applying(
+        self, mock_copy, mock_mkdtemp, mock_exists
+    ):
         """Test the optimize_linux method without applying changes"""
         # Mock file existence and temp directory
         mock_exists.return_value = True
@@ -173,9 +184,9 @@ class TestLinuxOptimizer:
         assert success is True
         assert script_path is not None
 
-    @patch('os.path.exists')
-    @patch('platform.system')
-    @patch('subprocess.run')
+    @patch("os.path.exists")
+    @patch("platform.system")
+    @patch("subprocess.run")
     def test_optimize_linux_with_applying(self, mock_run, mock_platform, mock_exists):
         """Test the optimize_linux method with applying changes"""
         # Mock file existence, platform, and subprocess
@@ -194,9 +205,9 @@ class TestLinuxOptimizer:
         # Verify result
         assert success is True
 
-    @patch('os.path.exists')
-    @patch('platform.system')
-    @patch('subprocess.run')
+    @patch("os.path.exists")
+    @patch("platform.system")
+    @patch("subprocess.run")
     def test_optimize_linux_with_failure(self, mock_run, mock_platform, mock_exists):
         """Test the optimize_linux method with a failure"""
         # Mock file existence, platform, and subprocess

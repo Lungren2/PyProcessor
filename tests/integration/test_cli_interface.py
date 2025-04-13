@@ -1,6 +1,7 @@
 """
 Integration tests for the command-line interface.
 """
+
 import os
 import sys
 import tempfile
@@ -8,12 +9,13 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.main import parse_args, apply_args_to_config, run_cli_mode
 from pyprocessor.utils.config import Config
 from pyprocessor.utils.logging import Logger
+
 
 class TestCLIInterface:
     """Test the command-line interface"""
@@ -38,13 +40,10 @@ class TestCLIInterface:
         os.environ["PYPROCESSOR_PROFILES_DIR"] = str(self.profiles_dir)
 
         # Create test files
-        self.test_files = [
-            "Movie_Title_1080p.mp4",
-            "Another_Movie_720p.mp4"
-        ]
+        self.test_files = ["Movie_Title_1080p.mp4", "Another_Movie_720p.mp4"]
 
         for filename in self.test_files:
-            with open(self.input_dir / filename, 'w') as f:
+            with open(self.input_dir / filename, "w") as f:
                 f.write("Test content")
 
     def teardown_method(self):
@@ -60,20 +59,27 @@ class TestCLIInterface:
         """Test parsing command-line arguments"""
         # Set up test arguments
         test_args = [
-            "--input", str(self.input_dir),
-            "--output", str(self.output_dir),
-            "--encoder", "libx264",
-            "--preset", "medium",
-            "--tune", "film",
-            "--fps", "30",
+            "--input",
+            str(self.input_dir),
+            "--output",
+            str(self.output_dir),
+            "--encoder",
+            "libx264",
+            "--preset",
+            "medium",
+            "--tune",
+            "film",
+            "--fps",
+            "30",
             "--no-audio",
-            "--jobs", "2",
+            "--jobs",
+            "2",
             "--no-gui",
-            "--verbose"
+            "--verbose",
         ]
 
         # Parse arguments
-        with patch('sys.argv', ['pyprocessor'] + test_args):
+        with patch("sys.argv", ["pyprocessor"] + test_args):
             args = parse_args()
 
         # Verify parsed arguments
@@ -137,7 +143,7 @@ class TestCLIInterface:
         assert config.ffmpeg_params["include_audio"] is False  # no_audio is True
         assert config.max_parallel_jobs == args.jobs
 
-    @patch('pyprocessor.processing.scheduler.ProcessingScheduler.process_videos')
+    @patch("pyprocessor.processing.scheduler.ProcessingScheduler.process_videos")
     def test_run_cli_mode(self, mock_process):
         """Test running in CLI mode"""
         # Mock component methods
@@ -175,7 +181,7 @@ class TestCLIInterface:
         scheduler.process_videos.assert_called_once()
         file_manager.organize_folders.assert_called_once()
 
-    @patch('pyprocessor.processing.scheduler.ProcessingScheduler.process_videos')
+    @patch("pyprocessor.processing.scheduler.ProcessingScheduler.process_videos")
     def test_run_cli_mode_failure(self, mock_process):
         """Test running in CLI mode with a failure"""
         # Mock process_videos to return False (failure)
@@ -207,20 +213,23 @@ class TestCLIInterface:
         """Test executing the application from the command line"""
         # Set up test arguments
         test_args = [
-            "--input", str(self.input_dir),
-            "--output", str(self.output_dir),
-            "--no-gui"
+            "--input",
+            str(self.input_dir),
+            "--output",
+            str(self.output_dir),
+            "--no-gui",
         ]
 
         # Mock the main function
-        with patch('pyprocessor.main.main') as mock_main:
+        with patch("pyprocessor.main.main") as mock_main:
             # Set the return value
             mock_main.return_value = 0
 
             # Execute the module with patched sys.argv
-            with patch('sys.argv', ['python', '-m', 'pyprocessor'] + test_args):
+            with patch("sys.argv", ["python", "-m", "pyprocessor"] + test_args):
                 # Import the module directly to simulate command-line execution
                 from pyprocessor.main import main
+
                 main()
 
                 # Verify that main was called

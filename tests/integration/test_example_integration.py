@@ -4,6 +4,7 @@ Integration tests for PyProcessor's basic functionality.
 This module tests the end-to-end workflow of the video processor,
 including file renaming, video processing, and folder organization.
 """
+
 import os
 import sys
 import tempfile
@@ -12,7 +13,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -21,15 +22,17 @@ from pyprocessor.processing.file_manager import FileManager
 from pyprocessor.processing.encoder import FFmpegEncoder
 from pyprocessor.processing.scheduler import ProcessingScheduler
 
+
 def create_test_video(directory, filename, size_mb=1):
     """Create a test video file of the specified size."""
     file_path = directory / filename
 
     # Create a file with random data
-    with open(file_path, 'wb') as f:
+    with open(file_path, "wb") as f:
         f.write(os.urandom(size_mb * 1024 * 1024))
 
     return file_path
+
 
 def test_basic_processor_functionality():
     """Test that the basic processor functionality works end-to-end."""
@@ -51,7 +54,7 @@ def test_basic_processor_functionality():
             "101-001.mp4",  # Already correctly named
             "movie_102-002_1080p.mp4",  # Needs renaming
             "tv_show_103-003_720p.mp4",  # Needs renaming
-            "invalid_file.mp4"  # Invalid naming pattern
+            "invalid_file.mp4",  # Invalid naming pattern
         ]
 
         for filename in test_files:
@@ -77,25 +80,29 @@ def test_basic_processor_functionality():
         encoder = FFmpegEncoder(config, logger)
 
         # Mock the encode_video method to avoid actual encoding
-        with patch.object(FFmpegEncoder, 'encode_video') as mock_encode:
+        with patch.object(FFmpegEncoder, "encode_video") as mock_encode:
             # Configure the mock to return success and create expected output files
-            def mock_encode_side_effect(input_file, output_folder, progress_callback=None):
+            def mock_encode_side_effect(
+                input_file, output_folder, progress_callback=None
+            ):
                 # Create mock output files
                 output_path = Path(output_folder)
                 output_path.mkdir(parents=True, exist_ok=True)
 
                 # Create a master playlist file
-                with open(output_path / "master.m3u8", 'w') as f:
+                with open(output_path / "master.m3u8", "w") as f:
                     f.write("#EXTM3U\n")
 
                 # Create variant playlist files
                 for resolution in ["1080p", "720p", "480p", "360p"]:
-                    with open(output_path / f"playlist_{resolution}.m3u8", 'w') as f:
-                        f.write(f"#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION={resolution}\n")
+                    with open(output_path / f"playlist_{resolution}.m3u8", "w") as f:
+                        f.write(
+                            f"#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1000000,RESOLUTION={resolution}\n"
+                        )
 
                 # Create segment files
                 for i in range(3):
-                    with open(output_path / f"segment_{i}.ts", 'w') as f:
+                    with open(output_path / f"segment_{i}.ts", "w") as f:
                         f.write(f"Segment {i} data")
 
                 # Call progress callback if provided
@@ -162,6 +169,7 @@ def test_basic_processor_functionality():
         try:
             # Find and close any loggers that might have been created
             import logging
+
             for handler in logging.root.handlers[:]:
                 handler.close()
                 logging.root.removeHandler(handler)
@@ -170,6 +178,7 @@ def test_basic_processor_functionality():
 
         # Cleanup test artifacts
         temp_dir.cleanup()
+
 
 def test_processor_with_disabled_options():
     """Test processor functionality with renaming and organization disabled."""
@@ -190,7 +199,7 @@ def test_processor_with_disabled_options():
         test_files = [
             "101-001.mp4",
             "movie_102-002_1080p.mp4",
-            "tv_show_103-003_720p.mp4"
+            "tv_show_103-003_720p.mp4",
         ]
 
         for filename in test_files:
@@ -213,15 +222,17 @@ def test_processor_with_disabled_options():
         encoder = FFmpegEncoder(config, logger)
 
         # Mock the encode_video method
-        with patch.object(FFmpegEncoder, 'encode_video') as mock_encode:
+        with patch.object(FFmpegEncoder, "encode_video") as mock_encode:
             # Configure the mock to return success and create expected output files
-            def mock_encode_side_effect(input_file, output_folder, progress_callback=None):
+            def mock_encode_side_effect(
+                input_file, output_folder, progress_callback=None
+            ):
                 # Create mock output files
                 output_path = Path(output_folder)
                 output_path.mkdir(parents=True, exist_ok=True)
 
                 # Create a master playlist file
-                with open(output_path / "master.m3u8", 'w') as f:
+                with open(output_path / "master.m3u8", "w") as f:
                     f.write("#EXTM3U\n")
 
                 return True
@@ -247,8 +258,12 @@ def test_processor_with_disabled_options():
 
             # Check that files were not renamed
             assert renamed_count == 0  # No files should be renamed
-            assert (input_dir / "movie_102-002_1080p.mp4").exists()  # Original name preserved
-            assert (input_dir / "tv_show_103-003_720p.mp4").exists()  # Original name preserved
+            assert (
+                input_dir / "movie_102-002_1080p.mp4"
+            ).exists()  # Original name preserved
+            assert (
+                input_dir / "tv_show_103-003_720p.mp4"
+            ).exists()  # Original name preserved
 
             # Check that videos were processed
             assert success is True
@@ -273,6 +288,7 @@ def test_processor_with_disabled_options():
         try:
             # Find and close any loggers that might have been created
             import logging
+
             for handler in logging.root.handlers[:]:
                 handler.close()
                 logging.root.removeHandler(handler)
@@ -281,6 +297,7 @@ def test_processor_with_disabled_options():
 
         # Cleanup test artifacts
         temp_dir.cleanup()
+
 
 def test_error_handling():
     """Test that the processor handles errors gracefully."""
@@ -313,7 +330,7 @@ def test_error_handling():
         encoder = FFmpegEncoder(config, logger)
 
         # Mock the encode_video method to simulate an error
-        with patch.object(FFmpegEncoder, 'encode_video') as mock_encode:
+        with patch.object(FFmpegEncoder, "encode_video") as mock_encode:
             # Configure the mock to return failure
             mock_encode.return_value = False
 
@@ -332,7 +349,7 @@ def test_error_handling():
             assert len(log_files) > 0
 
             # Read the log file to check for error messages
-            with open(log_files[0], 'r') as f:
+            with open(log_files[0], "r") as f:
                 log_content = f.read()
                 assert "error" in log_content.lower() or "failed" in log_content.lower()
 
@@ -344,6 +361,7 @@ def test_error_handling():
         try:
             # Find and close any loggers that might have been created
             import logging
+
             for handler in logging.root.handlers[:]:
                 handler.close()
                 logging.root.removeHandler(handler)

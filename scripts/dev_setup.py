@@ -26,7 +26,8 @@ import platform
 import venv
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 def create_virtual_environment():
     """Create a virtual environment for development."""
@@ -55,6 +56,7 @@ def create_virtual_environment():
     except Exception as e:
         print(f"✗ Failed to create virtual environment: {e}")
         return False
+
 
 def install_dependencies(pip_path):
     """Install development dependencies."""
@@ -93,6 +95,7 @@ def install_dependencies(pip_path):
         print(f"✗ Failed to install dependencies: {e}")
         return False
 
+
 def download_ffmpeg():
     """Download FFmpeg binaries."""
     try:
@@ -110,6 +113,7 @@ def download_ffmpeg():
     except Exception as e:
         print(f"✗ Error downloading FFmpeg: {e}")
         return False
+
 
 def setup_pre_commit_hooks():
     """Set up pre-commit hooks."""
@@ -187,8 +191,11 @@ def setup_pre_commit_hooks():
         print(f"✗ Failed to install pre-commit hooks: {e}")
         return False
     except FileNotFoundError:
-        print("✗ pre-commit not found. Make sure it's installed in your virtual environment.")
+        print(
+            "✗ pre-commit not found. Make sure it's installed in your virtual environment."
+        )
         return False
+
 
 def create_directories():
     """Create necessary directories for development."""
@@ -211,12 +218,19 @@ def create_directories():
     print("✓ Created necessary directories")
     return True
 
+
 def main():
     """Main function to set up the development environment."""
-    parser = argparse.ArgumentParser(description="Set up development environment for PyProcessor")
-    parser.add_argument("--no-venv", action="store_true", help="Skip virtual environment creation")
+    parser = argparse.ArgumentParser(
+        description="Set up development environment for PyProcessor"
+    )
+    parser.add_argument(
+        "--no-venv", action="store_true", help="Skip virtual environment creation"
+    )
     parser.add_argument("--no-ffmpeg", action="store_true", help="Skip FFmpeg download")
-    parser.add_argument("--no-hooks", action="store_true", help="Skip pre-commit hooks setup")
+    parser.add_argument(
+        "--no-hooks", action="store_true", help="Skip pre-commit hooks setup"
+    )
     args = parser.parse_args()
 
     # Create virtual environment
@@ -224,12 +238,16 @@ def main():
     if not args.no_venv:
         pip_path = create_virtual_environment()
         if not pip_path:
-            print("Failed to create virtual environment. Continuing with other setup steps...")
+            print(
+                "Failed to create virtual environment. Continuing with other setup steps..."
+            )
 
     # Install dependencies
     if pip_path and pip_path is not True:
         if not install_dependencies(pip_path):
-            print("Failed to install dependencies. Continuing with other setup steps...")
+            print(
+                "Failed to install dependencies. Continuing with other setup steps..."
+            )
 
     # Download FFmpeg
     if not args.no_ffmpeg:
@@ -239,7 +257,9 @@ def main():
     # Set up pre-commit hooks
     if not args.no_hooks and pip_path:
         if not setup_pre_commit_hooks():
-            print("Failed to set up pre-commit hooks. Continuing with other setup steps...")
+            print(
+                "Failed to set up pre-commit hooks. Continuing with other setup steps..."
+            )
 
     # Create necessary directories
     create_directories()
@@ -256,6 +276,7 @@ def main():
             print("    source venv/bin/activate")
 
     return True
+
 
 if __name__ == "__main__":
     main()

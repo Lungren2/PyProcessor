@@ -1,19 +1,36 @@
-from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                           QPushButton, QTabWidget, QLabel, QFileDialog,
-                           QMessageBox, QStatusBar, QAction, QInputDialog,
-                           QLineEdit)
+from PyQt5.QtWidgets import (
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QTabWidget,
+    QLabel,
+    QFileDialog,
+    QMessageBox,
+    QStatusBar,
+    QAction,
+    QInputDialog,
+    QLineEdit,
+)
 from PyQt5.QtCore import QThread, pyqtSignal
 from pathlib import Path
 
 from pyprocessor.gui.settings_widgets import (
-    EncodingSettingsWidget, ProcessingSettingsWidget, AdvancedSettingsWidget,
-    ServerOptimizationWidget
+    EncodingSettingsWidget,
+    ProcessingSettingsWidget,
+    AdvancedSettingsWidget,
+    ServerOptimizationWidget,
 )
 from pyprocessor.gui.progress_widget import ProcessingProgressWidget
 
+
 class ProcessingThread(QThread):
     """Background thread for file processing operations"""
-    progress_updated = pyqtSignal(str, int, int, int)  # filename, file_progress, current, total
+
+    progress_updated = pyqtSignal(
+        str, int, int, int
+    )  # filename, file_progress, current, total
     output_file_created = pyqtSignal(str, str)  # filename, resolution
     processing_finished = pyqtSignal(bool, str)
 
@@ -33,14 +50,16 @@ class ProcessingThread(QThread):
         try:
             # Set progress callback
             self.scheduler.set_progress_callback(
-                lambda filename, file_progress, current, total:
-                    self.progress_updated.emit(filename, file_progress, current, total)
+                lambda filename, file_progress, current, total: self.progress_updated.emit(
+                    filename, file_progress, current, total
+                )
             )
 
             # Set output file callback
             self.scheduler.set_output_file_callback(
-                lambda filename, resolution:
-                    self.output_file_created.emit(filename, resolution if resolution else "")
+                lambda filename, resolution: self.output_file_created.emit(
+                    filename, resolution if resolution else ""
+                )
             )
 
             # Step 1: Rename files (if needed)
@@ -62,10 +81,13 @@ class ProcessingThread(QThread):
             self.is_running = False
             self.processing_finished.emit(success, message)
 
+
 class MainWindow(QMainWindow):
     """Main application window"""
 
-    def __init__(self, config, logger, file_manager, encoder, scheduler, theme_manager=None):
+    def __init__(
+        self, config, logger, file_manager, encoder, scheduler, theme_manager=None
+    ):
         super().__init__()
         self.config = config
         self.logger = logger
@@ -156,8 +178,12 @@ class MainWindow(QMainWindow):
         self.server_widget.settings_changed.connect(self.on_settings_changed)
 
         # Connect server optimization signals
-        self.server_widget.optimization_started.connect(self.on_server_optimization_started)
-        self.server_widget.optimization_finished.connect(self.on_server_optimization_finished)
+        self.server_widget.optimization_started.connect(
+            self.on_server_optimization_started
+        )
+        self.server_widget.optimization_finished.connect(
+            self.on_server_optimization_finished
+        )
 
         # Add tabs to tab widget
         self.tab_widget.addTab(home_tab, "Home")
@@ -252,12 +278,17 @@ class MainWindow(QMainWindow):
         self.save_settings()
 
         profile_name, ok = QInputDialog.getText(
-            self, "Save Configuration", "Enter profile name (leave empty for default):")
+            self, "Save Configuration", "Enter profile name (leave empty for default):"
+        )
 
         if ok:
-            success = self.config.save(profile_name=profile_name if profile_name else None)
+            success = self.config.save(
+                profile_name=profile_name if profile_name else None
+            )
             if success:
-                QMessageBox.information(self, "Success", "Configuration saved successfully")
+                QMessageBox.information(
+                    self, "Success", "Configuration saved successfully"
+                )
             else:
                 QMessageBox.warning(self, "Error", "Failed to save configuration")
 
@@ -269,15 +300,20 @@ class MainWindow(QMainWindow):
             return
 
         profile, ok = QInputDialog.getItem(
-            self, "Load Profile", "Select profile:", profiles, 0, False)
+            self, "Load Profile", "Select profile:", profiles, 0, False
+        )
 
         if ok and profile:
             success = self.config.load(profile_name=profile)
             if success:
                 self.update_ui_from_config()
-                QMessageBox.information(self, "Success", f"Profile '{profile}' loaded successfully")
+                QMessageBox.information(
+                    self, "Success", f"Profile '{profile}' loaded successfully"
+                )
             else:
-                QMessageBox.warning(self, "Error", f"Failed to load profile '{profile}'")
+                QMessageBox.warning(
+                    self, "Error", f"Failed to load profile '{profile}'"
+                )
 
     def update_ui_from_config(self):
         """Update UI elements with current configuration"""
@@ -295,19 +331,24 @@ class MainWindow(QMainWindow):
     def view_logs(self):
         """View application logs"""
         from pyprocessor.gui.log_viewer import LogViewerDialog
+
         log_viewer = LogViewerDialog(self.logger)
         log_viewer.exec_()
 
     def clear_output_directory(self):
         """Clear the output directory"""
         reply = QMessageBox.question(
-            self, "Confirm", "Are you sure you want to clear the output directory?",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            self,
+            "Confirm",
+            "Are you sure you want to clear the output directory?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
         )
 
         if reply == QMessageBox.Yes:
             try:
                 import shutil
+
                 output_dir = self.config.output_folder
 
                 # Don't delete the directory itself, just its contents
@@ -321,7 +362,9 @@ class MainWindow(QMainWindow):
                 self.logger.info(f"Output directory cleared: {output_dir}")
 
             except Exception as e:
-                QMessageBox.warning(self, "Error", f"Failed to clear directory: {str(e)}")
+                QMessageBox.warning(
+                    self, "Error", f"Failed to clear directory: {str(e)}"
+                )
                 self.logger.error(f"Failed to clear output directory: {str(e)}")
 
     def input_path_edited(self):
@@ -333,9 +376,11 @@ class MainWindow(QMainWindow):
                 # Create directory if it doesn't exist
                 if not path.exists():
                     reply = QMessageBox.question(
-                        self, "Directory Not Found",
+                        self,
+                        "Directory Not Found",
                         f"The directory '{new_path}' does not exist. Create it?",
-                        QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.Yes,
                     )
                     if reply == QMessageBox.Yes:
                         path.mkdir(parents=True, exist_ok=True)
@@ -347,7 +392,9 @@ class MainWindow(QMainWindow):
                 self.config.input_folder = path
                 self.logger.info(f"Input directory changed to: {new_path}")
             except Exception as e:
-                QMessageBox.warning(self, "Invalid Path", f"Error setting input path: {str(e)}")
+                QMessageBox.warning(
+                    self, "Invalid Path", f"Error setting input path: {str(e)}"
+                )
                 # Revert to previous path
                 self.input_dir_edit.setText(str(self.config.input_folder))
 
@@ -360,9 +407,11 @@ class MainWindow(QMainWindow):
                 # Create directory if it doesn't exist
                 if not path.exists():
                     reply = QMessageBox.question(
-                        self, "Directory Not Found",
+                        self,
+                        "Directory Not Found",
                         f"The directory '{new_path}' does not exist. Create it?",
-                        QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.Yes,
                     )
                     if reply == QMessageBox.Yes:
                         path.mkdir(parents=True, exist_ok=True)
@@ -374,14 +423,17 @@ class MainWindow(QMainWindow):
                 self.config.output_folder = path
                 self.logger.info(f"Output directory changed to: {new_path}")
             except Exception as e:
-                QMessageBox.warning(self, "Invalid Path", f"Error setting output path: {str(e)}")
+                QMessageBox.warning(
+                    self, "Invalid Path", f"Error setting output path: {str(e)}"
+                )
                 # Revert to previous path
                 self.output_dir_edit.setText(str(self.config.output_folder))
 
     def select_input_directory(self):
         """Select input directory via dialog"""
         directory = QFileDialog.getExistingDirectory(
-            self, "Select Input Directory", str(self.config.input_folder))
+            self, "Select Input Directory", str(self.config.input_folder)
+        )
 
         if directory:
             self.config.input_folder = Path(directory)
@@ -391,7 +443,8 @@ class MainWindow(QMainWindow):
     def select_output_directory(self):
         """Select output directory via dialog"""
         directory = QFileDialog.getExistingDirectory(
-            self, "Select Output Directory", str(self.config.output_folder))
+            self, "Select Output Directory", str(self.config.output_folder)
+        )
 
         if directory:
             self.config.output_folder = Path(directory)
@@ -401,7 +454,9 @@ class MainWindow(QMainWindow):
     def on_settings_changed(self):
         """Handle settings changes"""
         self.settings_modified = True
-        self.status_bar.showMessage("Settings modified. Remember to save your configuration.")
+        self.status_bar.showMessage(
+            "Settings modified. Remember to save your configuration."
+        )
 
     def on_server_optimization_started(self):
         """Handle server optimization started signal"""
@@ -433,37 +488,47 @@ class MainWindow(QMainWindow):
     def start_processing(self):
         """Start the video processing"""
         if self.processing_thread and self.processing_thread.is_running:
-            QMessageBox.warning(self, "Processing Active",
-                              "Processing is already running. Please wait for it to complete.")
+            QMessageBox.warning(
+                self,
+                "Processing Active",
+                "Processing is already running. Please wait for it to complete.",
+            )
             return
 
         # Check if server optimization is in progress
         if self.server_optimization_in_progress:
-            QMessageBox.warning(self, "Server Optimization in Progress",
-                              "Server optimization is in progress. Please wait until it completes.")
+            QMessageBox.warning(
+                self,
+                "Server Optimization in Progress",
+                "Server optimization is in progress. Please wait until it completes.",
+            )
             return
 
         # Save current settings to config
         self.save_settings()
 
         # Check if files exist in input directory
-        input_files = list(self.config.input_folder.glob('*.mp4'))
+        input_files = list(self.config.input_folder.glob("*.mp4"))
         if not input_files:
-            QMessageBox.warning(self, "No Files",
-                              "No MP4 files found in the input directory.")
+            QMessageBox.warning(
+                self, "No Files", "No MP4 files found in the input directory."
+            )
             return
 
         # Validate configuration
         errors, warnings = self.config.validate()
         if errors:
-            QMessageBox.critical(self, "Configuration Error",
-                               "\n".join(errors))
+            QMessageBox.critical(self, "Configuration Error", "\n".join(errors))
             return
 
         if warnings:
-            reply = QMessageBox.warning(self, "Configuration Warning",
-                                      "\n".join(warnings) + "\n\nContinue anyway?",
-                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            reply = QMessageBox.warning(
+                self,
+                "Configuration Warning",
+                "\n".join(warnings) + "\n\nContinue anyway?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
+            )
             if reply == QMessageBox.No:
                 return
 
@@ -486,7 +551,8 @@ class MainWindow(QMainWindow):
 
         # Create and start the processing thread
         self.processing_thread = ProcessingThread(
-            self.file_manager, self.encoder, self.scheduler)
+            self.file_manager, self.encoder, self.scheduler
+        )
 
         # Connect signals
         self.processing_thread.progress_updated.connect(self.update_progress)
@@ -502,11 +568,15 @@ class MainWindow(QMainWindow):
         """Update progress display"""
         self.progress_widget.update_file_progress(filename, file_progress)
         self.progress_widget.update_overall_progress(current, total)
-        self.status_bar.showMessage(f"Processing: {current} of {total} complete - Current file: {file_progress}%")
+        self.status_bar.showMessage(
+            f"Processing: {current} of {total} complete - Current file: {file_progress}%"
+        )
 
     def output_file_created(self, filename, resolution):
         """Add an output file to the log"""
-        self.progress_widget.add_output_file(filename, resolution if resolution else None)
+        self.progress_widget.add_output_file(
+            filename, resolution if resolution else None
+        )
 
     def processing_finished(self, success, message):
         """Handle processing completion"""
@@ -535,9 +605,11 @@ class MainWindow(QMainWindow):
         # Check if processing is running
         if self.processing_thread and self.processing_thread.is_running:
             reply = QMessageBox.question(
-                self, "Confirm Exit",
+                self,
+                "Confirm Exit",
                 "Processing is still running. Are you sure you want to exit?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
             )
             if reply == QMessageBox.No:
                 event.ignore()
@@ -546,9 +618,11 @@ class MainWindow(QMainWindow):
         # Check if server optimization is in progress
         if self.server_optimization_in_progress:
             reply = QMessageBox.question(
-                self, "Confirm Exit",
+                self,
+                "Confirm Exit",
                 "Server optimization is in progress. Are you sure you want to exit?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No,
             )
             if reply == QMessageBox.No:
                 event.ignore()
@@ -557,10 +631,11 @@ class MainWindow(QMainWindow):
         # Check for unsaved changes
         if self.settings_modified:
             reply = QMessageBox.question(
-                self, "Unsaved Changes",
+                self,
+                "Unsaved Changes",
                 "You have unsaved changes. Do you want to save before exiting?",
                 QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
-                QMessageBox.Save
+                QMessageBox.Save,
             )
             if reply == QMessageBox.Save:
                 self.save_settings()
@@ -572,7 +647,10 @@ class MainWindow(QMainWindow):
         # Accept the event and close
         event.accept()
 
-def show_main_window(app, config, logger, file_manager, encoder, scheduler, theme_manager=None):
+
+def show_main_window(
+    app, config, logger, file_manager, encoder, scheduler, theme_manager=None
+):
     """Display the main application window
 
     Args:

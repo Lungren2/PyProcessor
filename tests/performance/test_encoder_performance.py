@@ -1,6 +1,7 @@
 """
 Performance tests for the encoder component.
 """
+
 import os
 import sys
 import tempfile
@@ -8,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -16,7 +17,13 @@ from pyprocessor.utils.logging import Logger
 from pyprocessor.processing.encoder import FFmpegEncoder
 
 # Import performance test base
-from tests.performance.test_performance_base import PerformanceTest, PerformanceResult, time_and_memory_function, create_test_video
+from tests.performance.test_performance_base import (
+    PerformanceTest,
+    PerformanceResult,
+    time_and_memory_function,
+    create_test_video,
+)
+
 
 class CommandBuildingPerformanceTest(PerformanceTest):
     """Test the performance of building FFmpeg commands."""
@@ -47,7 +54,9 @@ class CommandBuildingPerformanceTest(PerformanceTest):
         self.output_dir.mkdir(exist_ok=True)
 
         # Create a test video
-        self.test_video = create_test_video(self.input_dir, "test_video_1080p.mp4", size_mb=1)
+        self.test_video = create_test_video(
+            self.input_dir, "test_video_1080p.mp4", size_mb=1
+        )
 
         # Create config
         self.config = Config()
@@ -65,8 +74,8 @@ class CommandBuildingPerformanceTest(PerformanceTest):
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Create logger
@@ -80,14 +89,17 @@ class CommandBuildingPerformanceTest(PerformanceTest):
         if self.temp_dir:
             self.temp_dir.cleanup()
 
-    @patch('pyprocessor.processing.encoder.subprocess.run')
+    @patch("pyprocessor.processing.encoder.subprocess.run")
     def run_iteration(self, mock_run) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock the subprocess.run to avoid actual ffprobe calls
         mock_run.return_value = MagicMock(stdout="stream=audio")
 
-        _, execution_time, memory_usage = time_and_memory_function(self.encoder.build_command, self.test_video, self.output_dir)
+        _, execution_time, memory_usage = time_and_memory_function(
+            self.encoder.build_command, self.test_video, self.output_dir
+        )
         return PerformanceResult(execution_time, memory_usage)
+
 
 class EncoderInitializationPerformanceTest(PerformanceTest):
     """Test the performance of encoder initialization."""
@@ -131,8 +143,8 @@ class EncoderInitializationPerformanceTest(PerformanceTest):
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Create logger
@@ -143,14 +155,17 @@ class EncoderInitializationPerformanceTest(PerformanceTest):
         if self.temp_dir:
             self.temp_dir.cleanup()
 
-    @patch('pyprocessor.processing.encoder.subprocess.run')
+    @patch("pyprocessor.processing.encoder.subprocess.run")
     def run_iteration(self, mock_run) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock the subprocess.run to avoid actual ffprobe calls
         mock_run.return_value = MagicMock(stdout="stream=audio")
 
-        _, execution_time, memory_usage = time_and_memory_function(FFmpegEncoder, self.config, self.logger)
+        _, execution_time, memory_usage = time_and_memory_function(
+            FFmpegEncoder, self.config, self.logger
+        )
         return PerformanceResult(execution_time, memory_usage)
+
 
 class ProgressParsingPerformanceTest(PerformanceTest):
     """Test the performance of parsing FFmpeg progress output."""
@@ -197,18 +212,23 @@ class ProgressParsingPerformanceTest(PerformanceTest):
         if self.temp_dir:
             self.temp_dir.cleanup()
 
-    @patch('pyprocessor.processing.encoder.subprocess.run')
+    @patch("pyprocessor.processing.encoder.subprocess.run")
     def run_iteration(self, mock_run) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock the subprocess.run to avoid actual ffprobe calls
         mock_run.return_value = MagicMock(stdout="stream=audio")
 
         # Add the _parse_progress method to the encoder if it doesn't exist
-        if not hasattr(self.encoder, '_parse_progress'):
-            self.encoder._parse_progress = lambda line, duration: 0.0 if 'time=' not in line else 0.5
+        if not hasattr(self.encoder, "_parse_progress"):
+            self.encoder._parse_progress = lambda line, duration: (
+                0.0 if "time=" not in line else 0.5
+            )
 
-        _, execution_time, memory_usage = time_and_memory_function(self.encoder._parse_progress, self.test_line, self.duration_seconds)
+        _, execution_time, memory_usage = time_and_memory_function(
+            self.encoder._parse_progress, self.test_line, self.duration_seconds
+        )
         return PerformanceResult(execution_time, memory_usage)
+
 
 class DurationParsingPerformanceTest(PerformanceTest):
     """Test the performance of parsing FFmpeg duration output."""
@@ -254,20 +274,25 @@ class DurationParsingPerformanceTest(PerformanceTest):
         if self.temp_dir:
             self.temp_dir.cleanup()
 
-    @patch('pyprocessor.processing.encoder.subprocess.run')
+    @patch("pyprocessor.processing.encoder.subprocess.run")
     def run_iteration(self, mock_run) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock the subprocess.run to avoid actual ffprobe calls
         mock_run.return_value = MagicMock(stdout="stream=audio")
 
         # Add the _parse_duration method to the encoder if it doesn't exist
-        if not hasattr(self.encoder, '_parse_duration'):
-            self.encoder._parse_duration = lambda line: 0 if 'Duration:' not in line else 600
+        if not hasattr(self.encoder, "_parse_duration"):
+            self.encoder._parse_duration = lambda line: (
+                0 if "Duration:" not in line else 600
+            )
 
-        _, execution_time, memory_usage = time_and_memory_function(self.encoder._parse_duration, self.test_line)
+        _, execution_time, memory_usage = time_and_memory_function(
+            self.encoder._parse_duration, self.test_line
+        )
         return PerformanceResult(execution_time, memory_usage)
 
-@patch('pyprocessor.processing.encoder.subprocess.Popen')
+
+@patch("pyprocessor.processing.encoder.subprocess.Popen")
 def test_command_building_performance(mock_popen):
     """Test the performance of building FFmpeg commands."""
     test = CommandBuildingPerformanceTest()
@@ -277,7 +302,8 @@ def test_command_building_performance(mock_popen):
     # Assert that the performance is reasonable
     assert results["avg_time"] < 0.001, "Command building is too slow"
 
-@patch('pyprocessor.processing.encoder.subprocess.Popen')
+
+@patch("pyprocessor.processing.encoder.subprocess.Popen")
 def test_encoder_initialization_performance(mock_popen):
     """Test the performance of encoder initialization."""
     test = EncoderInitializationPerformanceTest()
@@ -286,6 +312,7 @@ def test_encoder_initialization_performance(mock_popen):
 
     # Assert that the performance is reasonable
     assert results["avg_time"] < 0.01, "Encoder initialization is too slow"
+
 
 def test_progress_parsing_performance():
     """Test the performance of parsing FFmpeg progress output."""
@@ -296,6 +323,7 @@ def test_progress_parsing_performance():
     # Assert that the performance is reasonable
     assert results["avg_time"] < 0.0001, "Progress parsing is too slow"
 
+
 def test_duration_parsing_performance():
     """Test the performance of parsing FFmpeg duration output."""
     test = DurationParsingPerformanceTest()
@@ -304,6 +332,7 @@ def test_duration_parsing_performance():
 
     # Assert that the performance is reasonable
     assert results["avg_time"] < 0.0001, "Duration parsing is too slow"
+
 
 if __name__ == "__main__":
     test_command_building_performance()

@@ -5,13 +5,17 @@ try:
     import darkdetect
 except ImportError:
     darkdetect = None
-    print("Warning: darkdetect module not found. Please install it with 'pip install darkdetect'")
+    print(
+        "Warning: darkdetect module not found. Please install it with 'pip install darkdetect'"
+    )
 
 try:
     import qdarktheme
 except ImportError:
     qdarktheme = None
-    print("Warning: qdarktheme module not found. Please install it with 'pip install pyqtdarktheme'")
+    print(
+        "Warning: qdarktheme module not found. Please install it with 'pip install pyqtdarktheme'"
+    )
 
 from PyQt5.QtWidgets import QStyleFactory
 from PyQt5.QtGui import QPalette, QColor
@@ -53,7 +57,9 @@ class ThemeManager:
                     self.logger.error(f"Error detecting system theme: {str(e)}")
         else:
             if self.logger:
-                self.logger.warning("darkdetect module not available, defaulting to light theme")
+                self.logger.warning(
+                    "darkdetect module not available, defaulting to light theme"
+                )
             print("darkdetect module not available, defaulting to light theme")
 
         # Apply theme
@@ -103,7 +109,9 @@ class ThemeManager:
                 print(f"Error detecting system theme: {str(e)}")
         else:
             if self.logger:
-                self.logger.warning("darkdetect module not available, defaulting to light theme")
+                self.logger.warning(
+                    "darkdetect module not available, defaulting to light theme"
+                )
             print("darkdetect module not available, defaulting to light theme")
 
         self._apply_theme(theme)
@@ -124,17 +132,19 @@ class ThemeManager:
         if qdarktheme is not None:
             try:
                 # Try to apply the theme
-                if hasattr(qdarktheme, 'setup_theme'):
+                if hasattr(qdarktheme, "setup_theme"):
                     qdarktheme.setup_theme(theme)
-                elif hasattr(qdarktheme, 'apply_theme'):  # Alternative function name
+                elif hasattr(qdarktheme, "apply_theme"):  # Alternative function name
                     qdarktheme.apply_theme(theme)
-                elif hasattr(qdarktheme, 'load_theme'):  # Another alternative
+                elif hasattr(qdarktheme, "load_theme"):  # Another alternative
                     qdarktheme.load_theme(theme)
                 else:
                     # Print available functions for debugging
                     print(f"Available qdarktheme functions: {dir(qdarktheme)}")
                     if self.logger:
-                        self.logger.error("Could not find appropriate theme function in qdarktheme module")
+                        self.logger.error(
+                            "Could not find appropriate theme function in qdarktheme module"
+                        )
                     self._apply_fallback_theme(theme)  # Use fallback
                     return
 
@@ -150,7 +160,9 @@ class ThemeManager:
         else:
             # No theme module available, use fallback
             if self.logger:
-                self.logger.warning("Theme modules not available. Using built-in fallback theme.")
+                self.logger.warning(
+                    "Theme modules not available. Using built-in fallback theme."
+                )
             print("Theme modules not available. Using built-in fallback theme.")
             self._apply_fallback_theme(theme)
 
@@ -162,7 +174,9 @@ class ThemeManager:
         """
         if not self.app:
             if self.logger:
-                self.logger.error("Cannot apply fallback theme: No QApplication instance available")
+                self.logger.error(
+                    "Cannot apply fallback theme: No QApplication instance available"
+                )
             return
 
         # Set the application style to Fusion (cross-platform style that supports palette customization)
@@ -202,17 +216,24 @@ class ThemeManager:
         # Check if darkdetect is available
         if darkdetect is None:
             if self.logger:
-                self.logger.warning("Cannot start theme listener: darkdetect module not available")
+                self.logger.warning(
+                    "Cannot start theme listener: darkdetect module not available"
+                )
             return
 
         # Check if listener function is available
-        if not hasattr(darkdetect, 'listener'):
+        if not hasattr(darkdetect, "listener"):
             if self.logger:
-                self.logger.warning("Cannot start theme listener: darkdetect.listener function not available")
+                self.logger.warning(
+                    "Cannot start theme listener: darkdetect.listener function not available"
+                )
             return
 
         # Check if thread is already running
-        if self.theme_listener_thread is not None and self.theme_listener_thread.is_alive():
+        if (
+            self.theme_listener_thread is not None
+            and self.theme_listener_thread.is_alive()
+        ):
             return
 
         def theme_change_callback(theme_name):
@@ -226,9 +247,7 @@ class ThemeManager:
 
         try:
             self.theme_listener_thread = threading.Thread(
-                target=darkdetect.listener,
-                args=(theme_change_callback,),
-                daemon=True
+                target=darkdetect.listener, args=(theme_change_callback,), daemon=True
             )
             self.theme_listener_thread.start()
 

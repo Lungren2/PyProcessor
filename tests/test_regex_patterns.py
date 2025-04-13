@@ -6,6 +6,7 @@ import re
 import json
 from pathlib import Path
 
+
 def test_file_rename_pattern():
     """Test the file_rename_pattern to ensure it captures the entire numeral section."""
     # Load the pattern from the high_quality.json profile
@@ -36,6 +37,7 @@ def test_file_rename_pattern():
             print(f"{status} {filename}: Expected '{expected}', Got '{result}'")
         else:
             print(f"✗ {filename}: No match found")
+
 
 if __name__ == "__main__":
     test_file_rename_pattern()

@@ -1,6 +1,7 @@
 """
 Integration tests for the video processing workflow.
 """
+
 import os
 import sys
 import tempfile
@@ -8,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -16,6 +17,7 @@ from pyprocessor.utils.logging import Logger
 from pyprocessor.processing.file_manager import FileManager
 from pyprocessor.processing.encoder import FFmpegEncoder
 from pyprocessor.processing.scheduler import ProcessingScheduler
+
 
 class TestProcessingWorkflow:
     """Test the complete video processing workflow"""
@@ -44,11 +46,11 @@ class TestProcessingWorkflow:
             "Movie_Title_1080p.mp4",
             "Another_Movie_720p.mp4",
             "TV_Show_S01E01_480p.mp4",
-            "Documentary_2020_360p.mp4"
+            "Documentary_2020_360p.mp4",
         ]
 
         for filename in self.test_files:
-            with open(self.input_dir / filename, 'w') as f:
+            with open(self.input_dir / filename, "w") as f:
                 f.write("Test content")
 
     def teardown_method(self):
@@ -61,6 +63,7 @@ class TestProcessingWorkflow:
         try:
             # Find and close any loggers that might have been created
             import logging
+
             for handler in logging.root.handlers[:]:
                 handler.close()
                 logging.root.removeHandler(handler)
@@ -70,7 +73,7 @@ class TestProcessingWorkflow:
         # Clean up temporary directory
         self.temp_dir.cleanup()
 
-    @patch('pyprocessor.processing.scheduler.ProcessingScheduler.process_videos')
+    @patch("pyprocessor.processing.scheduler.ProcessingScheduler.process_videos")
     def test_end_to_end_workflow(self, mock_process_videos):
         """Test the end-to-end video processing workflow"""
         # Mock the process_videos method to return success
@@ -99,8 +102,8 @@ class TestProcessingWorkflow:
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Create logger
@@ -130,20 +133,17 @@ class TestProcessingWorkflow:
         # Verify that process_videos was called
         assert mock_process_videos.call_count > 0
 
-    @patch('pyprocessor.processing.scheduler.ProcessingScheduler.process_videos')
+    @patch("pyprocessor.processing.scheduler.ProcessingScheduler.process_videos")
     def test_workflow_with_invalid_files(self, mock_process_videos):
         """Test the workflow with some invalid files"""
         # Mock the process_videos method to return success
         mock_process_videos.return_value = True
 
         # Add some invalid files
-        invalid_files = [
-            "invalid-file-1.mp4",
-            "invalid-file-2.mp4"
-        ]
+        invalid_files = ["invalid-file-1.mp4", "invalid-file-2.mp4"]
 
         for filename in invalid_files:
-            with open(self.input_dir / filename, 'w') as f:
+            with open(self.input_dir / filename, "w") as f:
                 f.write("Invalid content")
 
         # Create configuration
@@ -181,7 +181,7 @@ class TestProcessingWorkflow:
         # Verify that process_videos was called
         assert mock_process_videos.call_count > 0
 
-    @patch('pyprocessor.processing.scheduler.ProcessingScheduler.process_videos')
+    @patch("pyprocessor.processing.scheduler.ProcessingScheduler.process_videos")
     def test_workflow_with_encoding_failures(self, mock_process_videos):
         """Test the workflow with some encoding failures"""
         # Mock the process_videos method to return failure
@@ -223,7 +223,6 @@ class TestProcessingWorkflow:
         assert mock_process_videos.call_count > 0
 
     def test_config_save_load_workflow(self):
-
         """Test the configuration save and load workflow"""
         # Create initial configuration
         config1 = Config()
@@ -247,8 +246,8 @@ class TestProcessingWorkflow:
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Save configuration as a profile
@@ -267,11 +266,22 @@ class TestProcessingWorkflow:
         assert config2.auto_organize_folders == config1.auto_organize_folders
         assert config2.file_rename_pattern == config1.file_rename_pattern
         assert config2.file_validation_pattern == config1.file_validation_pattern
-        assert config2.folder_organization_pattern == config1.folder_organization_pattern
+        assert (
+            config2.folder_organization_pattern == config1.folder_organization_pattern
+        )
         assert config2.max_parallel_jobs == config1.max_parallel_jobs
-        assert config2.ffmpeg_params["video_encoder"] == config1.ffmpeg_params["video_encoder"]
+        assert (
+            config2.ffmpeg_params["video_encoder"]
+            == config1.ffmpeg_params["video_encoder"]
+        )
         assert config2.ffmpeg_params["preset"] == config1.ffmpeg_params["preset"]
         assert config2.ffmpeg_params["tune"] == config1.ffmpeg_params["tune"]
         assert config2.ffmpeg_params["fps"] == config1.ffmpeg_params["fps"]
-        assert config2.ffmpeg_params["include_audio"] == config1.ffmpeg_params["include_audio"]
-        assert config2.ffmpeg_params["bitrates"]["1080p"] == config1.ffmpeg_params["bitrates"]["1080p"]
+        assert (
+            config2.ffmpeg_params["include_audio"]
+            == config1.ffmpeg_params["include_audio"]
+        )
+        assert (
+            config2.ffmpeg_params["bitrates"]["1080p"]
+            == config1.ffmpeg_params["bitrates"]["1080p"]
+        )

@@ -1,6 +1,7 @@
 """
 Performance tests for configuration and profile management.
 """
+
 import os
 import sys
 import tempfile
@@ -9,13 +10,19 @@ from pathlib import Path
 from typing import Dict, Any
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
 
 # Import performance test base
-from tests.performance.test_performance_base import PerformanceTest, time_function, PerformanceResult, MemoryUsage
+from tests.performance.test_performance_base import (
+    PerformanceTest,
+    time_function,
+    PerformanceResult,
+    MemoryUsage,
+)
+
 
 class ConfigLoadPerformanceTest(PerformanceTest):
     """Test the performance of loading configuration from a file."""
@@ -49,7 +56,7 @@ class ConfigLoadPerformanceTest(PerformanceTest):
         config_data = self._create_config_data()
 
         # Write config to file
-        with open(self.config_path, 'w') as f:
+        with open(self.config_path, "w") as f:
             json.dump(config_data, f, indent=4)
 
     def teardown(self) -> None:
@@ -69,7 +76,7 @@ class ConfigLoadPerformanceTest(PerformanceTest):
             "file_rename_pattern": r"(.+?)_\d+p",
             "file_validation_pattern": r".+\.mp4$",
             "folder_organization_pattern": r"(.+?)_\d+p",
-            "last_used_profile": "default"
+            "last_used_profile": "default",
         }
 
         # Add FFmpeg parameters
@@ -83,8 +90,8 @@ class ConfigLoadPerformanceTest(PerformanceTest):
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Add server optimization settings
@@ -96,7 +103,7 @@ class ConfigLoadPerformanceTest(PerformanceTest):
                 "enable_http2": True,
                 "enable_http3": True,
                 "enable_cors": True,
-                "cors_origin": "*"
+                "cors_origin": "*",
             },
             "nginx": {
                 "server_name": "example.com",
@@ -104,11 +111,9 @@ class ConfigLoadPerformanceTest(PerformanceTest):
                 "enable_http2": True,
                 "enable_http3": True,
                 "enable_cors": True,
-                "cors_origin": "*"
+                "cors_origin": "*",
             },
-            "linux": {
-                "apply_changes": False
-            }
+            "linux": {"apply_changes": False},
         }
 
         # Add additional data based on size
@@ -121,7 +126,14 @@ class ConfigLoadPerformanceTest(PerformanceTest):
 
             # Add more audio bitrates
             config_data["ffmpeg_params"]["audio_bitrates"] = [
-                "384k", "256k", "192k", "128k", "96k", "64k", "48k", "32k"
+                "384k",
+                "256k",
+                "192k",
+                "128k",
+                "96k",
+                "64k",
+                "48k",
+                "32k",
             ]
 
             # Add more encoding options
@@ -138,7 +150,7 @@ class ConfigLoadPerformanceTest(PerformanceTest):
                 "psy_rd": "1.0:0.0",
                 "trellis": 1,
                 "no_fast_pskip": 0,
-                "bframes": 3
+                "bframes": 3,
             }
 
         if self.config_size == "large":
@@ -155,9 +167,26 @@ class ConfigLoadPerformanceTest(PerformanceTest):
                 preset_name = f"preset_{i}"
                 preset_data = {
                     "video_encoder": "libx264" if i % 2 == 0 else "libx265",
-                    "preset": ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"][i % 9],
-                    "tune": ["film", "animation", "grain", "stillimage", "fastdecode", "zerolatency"][i % 6],
-                    "bitrates": {}
+                    "preset": [
+                        "ultrafast",
+                        "superfast",
+                        "veryfast",
+                        "faster",
+                        "fast",
+                        "medium",
+                        "slow",
+                        "slower",
+                        "veryslow",
+                    ][i % 9],
+                    "tune": [
+                        "film",
+                        "animation",
+                        "grain",
+                        "stillimage",
+                        "fastdecode",
+                        "zerolatency",
+                    ][i % 6],
+                    "bitrates": {},
                 }
 
                 # Add bitrates to preset
@@ -176,6 +205,7 @@ class ConfigLoadPerformanceTest(PerformanceTest):
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
+
 
 class ConfigSavePerformanceTest(PerformanceTest):
     """Test the performance of saving configuration to a file."""
@@ -236,8 +266,8 @@ class ConfigSavePerformanceTest(PerformanceTest):
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Server optimization settings
@@ -249,7 +279,7 @@ class ConfigSavePerformanceTest(PerformanceTest):
                 "enable_http2": True,
                 "enable_http3": True,
                 "enable_cors": True,
-                "cors_origin": "*"
+                "cors_origin": "*",
             },
             "nginx": {
                 "server_name": "example.com",
@@ -257,11 +287,9 @@ class ConfigSavePerformanceTest(PerformanceTest):
                 "enable_http2": True,
                 "enable_http3": True,
                 "enable_cors": True,
-                "cors_origin": "*"
+                "cors_origin": "*",
             },
-            "linux": {
-                "apply_changes": False
-            }
+            "linux": {"apply_changes": False},
         }
 
         # Add additional data based on size
@@ -274,7 +302,14 @@ class ConfigSavePerformanceTest(PerformanceTest):
 
             # Add more audio bitrates
             self.config.ffmpeg_params["audio_bitrates"] = [
-                "384k", "256k", "192k", "128k", "96k", "64k", "48k", "32k"
+                "384k",
+                "256k",
+                "192k",
+                "128k",
+                "96k",
+                "64k",
+                "48k",
+                "32k",
             ]
 
             # Add more encoding options
@@ -291,7 +326,7 @@ class ConfigSavePerformanceTest(PerformanceTest):
                 "psy_rd": "1.0:0.0",
                 "trellis": 1,
                 "no_fast_pskip": 0,
-                "bframes": 3
+                "bframes": 3,
             }
 
         if self.config_size == "large":
@@ -308,9 +343,26 @@ class ConfigSavePerformanceTest(PerformanceTest):
                 preset_name = f"preset_{i}"
                 preset_data = {
                     "video_encoder": "libx264" if i % 2 == 0 else "libx265",
-                    "preset": ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"][i % 9],
-                    "tune": ["film", "animation", "grain", "stillimage", "fastdecode", "zerolatency"][i % 6],
-                    "bitrates": {}
+                    "preset": [
+                        "ultrafast",
+                        "superfast",
+                        "veryfast",
+                        "faster",
+                        "fast",
+                        "medium",
+                        "slow",
+                        "slower",
+                        "veryslow",
+                    ][i % 9],
+                    "tune": [
+                        "film",
+                        "animation",
+                        "grain",
+                        "stillimage",
+                        "fastdecode",
+                        "zerolatency",
+                    ][i % 6],
+                    "bitrates": {},
                 }
 
                 # Add bitrates to preset
@@ -327,6 +379,7 @@ class ConfigSavePerformanceTest(PerformanceTest):
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
+
 
 class ProfileManagementPerformanceTest(PerformanceTest):
     """Test the performance of profile management operations."""
@@ -380,16 +433,33 @@ class ProfileManagementPerformanceTest(PerformanceTest):
                 "output_folder": str(Path(self.temp_dir.name) / f"output_{i}"),
                 "ffmpeg_params": {
                     "video_encoder": "libx264" if i % 2 == 0 else "libx265",
-                    "preset": ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"][i % 9],
-                    "tune": ["film", "animation", "grain", "stillimage", "fastdecode", "zerolatency"][i % 6],
+                    "preset": [
+                        "ultrafast",
+                        "superfast",
+                        "veryfast",
+                        "faster",
+                        "fast",
+                        "medium",
+                        "slow",
+                        "slower",
+                        "veryslow",
+                    ][i % 9],
+                    "tune": [
+                        "film",
+                        "animation",
+                        "grain",
+                        "stillimage",
+                        "fastdecode",
+                        "zerolatency",
+                    ][i % 6],
                     "fps": 30,
                     "include_audio": True,
                     "bitrates": {
                         "1080p": f"{5000 + i * 100}k",
                         "720p": f"{3000 + i * 100}k",
                         "480p": f"{1500 + i * 100}k",
-                        "360p": f"{800 + i * 100}k"
-                    }
+                        "360p": f"{800 + i * 100}k",
+                    },
                 },
                 "max_parallel_jobs": (i % 8) + 1,
                 "auto_rename_files": i % 2 == 0,
@@ -397,15 +467,16 @@ class ProfileManagementPerformanceTest(PerformanceTest):
                 "file_rename_pattern": r"(.+?)_\d+p",
                 "file_validation_pattern": r".+\.mp4$",
                 "folder_organization_pattern": r"(.+?)_\d+p",
-                "last_used_profile": profile_name
+                "last_used_profile": profile_name,
             }
 
             # Write profile to file
-            with open(profile_path, 'w') as f:
+            with open(profile_path, "w") as f:
                 json.dump(profile_data, f, indent=4)
 
     def run_iteration(self) -> PerformanceResult:
         """Run a single iteration of the test."""
+
         def profile_management():
             # Get available profiles
             profiles = self.config.get_available_profiles()
@@ -421,6 +492,7 @@ class ProfileManagementPerformanceTest(PerformanceTest):
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
 
+
 def test_config_load_performance():
     """Test the performance of loading configuration with different sizes."""
     config_sizes = ["small", "medium", "large"]
@@ -432,11 +504,18 @@ def test_config_load_performance():
 
         # Assert that the performance is reasonable
         if config_size == "small":
-            assert results["avg_time"] < 0.01, f"Config load for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.01
+            ), f"Config load for {config_size} config is too slow"
         elif config_size == "medium":
-            assert results["avg_time"] < 0.05, f"Config load for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.05
+            ), f"Config load for {config_size} config is too slow"
         elif config_size == "large":
-            assert results["avg_time"] < 0.1, f"Config load for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"Config load for {config_size} config is too slow"
+
 
 def test_config_save_performance():
     """Test the performance of saving configuration with different sizes."""
@@ -449,11 +528,18 @@ def test_config_save_performance():
 
         # Assert that the performance is reasonable
         if config_size == "small":
-            assert results["avg_time"] < 0.01, f"Config save for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.01
+            ), f"Config save for {config_size} config is too slow"
         elif config_size == "medium":
-            assert results["avg_time"] < 0.05, f"Config save for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.05
+            ), f"Config save for {config_size} config is too slow"
         elif config_size == "large":
-            assert results["avg_time"] < 0.1, f"Config save for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"Config save for {config_size} config is too slow"
+
 
 def test_profile_management_performance():
     """Test the performance of profile management with different numbers of profiles."""
@@ -466,11 +552,18 @@ def test_profile_management_performance():
 
         # Assert that the performance is reasonable
         if profile_count == 10:
-            assert results["avg_time"] < 0.1, f"Profile management for {profile_count} profiles is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"Profile management for {profile_count} profiles is too slow"
         elif profile_count == 50:
-            assert results["avg_time"] < 0.5, f"Profile management for {profile_count} profiles is too slow"
+            assert (
+                results["avg_time"] < 0.5
+            ), f"Profile management for {profile_count} profiles is too slow"
         elif profile_count == 100:
-            assert results["avg_time"] < 1.0, f"Profile management for {profile_count} profiles is too slow"
+            assert (
+                results["avg_time"] < 1.0
+            ), f"Profile management for {profile_count} profiles is too slow"
+
 
 if __name__ == "__main__":
     test_config_load_performance()

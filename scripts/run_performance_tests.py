@@ -27,6 +27,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 
+
 def ensure_dependencies():
     """Ensure that all required dependencies are installed."""
     try:
@@ -35,7 +36,10 @@ def ensure_dependencies():
         print("Installing required dependencies...")
         subprocess.check_call([sys.executable, "scripts/install_performance_deps.py"])
 
-def run_performance_tests(module=None, track_memory=True, html_report=False, verbose=False):
+
+def run_performance_tests(
+    module=None, track_memory=True, html_report=False, verbose=False
+):
     """Run the performance test suite with the specified options."""
     # Ensure the performance tests directory exists
     tests_dir = Path("tests/performance")
@@ -95,11 +99,14 @@ def run_performance_tests(module=None, track_memory=True, html_report=False, ver
 
             return True
         else:
-            print(f"\n✗ Some performance tests failed after {execution_time:.2f} seconds.")
+            print(
+                f"\n✗ Some performance tests failed after {execution_time:.2f} seconds."
+            )
             return False
     except Exception as e:
         print(f"\n✗ Error running performance tests: {e}")
         return False
+
 
 def save_results(module, track_memory, execution_time):
     """Save test results to a JSON file."""
@@ -116,30 +123,31 @@ def save_results(module, track_memory, execution_time):
 
     # Create a timestamp for the filename
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
+
     # Create the results file
     results_file = results_dir / f"performance_results_{timestamp}.json"
-    
+
     # Create the results data
     results_data = {
         "timestamp": timestamp,
         "module": module if module else "all",
         "track_memory": track_memory,
         "execution_time": execution_time,
-        "system_info": get_system_info()
+        "system_info": get_system_info(),
     }
-    
+
     # Write the results to the file
-    with open(results_file, 'w') as f:
+    with open(results_file, "w") as f:
         json.dump(results_data, f, indent=4)
-    
+
     print(f"\nResults saved to {results_file}")
+
 
 def get_system_info():
     """Get system information for the results."""
     import platform
     import psutil
-    
+
     return {
         "platform": platform.platform(),
         "python_version": platform.python_version(),
@@ -147,16 +155,23 @@ def get_system_info():
         "cpu_count": psutil.cpu_count(logical=False),
         "logical_cpu_count": psutil.cpu_count(logical=True),
         "memory_total": psutil.virtual_memory().total,
-        "memory_available": psutil.virtual_memory().available
+        "memory_available": psutil.virtual_memory().available,
     }
+
 
 def main():
     """Parse arguments and run performance tests."""
     parser = argparse.ArgumentParser(description="Run PyProcessor performance tests")
-    parser.add_argument("--module", help="Run tests in a specific module (e.g., encoder, scheduler)")
-    parser.add_argument("--no-memory", action="store_true", help="Disable memory tracking")
+    parser.add_argument(
+        "--module", help="Run tests in a specific module (e.g., encoder, scheduler)"
+    )
+    parser.add_argument(
+        "--no-memory", action="store_true", help="Disable memory tracking"
+    )
     parser.add_argument("--html", action="store_true", help="Generate HTML report")
-    parser.add_argument("--verbose", action="store_true", help="Show more detailed output")
+    parser.add_argument(
+        "--verbose", action="store_true", help="Show more detailed output"
+    )
     args = parser.parse_args()
 
     # Ensure dependencies are installed
@@ -167,10 +182,11 @@ def main():
         module=args.module,
         track_memory=not args.no_memory,
         html_report=args.html,
-        verbose=args.verbose
+        verbose=args.verbose,
     )
 
     sys.exit(0 if success else 1)
+
 
 if __name__ == "__main__":
     main()

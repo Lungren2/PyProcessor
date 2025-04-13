@@ -4,14 +4,16 @@ Integration tests for PyProcessor's basic functionality.
 This module tests the end-to-end workflow of the video processor,
 including file renaming, video processing, and folder organization.
 """
+
 import os
 import sys
 import tempfile
 from pathlib import Path
+
 # No mocks needed
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -20,15 +22,17 @@ from pyprocessor.processing.file_manager import FileManager
 from pyprocessor.processing.encoder import FFmpegEncoder
 from pyprocessor.processing.scheduler import ProcessingScheduler
 
+
 def create_test_video(directory, filename, size_mb=1):
     """Create a test video file of the specified size."""
     file_path = directory / filename
 
     # Create a file with random data
-    with open(file_path, 'wb') as f:
+    with open(file_path, "wb") as f:
         f.write(os.urandom(size_mb * 1024 * 1024))
 
     return file_path
+
 
 def test_file_renaming():
     """Test that the file renaming functionality works correctly."""
@@ -48,7 +52,7 @@ def test_file_renaming():
             "101-001.mp4",  # Already correctly named
             "movie_102-002_1080p.mp4",  # Needs renaming
             "tv_show_103-003_720p.mp4",  # Needs renaming
-            "invalid_file.mp4"  # Invalid naming pattern
+            "invalid_file.mp4",  # Invalid naming pattern
         ]
 
         for filename in test_files:
@@ -84,6 +88,7 @@ def test_file_renaming():
         try:
             # Find and close any loggers that might have been created
             import logging
+
             for handler in logging.root.handlers[:]:
                 handler.close()
                 logging.root.removeHandler(handler)
@@ -92,6 +97,7 @@ def test_file_renaming():
 
         # Cleanup test artifacts
         temp_dir.cleanup()
+
 
 def test_folder_organization():
     """Test that the folder organization functionality works correctly."""
@@ -140,6 +146,7 @@ def test_folder_organization():
         try:
             # Find and close any loggers that might have been created
             import logging
+
             for handler in logging.root.handlers[:]:
                 handler.close()
                 logging.root.removeHandler(handler)
@@ -148,6 +155,7 @@ def test_folder_organization():
 
         # Cleanup test artifacts
         temp_dir.cleanup()
+
 
 def test_video_processing():
     """Test that the video processing functionality works correctly."""
@@ -165,11 +173,7 @@ def test_video_processing():
 
     try:
         # Create test video files
-        test_files = [
-            "101-001.mp4",
-            "102-002.mp4",
-            "103-003.mp4"
-        ]
+        test_files = ["101-001.mp4", "102-002.mp4", "103-003.mp4"]
 
         for filename in test_files:
             create_test_video(input_dir, filename)
@@ -199,7 +203,9 @@ def test_video_processing():
                     scheduler.logger.error("No valid files found to process")
                     return False
 
-                scheduler.logger.info(f"Found {len(valid_files)} valid files to process")
+                scheduler.logger.info(
+                    f"Found {len(valid_files)} valid files to process"
+                )
 
                 # Process each file
                 successful_count = 0
@@ -211,14 +217,16 @@ def test_video_processing():
                     output_folder.mkdir(parents=True, exist_ok=True)
 
                     # Create a master playlist file to simulate successful encoding
-                    with open(output_folder / "master.m3u8", 'w') as f:
+                    with open(output_folder / "master.m3u8", "w") as f:
                         f.write("#EXTM3U\n")
 
                     # Log success
                     scheduler.logger.info(f"Completed processing: {file.name}")
                     successful_count += 1
 
-                scheduler.logger.info(f"Processing completed: {successful_count} successful, {failed_count} failed")
+                scheduler.logger.info(
+                    f"Processing completed: {successful_count} successful, {failed_count} failed"
+                )
 
                 return failed_count == 0
 
@@ -252,6 +260,7 @@ def test_video_processing():
         try:
             # Find and close any loggers that might have been created
             import logging
+
             for handler in logging.root.handlers[:]:
                 handler.close()
                 logging.root.removeHandler(handler)

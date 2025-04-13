@@ -1,6 +1,7 @@
 """
 Performance tests for end-to-end workflow processing.
 """
+
 import os
 import sys
 import time
@@ -10,7 +11,7 @@ from unittest.mock import MagicMock, patch
 from concurrent.futures import ProcessPoolExecutor
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -20,7 +21,13 @@ from pyprocessor.processing.encoder import FFmpegEncoder
 from pyprocessor.processing.scheduler import ProcessingScheduler
 
 # Import performance test base
-from tests.performance.test_performance_base import PerformanceTest, PerformanceResult, MemoryUsage, time_function
+from tests.performance.test_performance_base import (
+    PerformanceTest,
+    PerformanceResult,
+    MemoryUsage,
+    time_function,
+)
+
 
 class EndToEndWorkflowPerformanceTest(PerformanceTest):
     """Test the performance of the end-to-end workflow."""
@@ -58,7 +65,7 @@ class EndToEndWorkflowPerformanceTest(PerformanceTest):
         self.test_files = []
         for i in range(self.file_count):
             file_path = self.input_dir / f"movie_{i}_1080p.mp4"
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 f.write(os.urandom(1024 * 1024))  # 1MB file
             self.test_files.append(file_path)
 
@@ -83,16 +90,20 @@ class EndToEndWorkflowPerformanceTest(PerformanceTest):
         self.encoder = FFmpegEncoder(self.config, self.logger)
 
         # Create scheduler
-        self.scheduler = ProcessingScheduler(self.config, self.logger, self.file_manager, self.encoder)
+        self.scheduler = ProcessingScheduler(
+            self.config, self.logger, self.file_manager, self.encoder
+        )
 
     def teardown(self) -> None:
         """Clean up the test environment."""
         if self.temp_dir:
             self.temp_dir.cleanup()
 
-    @patch('pyprocessor.processing.scheduler.process_video_task')
-    @patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
-    def run_iteration(self, mock_executor_class, mock_process_video_task) -> PerformanceResult:
+    @patch("pyprocessor.processing.scheduler.process_video_task")
+    @patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
+    def run_iteration(
+        self, mock_executor_class, mock_process_video_task
+    ) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock the ProcessPoolExecutor
         mock_executor = MagicMock(spec=ProcessPoolExecutor)
@@ -122,6 +133,7 @@ class EndToEndWorkflowPerformanceTest(PerformanceTest):
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
+
 
 class FileRenamingWorkflowPerformanceTest(PerformanceTest):
     """Test the performance of the file renaming workflow."""
@@ -154,7 +166,7 @@ class FileRenamingWorkflowPerformanceTest(PerformanceTest):
         self.test_files = []
         for i in range(self.file_count):
             file_path = self.input_dir / f"movie_{i}_1080p.mp4"
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 f.write(os.urandom(1024 * 1024))  # 1MB file
             self.test_files.append(file_path)
 
@@ -184,7 +196,7 @@ class FileRenamingWorkflowPerformanceTest(PerformanceTest):
 
         for i in range(self.file_count):
             file_path = self.input_dir / f"movie_{i}_1080p.mp4"
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 f.write(os.urandom(1024 * 1024))  # 1MB file
 
         # Time the renaming operation
@@ -192,6 +204,7 @@ class FileRenamingWorkflowPerformanceTest(PerformanceTest):
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
+
 
 class FileValidationWorkflowPerformanceTest(PerformanceTest):
     """Test the performance of the file validation workflow."""
@@ -229,7 +242,7 @@ class FileValidationWorkflowPerformanceTest(PerformanceTest):
             else:
                 file_path = self.input_dir / f"movie_{i}.mp4"
 
-            with open(file_path, 'wb') as f:
+            with open(file_path, "wb") as f:
                 f.write(os.urandom(1024 * 1024))  # 1MB file
             self.test_files.append(file_path)
 
@@ -257,6 +270,7 @@ class FileValidationWorkflowPerformanceTest(PerformanceTest):
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
 
+
 class FolderOrganizationWorkflowPerformanceTest(PerformanceTest):
     """Test the performance of the folder organization workflow."""
 
@@ -268,7 +282,9 @@ class FolderOrganizationWorkflowPerformanceTest(PerformanceTest):
             folder_count: Number of folders to organize
             iterations: Number of iterations to run
         """
-        super().__init__(f"Folder Organization Workflow ({folder_count} folders)", iterations)
+        super().__init__(
+            f"Folder Organization Workflow ({folder_count} folders)", iterations
+        )
         self.folder_count = folder_count
         self.temp_dir = None
         self.output_dir = None
@@ -294,7 +310,7 @@ class FolderOrganizationWorkflowPerformanceTest(PerformanceTest):
             # Create a few files in each folder
             for j in range(3):
                 file_path = folder_path / f"file_{j}.mp4"
-                with open(file_path, 'wb') as f:
+                with open(file_path, "wb") as f:
                     f.write(os.urandom(1024 * 1024))  # 1MB file
 
             self.test_folders.append(folder_path)
@@ -322,6 +338,7 @@ class FolderOrganizationWorkflowPerformanceTest(PerformanceTest):
         for folder_path in self.test_folders:
             if folder_path.exists():
                 import shutil
+
                 shutil.rmtree(folder_path)
 
         for i in range(self.folder_count):
@@ -331,7 +348,7 @@ class FolderOrganizationWorkflowPerformanceTest(PerformanceTest):
             # Create a few files in each folder
             for j in range(3):
                 file_path = folder_path / f"file_{j}.mp4"
-                with open(file_path, 'wb') as f:
+                with open(file_path, "wb") as f:
                     f.write(os.urandom(1024 * 1024))  # 1MB file
 
         # Time the organization operation
@@ -340,8 +357,9 @@ class FolderOrganizationWorkflowPerformanceTest(PerformanceTest):
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
 
-@patch('pyprocessor.processing.scheduler.process_video_task')
-@patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
+
+@patch("pyprocessor.processing.scheduler.process_video_task")
+@patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
 def test_end_to_end_workflow_performance(mock_executor_class, mock_process_video_task):
     """Test the performance of the end-to-end workflow with different file counts."""
     # Mock the process_video_task function
@@ -363,11 +381,18 @@ def test_end_to_end_workflow_performance(mock_executor_class, mock_process_video
 
         # Assert that the performance is reasonable
         if file_count == 10:
-            assert results["avg_time"] < 1.0, f"End-to-end workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 1.0
+            ), f"End-to-end workflow for {file_count} files is too slow"
         elif file_count == 50:
-            assert results["avg_time"] < 5.0, f"End-to-end workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 5.0
+            ), f"End-to-end workflow for {file_count} files is too slow"
         elif file_count == 100:
-            assert results["avg_time"] < 10.0, f"End-to-end workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 10.0
+            ), f"End-to-end workflow for {file_count} files is too slow"
+
 
 def test_file_renaming_workflow_performance():
     """Test the performance of the file renaming workflow with different file counts."""
@@ -380,11 +405,18 @@ def test_file_renaming_workflow_performance():
 
         # Assert that the performance is reasonable
         if file_count == 10:
-            assert results["avg_time"] < 0.1, f"File renaming workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"File renaming workflow for {file_count} files is too slow"
         elif file_count == 100:
-            assert results["avg_time"] < 1.0, f"File renaming workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 1.0
+            ), f"File renaming workflow for {file_count} files is too slow"
         elif file_count == 1000:
-            assert results["avg_time"] < 10.0, f"File renaming workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 10.0
+            ), f"File renaming workflow for {file_count} files is too slow"
+
 
 def test_file_validation_workflow_performance():
     """Test the performance of the file validation workflow with different file counts."""
@@ -397,11 +429,18 @@ def test_file_validation_workflow_performance():
 
         # Assert that the performance is reasonable
         if file_count == 10:
-            assert results["avg_time"] < 0.1, f"File validation workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"File validation workflow for {file_count} files is too slow"
         elif file_count == 100:
-            assert results["avg_time"] < 1.0, f"File validation workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 1.0
+            ), f"File validation workflow for {file_count} files is too slow"
         elif file_count == 1000:
-            assert results["avg_time"] < 10.0, f"File validation workflow for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 10.0
+            ), f"File validation workflow for {file_count} files is too slow"
+
 
 def test_folder_organization_workflow_performance():
     """Test the performance of the folder organization workflow with different folder counts."""
@@ -414,11 +453,18 @@ def test_folder_organization_workflow_performance():
 
         # Assert that the performance is reasonable
         if folder_count == 10:
-            assert results["avg_time"] < 1.0, f"Folder organization workflow for {folder_count} folders is too slow"
+            assert (
+                results["avg_time"] < 1.0
+            ), f"Folder organization workflow for {folder_count} folders is too slow"
         elif folder_count == 50:
-            assert results["avg_time"] < 5.0, f"Folder organization workflow for {folder_count} folders is too slow"
+            assert (
+                results["avg_time"] < 5.0
+            ), f"Folder organization workflow for {folder_count} folders is too slow"
         elif folder_count == 100:
-            assert results["avg_time"] < 10.0, f"Folder organization workflow for {folder_count} folders is too slow"
+            assert (
+                results["avg_time"] < 10.0
+            ), f"Folder organization workflow for {folder_count} folders is too slow"
+
 
 if __name__ == "__main__":
     test_end_to_end_workflow_performance()

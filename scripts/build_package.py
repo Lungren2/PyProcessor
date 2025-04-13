@@ -25,7 +25,8 @@ import winreg
 from pathlib import Path
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 def check_pyinstaller():
     """Check if PyInstaller is installed."""
@@ -36,29 +37,33 @@ def check_pyinstaller():
         print("✗ PyInstaller is not installed.")
         return False
 
+
 def install_pyinstaller():
     """Install PyInstaller using pip."""
     print("Installing PyInstaller...")
     try:
-        subprocess.run([sys.executable, "-m", "pip", "install", "PyInstaller"], check=True)
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "PyInstaller"], check=True
+        )
         print("✓ PyInstaller installed successfully.")
         return True
     except subprocess.CalledProcessError:
         print("✗ Failed to install PyInstaller.")
         return False
 
+
 def check_nsis():
     """Check if NSIS is installed on Windows."""
     if platform.system() != "Windows":
         print("✗ NSIS check is only supported on Windows.")
         return False
-    
+
     try:
         # Try to find NSIS in the registry
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\NSIS") as key:
             nsis_path = winreg.QueryValueEx(key, "")[0]
             makensis_path = os.path.join(nsis_path, "makensis.exe")
-            
+
             if os.path.exists(makensis_path):
                 print(f"✓ NSIS found at: {nsis_path}")
                 return makensis_path
@@ -66,30 +71,33 @@ def check_nsis():
         pass
     except Exception as e:
         print(f"Error checking NSIS registry: {e}")
-    
+
     # Try common installation paths
     common_paths = [
         r"C:\Program Files\NSIS\makensis.exe",
         r"C:\Program Files (x86)\NSIS\makensis.exe",
     ]
-    
+
     for path in common_paths:
         if os.path.exists(path):
             print(f"✓ NSIS found at: {os.path.dirname(path)}")
             return path
-    
-    print("✗ NSIS not found. Please install NSIS from https://nsis.sourceforge.io/Download")
+
+    print(
+        "✗ NSIS not found. Please install NSIS from https://nsis.sourceforge.io/Download"
+    )
     return False
+
 
 def download_ffmpeg():
     """Download and extract FFmpeg binaries."""
     try:
         # Import the download_ffmpeg function from the existing script
         from scripts.download_ffmpeg import download_ffmpeg as dl_ffmpeg
-        
+
         print("Downloading and extracting FFmpeg...")
         success = dl_ffmpeg()
-        
+
         if success:
             print("✓ FFmpeg downloaded and extracted successfully.")
             return True
@@ -100,14 +108,15 @@ def download_ffmpeg():
         print(f"✗ Error downloading FFmpeg: {e}")
         return False
 
+
 def create_license_file():
     """Create a license file if it doesn't exist."""
     license_path = Path("license.txt")
-    
+
     if license_path.exists():
         print("✓ License file already exists.")
         return True
-    
+
     print("Creating a basic license file...")
     license_content = """PyProcessor License
 
@@ -131,9 +140,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-    
+
     try:
-        with open(license_path, 'w') as f:
+        with open(license_path, "w") as f:
             f.write(license_content)
         print("✓ Created license.txt file.")
         return True
@@ -141,15 +150,16 @@ SOFTWARE.
         print(f"✗ Failed to create license file: {e}")
         return False
 
+
 def build_executable():
     """Build the executable using PyInstaller."""
     print("Building executable with PyInstaller...")
-    
+
     # Check if spec file exists
     spec_file = Path("pyprocessor.spec")
     if not spec_file.exists():
         print("Creating PyInstaller spec file...")
-        
+
         # Create a basic spec file
         spec_content = """# -*- mode: python ; coding: utf-8 -*-
 
@@ -255,28 +265,32 @@ coll = COLLECT(
     name='PyProcessor',
 )
 """
-        
+
         try:
-            with open(spec_file, 'w') as f:
+            with open(spec_file, "w") as f:
                 f.write(spec_content)
             print("✓ Created PyInstaller spec file.")
         except Exception as e:
             print(f"✗ Failed to create spec file: {e}")
             return False
-    
+
     try:
         # Run PyInstaller
-        subprocess.run([sys.executable, "-m", "PyInstaller", "--clean", "pyprocessor.spec"], check=True)
+        subprocess.run(
+            [sys.executable, "-m", "PyInstaller", "--clean", "pyprocessor.spec"],
+            check=True,
+        )
         print("✓ PyInstaller build completed successfully.")
         return True
     except subprocess.CalledProcessError as e:
         print(f"✗ PyInstaller build failed: {e}")
         return False
 
+
 def create_nsis_installer(makensis_path):
     """Create the NSIS installer."""
     print("Creating NSIS installer...")
-    
+
     try:
         # Run makensis
         subprocess.run([makensis_path, "installer.nsi"], check=True)
@@ -286,62 +300,72 @@ def create_nsis_installer(makensis_path):
         print(f"✗ NSIS installer creation failed: {e}")
         return False
 
+
 def main():
     """Main function to run the build and packaging process."""
     parser = argparse.ArgumentParser(description="Build and package PyProcessor")
-    parser.add_argument("--skip-ffmpeg", action="store_true", help="Skip downloading FFmpeg")
-    parser.add_argument("--skip-pyinstaller", action="store_true", help="Skip PyInstaller build")
+    parser.add_argument(
+        "--skip-ffmpeg", action="store_true", help="Skip downloading FFmpeg"
+    )
+    parser.add_argument(
+        "--skip-pyinstaller", action="store_true", help="Skip PyInstaller build"
+    )
     parser.add_argument("--skip-nsis", action="store_true", help="Skip NSIS packaging")
     args = parser.parse_args()
-    
+
     # Check for PyInstaller
     if not check_pyinstaller():
         if not install_pyinstaller():
             print("Please install PyInstaller manually: pip install pyinstaller")
             return False
-    
+
     # Check for NSIS if not skipping NSIS packaging
     makensis_path = None
     if not args.skip_nsis:
         makensis_path = check_nsis()
         if not makensis_path:
-            print("\nNSIS is required for packaging. Please install NSIS from https://nsis.sourceforge.io/Download")
+            print(
+                "\nNSIS is required for packaging. Please install NSIS from https://nsis.sourceforge.io/Download"
+            )
             print("After installing NSIS, run this script again.")
             print("Alternatively, run with --skip-nsis to skip the packaging step.")
             return False
-    
+
     # Download FFmpeg if not skipping
     if not args.skip_ffmpeg:
         if not download_ffmpeg():
             print("Failed to download FFmpeg. Please try again or download manually.")
             return False
-    
+
     # Create license file for NSIS installer
     if not args.skip_nsis:
         if not create_license_file():
             print("Failed to create license file. Please create license.txt manually.")
             return False
-    
+
     # Build executable if not skipping
     if not args.skip_pyinstaller:
         if not build_executable():
             print("Failed to build executable. Please check the errors and try again.")
             return False
-    
+
     # Create NSIS installer if not skipping
     if not args.skip_nsis and makensis_path:
         if not create_nsis_installer(makensis_path):
-            print("Failed to create NSIS installer. Please check the errors and try again.")
+            print(
+                "Failed to create NSIS installer. Please check the errors and try again."
+            )
             return False
-    
+
     print("\n✓ Build and packaging process completed successfully!")
-    
+
     if not args.skip_nsis:
         installer_path = os.path.abspath("PyProcessorInstaller.exe")
         if os.path.exists(installer_path):
             print(f"\nInstaller created at: {installer_path}")
-    
+
     return True
+
 
 if __name__ == "__main__":
     success = main()

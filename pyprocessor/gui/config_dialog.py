@@ -1,8 +1,11 @@
-from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget)
+from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget
 
 from pyprocessor.gui.settings_widgets import (
-    EncodingSettingsWidget, ProcessingSettingsWidget, AdvancedSettingsWidget
+    EncodingSettingsWidget,
+    ProcessingSettingsWidget,
+    AdvancedSettingsWidget,
 )
+
 
 class ConfigDialog(QDialog):
     """Enhanced configuration dialog with audio option"""

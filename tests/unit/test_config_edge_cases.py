@@ -1,6 +1,7 @@
 """
 Unit tests for configuration edge cases and error handling.
 """
+
 import os
 import sys
 import json
@@ -8,10 +9,11 @@ import tempfile
 from pathlib import Path
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the module to test
 from pyprocessor.utils.config import Config
+
 
 class TestConfigEdgeCases:
     """Test edge cases and error handling in the Config class"""
@@ -44,7 +46,7 @@ class TestConfigEdgeCases:
     def test_load_invalid_json(self):
         """Test loading from an invalid JSON file"""
         # Create an invalid JSON file
-        with open(self.config_path, 'w') as f:
+        with open(self.config_path, "w") as f:
             f.write("This is not valid JSON")
 
         config = Config()
@@ -67,11 +69,11 @@ class TestConfigEdgeCases:
             "ffmpeg_params": {
                 "video_encoder": "libx264"
                 # other ffmpeg_params are missing
-            }
+            },
             # other fields are missing
         }
 
-        with open(self.config_path, 'w') as f:
+        with open(self.config_path, "w") as f:
             json.dump(incomplete_config, f)
 
         config = Config()
@@ -82,7 +84,10 @@ class TestConfigEdgeCases:
 
         # Check that specified values are loaded
         assert str(config.input_folder) == incomplete_config["input_folder"]
-        assert config.ffmpeg_params["video_encoder"] == incomplete_config["ffmpeg_params"]["video_encoder"]
+        assert (
+            config.ffmpeg_params["video_encoder"]
+            == incomplete_config["ffmpeg_params"]["video_encoder"]
+        )
 
         # Check that default values are used for missing fields
         assert isinstance(config.output_folder, Path)
@@ -221,7 +226,9 @@ class TestConfigEdgeCases:
         assert len(warnings) >= 3
         assert any("file rename pattern" in warning.lower() for warning in warnings)
         assert any("file validation pattern" in warning.lower() for warning in warnings)
-        assert any("folder organization pattern" in warning.lower() for warning in warnings)
+        assert any(
+            "folder organization pattern" in warning.lower() for warning in warnings
+        )
 
     def test_apply_args_with_missing_values(self):
         """Test applying command-line arguments with missing values"""

@@ -1,6 +1,7 @@
 """
 Base framework for performance testing in PyProcessor.
 """
+
 import os
 import sys
 import time
@@ -11,23 +12,34 @@ from pathlib import Path
 from typing import List, Dict, Any, Callable, Tuple, NamedTuple
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 
 class MemoryUsage(NamedTuple):
     """Memory usage information."""
+
     before: int  # Memory usage before function execution (bytes)
-    after: int   # Memory usage after function execution (bytes)
-    diff: int    # Difference in memory usage (bytes)
+    after: int  # Memory usage after function execution (bytes)
+    diff: int  # Difference in memory usage (bytes)
+
 
 class PerformanceResult(NamedTuple):
     """Result of a performance test iteration."""
-    execution_time: float      # Execution time in seconds
+
+    execution_time: float  # Execution time in seconds
     memory_usage: MemoryUsage  # Memory usage information
+
 
 class PerformanceTest:
     """Base class for performance tests."""
 
-    def __init__(self, name: str, iterations: int = 5, warmup_iterations: int = 1, track_memory: bool = True):
+    def __init__(
+        self,
+        name: str,
+        iterations: int = 5,
+        warmup_iterations: int = 1,
+        track_memory: bool = True,
+    ):
         """
         Initialize the performance test.
 
@@ -98,7 +110,9 @@ class PerformanceTest:
                 min_memory = min(memory_diffs)
                 max_memory = max(memory_diffs)
                 median_memory = statistics.median(memory_diffs)
-                stdev_memory = statistics.stdev(memory_diffs) if len(memory_diffs) > 1 else 0
+                stdev_memory = (
+                    statistics.stdev(memory_diffs) if len(memory_diffs) > 1 else 0
+                )
             else:
                 avg_memory = min_memory = max_memory = median_memory = stdev_memory = 0
         else:
@@ -119,7 +133,7 @@ class PerformanceTest:
             "max_memory": max_memory,
             "median_memory": median_memory,
             "stdev_memory": stdev_memory,
-            "track_memory": self.track_memory
+            "track_memory": self.track_memory,
         }
 
     def print_results(self, results: Dict[str, Any]) -> None:
@@ -141,7 +155,7 @@ class PerformanceTest:
         print(f"  Standard Deviation: {results['stdev_time']:.4f} seconds")
 
         # Memory results
-        if results['track_memory']:
+        if results["track_memory"]:
             print("\nMemory Results:")
             print(f"  Average Memory: {format_bytes(results['avg_memory'])}")
             print(f"  Minimum Memory: {format_bytes(results['min_memory'])}")
@@ -150,11 +164,14 @@ class PerformanceTest:
             print(f"  Standard Deviation: {format_bytes(results['stdev_memory'])}")
 
         print("\nIndividual Results:")
-        for i, result in enumerate(results['results'], 1):
-            if results['track_memory']:
-                print(f"  Iteration {i}: {result.execution_time:.4f} seconds, Memory: {format_bytes(result.memory_usage.diff)}")
+        for i, result in enumerate(results["results"], 1):
+            if results["track_memory"]:
+                print(
+                    f"  Iteration {i}: {result.execution_time:.4f} seconds, Memory: {format_bytes(result.memory_usage.diff)}"
+                )
             else:
                 print(f"  Iteration {i}: {result.execution_time:.4f} seconds")
+
 
 def format_bytes(bytes_value: int) -> str:
     """
@@ -169,10 +186,11 @@ def format_bytes(bytes_value: int) -> str:
     if bytes_value < 0:
         return f"-{format_bytes(-bytes_value)}"
 
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if bytes_value < 1024 or unit == 'TB':
+    for unit in ["B", "KB", "MB", "GB", "TB"]:
+        if bytes_value < 1024 or unit == "TB":
             return f"{bytes_value:.2f} {unit}"
         bytes_value /= 1024
+
 
 def get_memory_usage() -> int:
     """
@@ -183,6 +201,7 @@ def get_memory_usage() -> int:
     """
     process = psutil.Process(os.getpid())
     return process.memory_info().rss
+
 
 def time_function(func: Callable, *args, **kwargs) -> Tuple[Any, float]:
     """
@@ -201,7 +220,10 @@ def time_function(func: Callable, *args, **kwargs) -> Tuple[Any, float]:
     end_time = time.time()
     return result, end_time - start_time
 
-def time_and_memory_function(func: Callable, *args, **kwargs) -> Tuple[Any, float, MemoryUsage]:
+
+def time_and_memory_function(
+    func: Callable, *args, **kwargs
+) -> Tuple[Any, float, MemoryUsage]:
     """
     Time the execution of a function and measure memory usage.
 
@@ -233,7 +255,12 @@ def time_and_memory_function(func: Callable, *args, **kwargs) -> Tuple[Any, floa
     # Calculate memory difference
     memory_diff = memory_after - memory_before
 
-    return result, end_time - start_time, MemoryUsage(memory_before, memory_after, memory_diff)
+    return (
+        result,
+        end_time - start_time,
+        MemoryUsage(memory_before, memory_after, memory_diff),
+    )
+
 
 def create_test_video(directory: Path, filename: str, size_mb: int = 10) -> Path:
     """
@@ -250,10 +277,11 @@ def create_test_video(directory: Path, filename: str, size_mb: int = 10) -> Path
     file_path = directory / filename
 
     # Create a file with random data
-    with open(file_path, 'wb') as f:
+    with open(file_path, "wb") as f:
         f.write(os.urandom(size_mb * 1024 * 1024))
 
     return file_path
+
 
 def create_test_videos(directory: Path, count: int, size_mb: int = 10) -> List[Path]:
     """

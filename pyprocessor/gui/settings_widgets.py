@@ -1,13 +1,27 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                           QRadioButton, QButtonGroup, QGroupBox,
-                           QCheckBox, QSpinBox, QLineEdit, QPushButton,
-                           QFormLayout, QComboBox, QFileDialog, QMessageBox,
-                           QTabWidget)
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QRadioButton,
+    QButtonGroup,
+    QGroupBox,
+    QCheckBox,
+    QSpinBox,
+    QLineEdit,
+    QPushButton,
+    QFormLayout,
+    QComboBox,
+    QFileDialog,
+    QMessageBox,
+    QTabWidget,
+)
 from PyQt5.QtCore import pyqtSignal
 import os
 import platform
 
 from pyprocessor.utils.server_optimizer import ServerOptimizer
+
 
 class EncodingSettingsWidget(QWidget):
     """Widget for encoding settings"""
@@ -320,7 +334,7 @@ class AdvancedSettingsWidget(QWidget):
         self.rename_pattern_edit.setToolTip(
             "Pattern used to extract the correct filename from existing files.\n"
             "Must include a capture group (in parentheses) that will be used as the new filename.\n"
-            "Default: r\"(\\d+-\\d+)(?:[_-].*?)?\\.mp4$\" - extracts numbers-numbers pattern.\n"
+            'Default: r"(\\d+-\\d+)(?:[_-].*?)?\\.mp4$" - extracts numbers-numbers pattern.\n'
             "Example: 'video-123-456.mp4' or '123-456_720p.mp4' will be renamed to '123-456.mp4'."
         )
         reset_rename_btn = QPushButton("Reset")
@@ -335,7 +349,7 @@ class AdvancedSettingsWidget(QWidget):
         self.validation_pattern_edit.setToolTip(
             "Pattern used to validate filenames before processing.\n"
             "Files that don't match this pattern will be considered invalid.\n"
-            "Default: r\"^\\d+-\\d+\\.mp4$\" - requires exact numbers-numbers.mp4 format."
+            'Default: r"^\\d+-\\d+\\.mp4$" - requires exact numbers-numbers.mp4 format.'
         )
         reset_validation_btn = QPushButton("Reset")
         reset_validation_btn.clicked.connect(self.reset_validation_pattern)
@@ -349,7 +363,7 @@ class AdvancedSettingsWidget(QWidget):
         self.folder_pattern_edit.setToolTip(
             "Pattern used to organize folders after processing.\n"
             "Must include a capture group (in parentheses) that will be used as the parent folder name.\n"
-            "Default: r\"^(\\d+)-\\d+\" - uses first number group as parent folder."
+            'Default: r"^(\\d+)-\\d+" - uses first number group as parent folder.'
         )
         reset_folder_btn = QPushButton("Reset")
         reset_folder_btn.clicked.connect(self.reset_folder_pattern)
@@ -479,7 +493,9 @@ class ServerOptimizationWidget(QWidget):
 
         self.iis_http2_cb = QCheckBox("Enable HTTP/2")
         self.iis_http3_cb = QCheckBox("Enable HTTP/3 with Alt-Svc headers")
-        self.iis_http3_cb.setToolTip("Enables HTTP/3 auto-upgrading via Alt-Svc headers. Improves performance for mobile users.")
+        self.iis_http3_cb.setToolTip(
+            "Enables HTTP/3 auto-upgrading via Alt-Svc headers. Improves performance for mobile users."
+        )
 
         # Add HTTP/3 info label
         http3_info = QLabel(
@@ -505,7 +521,9 @@ class ServerOptimizationWidget(QWidget):
         nginx_layout = QFormLayout(nginx_tab)
 
         self.nginx_output_path_edit = QLineEdit()
-        self.nginx_output_path_edit.setPlaceholderText(str(self.config.output_folder / "nginx.conf"))
+        self.nginx_output_path_edit.setPlaceholderText(
+            str(self.config.output_folder / "nginx.conf")
+        )
         self.nginx_output_path_btn = QPushButton("Browse...")
         self.nginx_output_path_btn.clicked.connect(self.browse_nginx_output_path)
 
@@ -517,7 +535,9 @@ class ServerOptimizationWidget(QWidget):
         self.nginx_server_name_edit.setPlaceholderText("yourdomain.com")
         self.nginx_ssl_cb = QCheckBox("Enable SSL/TLS Configuration")
         self.nginx_http3_cb = QCheckBox("Enable HTTP/3 with Alt-Svc headers")
-        self.nginx_http3_cb.setToolTip("Enables HTTP/3 auto-upgrading via Alt-Svc headers. Improves performance for mobile users.")
+        self.nginx_http3_cb.setToolTip(
+            "Enables HTTP/3 auto-upgrading via Alt-Svc headers. Improves performance for mobile users."
+        )
 
         # Add HTTP/3 info label
         nginx_http3_info = QLabel(
@@ -536,7 +556,9 @@ class ServerOptimizationWidget(QWidget):
         linux_tab = QWidget()
         linux_layout = QVBoxLayout(linux_tab)
 
-        self.linux_apply_cb = QCheckBox("Apply changes directly (requires Linux and sudo privileges)")
+        self.linux_apply_cb = QCheckBox(
+            "Apply changes directly (requires Linux and sudo privileges)"
+        )
         linux_note = QLabel(
             "<b>Note:</b> If not applying changes directly, a script will be generated "
             "that you can run manually with sudo privileges."
@@ -588,11 +610,9 @@ class ServerOptimizationWidget(QWidget):
     def update_server_type(self):
         """Update UI based on selected server type"""
         server_type = self.server_type_combo.currentData()
-        self.server_settings_tabs.setCurrentIndex({
-            "iis": 0,
-            "nginx": 1,
-            "linux": 2
-        }.get(server_type, 0))
+        self.server_settings_tabs.setCurrentIndex(
+            {"iis": 0, "nginx": 1, "linux": 2}.get(server_type, 0)
+        )
 
         # Update button text
         if server_type == "nginx":
@@ -608,19 +628,30 @@ class ServerOptimizationWidget(QWidget):
             self.linux_apply_cb.setEnabled(is_linux)
             if not is_linux and self.linux_apply_cb.isChecked():
                 self.linux_apply_cb.setChecked(False)
-                self.status_label.setText("Direct application of Linux optimizations is only available on Linux systems.")
+                self.status_label.setText(
+                    "Direct application of Linux optimizations is only available on Linux systems."
+                )
 
     def browse_iis_video_path(self):
         """Browse for IIS video path"""
         current_path = self.iis_video_path_edit.text() or str(self.config.output_folder)
-        path = QFileDialog.getExistingDirectory(self, "Select Video Directory", current_path)
+        path = QFileDialog.getExistingDirectory(
+            self, "Select Video Directory", current_path
+        )
         if path:
             self.iis_video_path_edit.setText(path)
 
     def browse_nginx_output_path(self):
         """Browse for Nginx output path"""
-        current_path = self.nginx_output_path_edit.text() or str(self.config.output_folder / "nginx.conf")
-        path, _ = QFileDialog.getSaveFileName(self, "Save Nginx Configuration", current_path, "Configuration Files (*.conf)")
+        current_path = self.nginx_output_path_edit.text() or str(
+            self.config.output_folder / "nginx.conf"
+        )
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Nginx Configuration",
+            current_path,
+            "Configuration Files (*.conf)",
+        )
         if path:
             self.nginx_output_path_edit.setText(path)
 
@@ -635,7 +666,9 @@ class ServerOptimizationWidget(QWidget):
         # IIS settings
         iis_config = self.config.server_optimization.get("iis", {})
         self.iis_site_name_edit.setText(iis_config.get("site_name", "Default Web Site"))
-        self.iis_video_path_edit.setText(iis_config.get("video_path", str(self.config.output_folder)))
+        self.iis_video_path_edit.setText(
+            iis_config.get("video_path", str(self.config.output_folder))
+        )
         self.iis_http2_cb.setChecked(iis_config.get("enable_http2", True))
         self.iis_http3_cb.setChecked(iis_config.get("enable_http3", False))
         self.iis_cors_cb.setChecked(iis_config.get("enable_cors", True))
@@ -643,8 +676,14 @@ class ServerOptimizationWidget(QWidget):
 
         # Nginx settings
         nginx_config = self.config.server_optimization.get("nginx", {})
-        self.nginx_output_path_edit.setText(nginx_config.get("output_path", str(self.config.output_folder / "nginx.conf")))
-        self.nginx_server_name_edit.setText(nginx_config.get("server_name", "yourdomain.com"))
+        self.nginx_output_path_edit.setText(
+            nginx_config.get(
+                "output_path", str(self.config.output_folder / "nginx.conf")
+            )
+        )
+        self.nginx_server_name_edit.setText(
+            nginx_config.get("server_name", "yourdomain.com")
+        )
         self.nginx_ssl_cb.setChecked(nginx_config.get("ssl_enabled", True))
         self.nginx_http3_cb.setChecked(nginx_config.get("enable_http3", False))
 
@@ -661,19 +700,21 @@ class ServerOptimizationWidget(QWidget):
         # IIS settings
         self.config.server_optimization["iis"] = {
             "site_name": self.iis_site_name_edit.text() or "Default Web Site",
-            "video_path": self.iis_video_path_edit.text() or str(self.config.output_folder),
+            "video_path": self.iis_video_path_edit.text()
+            or str(self.config.output_folder),
             "enable_http2": self.iis_http2_cb.isChecked(),
             "enable_http3": self.iis_http3_cb.isChecked(),
             "enable_cors": self.iis_cors_cb.isChecked(),
-            "cors_origin": self.iis_cors_origin_edit.text() or "*"
+            "cors_origin": self.iis_cors_origin_edit.text() or "*",
         }
 
         # Nginx settings
         self.config.server_optimization["nginx"] = {
-            "output_path": self.nginx_output_path_edit.text() or str(self.config.output_folder / "nginx.conf"),
+            "output_path": self.nginx_output_path_edit.text()
+            or str(self.config.output_folder / "nginx.conf"),
             "server_name": self.nginx_server_name_edit.text() or "yourdomain.com",
             "ssl_enabled": self.nginx_ssl_cb.isChecked(),
-            "enable_http3": self.nginx_http3_cb.isChecked()
+            "enable_http3": self.nginx_http3_cb.isChecked(),
         }
 
         # Linux settings
@@ -700,11 +741,13 @@ class ServerOptimizationWidget(QWidget):
         text_browser.setOpenExternalLinks(True)
 
         # Load markdown file
-        base_dir = Path(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        base_dir = Path(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
         md_path = base_dir / "docs" / "SERVER_OPTIMIZATION.md"
 
         if md_path.exists():
-            with open(md_path, 'r') as f:
+            with open(md_path, "r") as f:
                 content = f.read()
 
             # Simple markdown to HTML conversion for headers and code blocks
@@ -718,8 +761,12 @@ class ServerOptimizationWidget(QWidget):
 
             # Close header tags
             html_content = html_content.replace("\n", "</h1>\n", 1)  # First h1
-            html_content = html_content.replace("\n", "</h2>\n", html_content.count("<h2>"))
-            html_content = html_content.replace("\n", "</h3>\n", html_content.count("<h3>"))
+            html_content = html_content.replace(
+                "\n", "</h2>\n", html_content.count("<h2>")
+            )
+            html_content = html_content.replace(
+                "\n", "</h3>\n", html_content.count("<h3>")
+            )
 
             # Convert code blocks
             html_content = html_content.replace("```powershell\n", "<pre><code>")
@@ -729,7 +776,9 @@ class ServerOptimizationWidget(QWidget):
             # Set content
             text_browser.setHtml(html_content)
         else:
-            text_browser.setPlainText("Prerequisites documentation not found. Please refer to the docs/SERVER_OPTIMIZATION.md file.")
+            text_browser.setPlainText(
+                "Prerequisites documentation not found. Please refer to the docs/SERVER_OPTIMIZATION.md file."
+            )
 
         layout.addWidget(text_browser)
 
@@ -755,17 +804,27 @@ class ServerOptimizationWidget(QWidget):
 
         if server_type == "iis":
             msg.setText("This will optimize your IIS server for video streaming.")
-            msg.setInformativeText("The script requires administrator privileges and will modify system settings. Continue?")
+            msg.setInformativeText(
+                "The script requires administrator privileges and will modify system settings. Continue?"
+            )
         elif server_type == "nginx":
             msg.setText("This will generate an optimized Nginx configuration file.")
-            msg.setInformativeText("You will need to manually apply this configuration to your Nginx server. Continue?")
+            msg.setInformativeText(
+                "You will need to manually apply this configuration to your Nginx server. Continue?"
+            )
         elif server_type == "linux":
             if self.config.server_optimization["linux"]["apply_changes"]:
-                msg.setText("This will apply system-level optimizations to your Linux server.")
-                msg.setInformativeText("The script requires sudo privileges and will modify system settings. Continue?")
+                msg.setText(
+                    "This will apply system-level optimizations to your Linux server."
+                )
+                msg.setInformativeText(
+                    "The script requires sudo privileges and will modify system settings. Continue?"
+                )
             else:
                 msg.setText("This will generate a Linux optimization script.")
-                msg.setInformativeText("You will need to manually run this script with sudo privileges. Continue?")
+                msg.setInformativeText(
+                    "You will need to manually run this script with sudo privileges. Continue?"
+                )
 
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         msg.setDefaultButton(QMessageBox.No)
@@ -793,7 +852,7 @@ class ServerOptimizationWidget(QWidget):
                     enable_http2=iis_config["enable_http2"],
                     enable_http3=iis_config["enable_http3"],
                     enable_cors=iis_config["enable_cors"],
-                    cors_origin=iis_config["cors_origin"]
+                    cors_origin=iis_config["cors_origin"],
                 )
             elif server_type == "nginx":
                 nginx_config = self.config.server_optimization["nginx"]
@@ -801,7 +860,7 @@ class ServerOptimizationWidget(QWidget):
                     output_path=nginx_config["output_path"],
                     server_name=nginx_config["server_name"],
                     ssl_enabled=nginx_config["ssl_enabled"],
-                    enable_http3=nginx_config["enable_http3"]
+                    enable_http3=nginx_config["enable_http3"],
                 )
             elif server_type == "linux":
                 linux_config = self.config.server_optimization["linux"]
@@ -823,13 +882,16 @@ class ServerOptimizationWidget(QWidget):
                 open_msg = QMessageBox()
                 open_msg.setIcon(QMessageBox.Question)
                 open_msg.setText("Optimization script generated successfully.")
-                open_msg.setInformativeText(f"Would you like to open the script at {script_path}?")
+                open_msg.setInformativeText(
+                    f"Would you like to open the script at {script_path}?"
+                )
                 open_msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
                 open_msg.setDefaultButton(QMessageBox.Yes)
 
                 if open_msg.exec_() == QMessageBox.Yes:
                     # Open the script in the default text editor
                     import subprocess
+
                     if platform.system() == "Windows":
                         os.startfile(script_path)
                     elif platform.system() == "Darwin":  # macOS

@@ -1,20 +1,22 @@
 """
 Unit tests for GUI components.
 """
+
 import os
 import sys
 from unittest.mock import patch, MagicMock
 from PyQt5.QtWidgets import QApplication, QMainWindow
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
 from pyprocessor.utils.logging import Logger
 from pyprocessor.gui.main_window import MainWindow
 from pyprocessor.gui.settings_widgets import (
-    EncodingSettingsWidget, ProcessingSettingsWidget
+    EncodingSettingsWidget,
+    ProcessingSettingsWidget,
 )
 from pyprocessor.gui.progress_widget import ProcessingProgressWidget
 
@@ -22,6 +24,7 @@ from pyprocessor.gui.progress_widget import ProcessingProgressWidget
 app = QApplication.instance()
 if app is None:
     app = QApplication([])
+
 
 class TestMainWindow:
     """Test the MainWindow class"""
@@ -49,8 +52,8 @@ class TestMainWindow:
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
         self.config.max_parallel_jobs = 2
         self.config.auto_rename_files = True
@@ -58,8 +61,12 @@ class TestMainWindow:
 
         # Create main window
         self.main_window = MainWindow(
-            self.config, self.logger, self.file_manager,
-            self.encoder, self.scheduler, self.theme_manager
+            self.config,
+            self.logger,
+            self.file_manager,
+            self.encoder,
+            self.scheduler,
+            self.theme_manager,
         )
 
     def test_initialization(self):
@@ -99,7 +106,7 @@ class TestMainWindow:
         self.config.input_folder = new_input_path
         self.config.output_folder = new_output_path
 
-    @patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory')
+    @patch("PyQt5.QtWidgets.QFileDialog.getExistingDirectory")
     def test_browse_input_path(self, mock_get_directory):
         """Test browsing for input path"""
         # Mock QFileDialog.getExistingDirectory to return a path
@@ -114,7 +121,7 @@ class TestMainWindow:
         # Check that the input path field was updated
         assert self.main_window.input_dir_edit.text() == "/browsed/input"
 
-    @patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory')
+    @patch("PyQt5.QtWidgets.QFileDialog.getExistingDirectory")
     def test_browse_output_path(self, mock_get_directory):
         """Test browsing for output path"""
         # Mock QFileDialog.getExistingDirectory to return a path
@@ -143,6 +150,7 @@ class TestMainWindow:
     # Note: There is no stop button in the current MainWindow implementation
     # The processing can be stopped through other means if needed
 
+
 class TestEncodingSettingsWidget:
     """Test the EncodingSettingsWidget class"""
 
@@ -163,8 +171,8 @@ class TestEncodingSettingsWidget:
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Create widget
@@ -210,7 +218,10 @@ class TestEncodingSettingsWidget:
             assert self.widget.rb_120fps.isChecked()
 
         # Check audio inclusion
-        assert self.widget.include_audio_cb.isChecked() == self.config.ffmpeg_params["include_audio"]
+        assert (
+            self.widget.include_audio_cb.isChecked()
+            == self.config.ffmpeg_params["include_audio"]
+        )
 
     def test_encoder_changed(self):
         """Test changing the encoder"""
@@ -264,6 +275,7 @@ class TestEncodingSettingsWidget:
         # Check that config was updated
         assert self.config.ffmpeg_params["include_audio"] is True
 
+
 class TestProcessingSettingsWidget:
     """Test the ProcessingSettingsWidget class"""
 
@@ -289,7 +301,10 @@ class TestProcessingSettingsWidget:
         # Check that controls were initialized with correct values
         assert self.widget.parallel_jobs_spin.value() == self.config.max_parallel_jobs
         assert self.widget.auto_rename_cb.isChecked() == self.config.auto_rename_files
-        assert self.widget.auto_organize_cb.isChecked() == self.config.auto_organize_folders
+        assert (
+            self.widget.auto_organize_cb.isChecked()
+            == self.config.auto_organize_folders
+        )
 
     def test_parallel_jobs_changed(self):
         """Test changing the number of parallel jobs"""
@@ -331,6 +346,7 @@ class TestProcessingSettingsWidget:
 
         # Check that config was updated
         assert self.config.auto_organize_folders is True
+
 
 class TestProcessingProgressWidget:
     """Test the ProcessingProgressWidget class"""

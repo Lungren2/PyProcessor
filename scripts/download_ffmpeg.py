@@ -1,22 +1,24 @@
 """
 Script to download and extract FFmpeg binaries for packaging PyProcessor.
 """
+
 import os
 import zipfile
 import urllib.request
 import sys
 
+
 def download_ffmpeg():
     """Download and extract FFmpeg binaries for packaging."""
     print("Downloading FFmpeg binaries...")
-    
+
     # Create directories if they don't exist
     os.makedirs("ffmpeg_temp", exist_ok=True)
-    
+
     # FFmpeg download URL
     ffmpeg_url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
     zip_path = "ffmpeg.zip"
-    
+
     # Download FFmpeg
     try:
         print(f"Downloading from {ffmpeg_url}...")
@@ -27,11 +29,11 @@ def download_ffmpeg():
         if os.path.exists(zip_path):
             os.remove(zip_path)
         return False
-    
+
     # Extract FFmpeg
     try:
         print("Extracting FFmpeg...")
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall("ffmpeg_temp")
         print("Extraction complete.")
         # Remove the zip file after successful extraction
@@ -40,7 +42,7 @@ def download_ffmpeg():
     except Exception as e:
         print(f"Error extracting FFmpeg: {str(e)}")
         return False
-    
+
     # Create README file
     readme_path = "ffmpeg_temp/README.txt"
     readme_content = """FFmpeg Binaries for PyProcessor
@@ -56,16 +58,19 @@ For more information, visit: https://ffmpeg.org/legal.html
 
 These binaries are included for convenience and are not modified in any way from their original distribution.
 """
-    
+
     try:
-        with open(readme_path, 'w') as f:
+        with open(readme_path, "w") as f:
             f.write(readme_content)
         print("Created README file.")
     except Exception as e:
         print(f"Error creating README file: {str(e)}")
-    
-    print("FFmpeg preparation complete. You can now run PyInstaller to create the executable.")
+
+    print(
+        "FFmpeg preparation complete. You can now run PyInstaller to create the executable."
+    )
     return True
+
 
 if __name__ == "__main__":
     result = download_ffmpeg()

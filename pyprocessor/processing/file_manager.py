@@ -2,6 +2,7 @@ import re
 import shutil
 from pathlib import Path
 
+
 class FileManager:
     """Enhanced file manager with option controls"""
 
@@ -19,14 +20,14 @@ class FileManager:
             return 0
 
         self.logger.info("Starting file renaming process")
-        files = list(self.input_folder.glob('*.mp4'))
+        files = list(self.input_folder.glob("*.mp4"))
         total_files = len(files)
         renamed_count = 0
 
         for i, file in enumerate(files):
             try:
                 # Remove all whitespace first
-                name_without_spaces = file.name.replace(' ', '')
+                name_without_spaces = file.name.replace(" ", "")
 
                 # Check if matches pattern
                 match = re.match(self.config.file_rename_pattern, name_without_spaces)
@@ -36,12 +37,16 @@ class FileManager:
 
                     # Skip if file already has correct name
                     if file.name == new_name:
-                        self.logger.debug(f"Skipping already correctly named file: {file.name}")
+                        self.logger.debug(
+                            f"Skipping already correctly named file: {file.name}"
+                        )
                         continue
 
                     # Check if destination exists
                     if new_path.exists():
-                        self.logger.warning(f"Cannot rename {file.name} to {new_name} - destination exists")
+                        self.logger.warning(
+                            f"Cannot rename {file.name} to {new_name} - destination exists"
+                        )
                         continue
 
                     # Rename the file
@@ -53,7 +58,9 @@ class FileManager:
             except Exception as e:
                 self.logger.error(f"Failed to rename {file.name}: {str(e)}")
 
-        self.logger.info(f"File renaming completed: {renamed_count} of {total_files} files renamed")
+        self.logger.info(
+            f"File renaming completed: {renamed_count} of {total_files} files renamed"
+        )
         return renamed_count
 
     def validate_files(self):
@@ -61,7 +68,7 @@ class FileManager:
         valid_files = []
         invalid_files = []
 
-        for file in self.input_folder.glob('*.mp4'):
+        for file in self.input_folder.glob("*.mp4"):
             if re.match(self.config.file_validation_pattern, file.name):
                 valid_files.append(file)
             else:
@@ -77,7 +84,7 @@ class FileManager:
             return 0
 
         self.logger.info("Starting folder organization")
-        folders = list(self.output_folder.glob('*-*'))
+        folders = list(self.output_folder.glob("*-*"))
         moved_count = 0
 
         for folder in folders:
@@ -95,12 +102,16 @@ class FileManager:
 
                     # Skip if already in correct location
                     if str(folder.parent) == str(parent_folder):
-                        self.logger.debug(f"Folder already correctly organized: {folder.name}")
+                        self.logger.debug(
+                            f"Folder already correctly organized: {folder.name}"
+                        )
                         continue
 
                     # Check if destination exists
                     if dest.exists():
-                        self.logger.warning(f"Cannot move {folder.name} - destination exists")
+                        self.logger.warning(
+                            f"Cannot move {folder.name} - destination exists"
+                        )
                         continue
 
                     # Move the folder
@@ -115,7 +126,7 @@ class FileManager:
 
     def get_input_files_info(self):
         """Get information about input files"""
-        files = list(self.input_folder.glob('*.mp4'))
+        files = list(self.input_folder.glob("*.mp4"))
         valid_files, invalid_files = self.validate_files()
 
         total_size = sum(f.stat().st_size for f in files)
@@ -123,10 +134,10 @@ class FileManager:
         total_size_mb = total_size / (1024 * 1024)
 
         return {
-            'total_files': len(files),
-            'valid_files': len(valid_files),
-            'invalid_files': len(invalid_files),
-            'total_size_mb': total_size_mb
+            "total_files": len(files),
+            "valid_files": len(valid_files),
+            "invalid_files": len(invalid_files),
+            "total_size_mb": total_size_mb,
         }
 
     def clean_input_directory(self):
@@ -137,13 +148,13 @@ class FileManager:
 
             # Get all processed video names from output directory
             processed_videos = set()
-            for folder in self.output_folder.glob('*-*'):
+            for folder in self.output_folder.glob("*-*"):
                 if folder.is_dir():
-                    processed_videos.add(folder.name + '.mp4')
+                    processed_videos.add(folder.name + ".mp4")
 
             # Count how many files would be deleted
             to_delete = []
-            for file in self.input_folder.glob('*.mp4'):
+            for file in self.input_folder.glob("*.mp4"):
                 if file.name in processed_videos:
                     to_delete.append(file)
 
@@ -151,7 +162,9 @@ class FileManager:
                 self.logger.info("No processed files found to clean up")
                 return 0
 
-            self.logger.warning(f"Would delete {len(to_delete)} processed files from input directory")
+            self.logger.warning(
+                f"Would delete {len(to_delete)} processed files from input directory"
+            )
             # Since this is destructive, we won't actually implement the deletion here
             # but would require explicit confirmation from the user
 

@@ -1,6 +1,7 @@
 """
 Unit tests for the configuration management system.
 """
+
 import os
 import sys
 import json
@@ -8,10 +9,11 @@ import tempfile
 from pathlib import Path
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the module to test
 from pyprocessor.utils.config import Config
+
 
 class TestConfig:
     """Test the Config class functionality"""
@@ -37,8 +39,8 @@ class TestConfig:
                     "1080p": "5000k",
                     "720p": "3000k",
                     "480p": "1500k",
-                    "360p": "800k"
-                }
+                    "360p": "800k",
+                },
             },
             "max_parallel_jobs": 4,
             "auto_rename_files": True,
@@ -52,12 +54,12 @@ class TestConfig:
                 "enable_http2": True,
                 "enable_http3": True,
                 "enable_cors": True,
-                "cors_origin": "*"
-            }
+                "cors_origin": "*",
+            },
         }
 
         # Write the test config to a file
-        with open(self.config_path, 'w') as f:
+        with open(self.config_path, "w") as f:
             json.dump(self.test_config, f)
 
         # Create a test profile
@@ -74,17 +76,17 @@ class TestConfig:
                     "1080p": "6000k",
                     "720p": "3500k",
                     "480p": "1800k",
-                    "360p": "1000k"
-                }
+                    "360p": "1000k",
+                },
             },
             "max_parallel_jobs": 2,
             "auto_rename_files": False,
-            "auto_organize_folders": False
+            "auto_organize_folders": False,
         }
 
         # Write the test profile to a file
         profile_path = self.profiles_dir / "test_profile.json"
-        with open(profile_path, 'w') as f:
+        with open(profile_path, "w") as f:
             json.dump(self.test_profile, f)
 
     def teardown_method(self):
@@ -114,8 +116,14 @@ class TestConfig:
         # Check that values from the file are loaded
         assert str(config.input_folder) == self.test_config["input_folder"]
         assert str(config.output_folder) == self.test_config["output_folder"]
-        assert config.ffmpeg_params["video_encoder"] == self.test_config["ffmpeg_params"]["encoder"]
-        assert config.ffmpeg_params["preset"] == self.test_config["ffmpeg_params"]["preset"]
+        assert (
+            config.ffmpeg_params["video_encoder"]
+            == self.test_config["ffmpeg_params"]["encoder"]
+        )
+        assert (
+            config.ffmpeg_params["preset"]
+            == self.test_config["ffmpeg_params"]["preset"]
+        )
         assert config.max_parallel_jobs == self.test_config["max_parallel_jobs"]
         assert config.auto_rename_files == self.test_config["auto_rename_files"]
         assert config.auto_organize_folders == self.test_config["auto_organize_folders"]
@@ -133,11 +141,19 @@ class TestConfig:
         # Check that values from the profile are loaded
         assert str(config.input_folder) == self.test_profile["input_folder"]
         assert str(config.output_folder) == self.test_profile["output_folder"]
-        assert config.ffmpeg_params["video_encoder"] == self.test_profile["ffmpeg_params"]["encoder"]
-        assert config.ffmpeg_params["preset"] == self.test_profile["ffmpeg_params"]["preset"]
+        assert (
+            config.ffmpeg_params["video_encoder"]
+            == self.test_profile["ffmpeg_params"]["encoder"]
+        )
+        assert (
+            config.ffmpeg_params["preset"]
+            == self.test_profile["ffmpeg_params"]["preset"]
+        )
         assert config.max_parallel_jobs == self.test_profile["max_parallel_jobs"]
         assert config.auto_rename_files == self.test_profile["auto_rename_files"]
-        assert config.auto_organize_folders == self.test_profile["auto_organize_folders"]
+        assert (
+            config.auto_organize_folders == self.test_profile["auto_organize_folders"]
+        )
 
     def test_save_config(self):
         """Test saving configuration to a file"""
@@ -157,12 +173,15 @@ class TestConfig:
         assert new_config_path.exists()
 
         # Load the saved config and verify values
-        with open(new_config_path, 'r') as f:
+        with open(new_config_path, "r") as f:
             saved_config = json.load(f)
 
         assert saved_config["input_folder"] == str(config.input_folder)
         assert saved_config["output_folder"] == str(config.output_folder)
-        assert saved_config["ffmpeg_params"]["video_encoder"] == config.ffmpeg_params["video_encoder"]
+        assert (
+            saved_config["ffmpeg_params"]["video_encoder"]
+            == config.ffmpeg_params["video_encoder"]
+        )
         assert saved_config["max_parallel_jobs"] == config.max_parallel_jobs
 
     def test_save_profile(self):
@@ -186,12 +205,15 @@ class TestConfig:
         assert profile_path.exists()
 
         # Load the saved profile and verify values
-        with open(profile_path, 'r') as f:
+        with open(profile_path, "r") as f:
             saved_profile = json.load(f)
 
         assert saved_profile["input_folder"] == str(config.input_folder)
         assert saved_profile["output_folder"] == str(config.output_folder)
-        assert saved_profile["ffmpeg_params"]["encoder"] == config.ffmpeg_params["video_encoder"]
+        assert (
+            saved_profile["ffmpeg_params"]["encoder"]
+            == config.ffmpeg_params["video_encoder"]
+        )
         assert saved_profile["max_parallel_jobs"] == config.max_parallel_jobs
 
     def test_validate_config(self):

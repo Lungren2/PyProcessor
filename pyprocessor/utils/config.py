@@ -4,6 +4,7 @@ import multiprocessing
 from pathlib import Path
 import datetime
 
+
 class Config:
     """Enhanced configuration management for video processor"""
 
@@ -23,9 +24,9 @@ class Config:
                 "1080p": "11000k",
                 "720p": "6500k",
                 "480p": "4000k",
-                "360p": "1500k"
+                "360p": "1500k",
             },
-            "audio_bitrates": ["192k", "128k", "96k", "64k"]
+            "audio_bitrates": ["192k", "128k", "96k", "64k"],
         }
 
         # Processing options
@@ -51,17 +52,15 @@ class Config:
                 "enable_http2": True,
                 "enable_http3": False,  # HTTP/3 with Alt-Svc headers
                 "enable_cors": True,
-                "cors_origin": "*"
+                "cors_origin": "*",
             },
             "nginx": {
                 "output_path": str(self.output_folder / "nginx.conf"),
                 "server_name": "yourdomain.com",
                 "ssl_enabled": True,
-                "enable_http3": False  # HTTP/3 with Alt-Svc headers
+                "enable_http3": False,  # HTTP/3 with Alt-Svc headers
             },
-            "linux": {
-                "apply_changes": False
-            }
+            "linux": {"apply_changes": False},
         }
 
         # Create directories if they don't exist
@@ -111,7 +110,7 @@ class Config:
                 "folder_organization_pattern": self.folder_organization_pattern,
                 "last_used_profile": self.last_used_profile,
                 "server_optimization": self.server_optimization,
-                "saved_at": datetime.datetime.now().isoformat()
+                "saved_at": datetime.datetime.now().isoformat(),
             }
 
             # Get the base directory of the application
@@ -131,7 +130,7 @@ class Config:
             Path(filepath).parent.mkdir(parents=True, exist_ok=True)
 
             # Save the configuration
-            with open(filepath, 'w') as f:
+            with open(filepath, "w") as f:
                 json.dump(config_dict, f, indent=4)
 
             return True
@@ -164,7 +163,7 @@ class Config:
                 print(f"Configuration file not found: {filepath}")
                 return False
 
-            with open(filepath, 'r') as f:
+            with open(filepath, "r") as f:
                 config_dict = json.load(f)
 
                 # Load paths
@@ -183,13 +182,19 @@ class Config:
                 if "auto_rename_files" in config_dict:
                     self.auto_rename_files = bool(config_dict["auto_rename_files"])
                 if "auto_organize_folders" in config_dict:
-                    self.auto_organize_folders = bool(config_dict["auto_organize_folders"])
+                    self.auto_organize_folders = bool(
+                        config_dict["auto_organize_folders"]
+                    )
                 if "file_rename_pattern" in config_dict:
                     self.file_rename_pattern = config_dict["file_rename_pattern"]
                 if "file_validation_pattern" in config_dict:
-                    self.file_validation_pattern = config_dict["file_validation_pattern"]
+                    self.file_validation_pattern = config_dict[
+                        "file_validation_pattern"
+                    ]
                 if "folder_organization_pattern" in config_dict:
-                    self.folder_organization_pattern = config_dict["folder_organization_pattern"]
+                    self.folder_organization_pattern = config_dict[
+                        "folder_organization_pattern"
+                    ]
                 if "last_used_profile" in config_dict:
                     self.last_used_profile = config_dict["last_used_profile"]
 
@@ -236,17 +241,23 @@ class Config:
         # Check FFmpeg parameters
         valid_encoders = ["libx265", "h264_nvenc", "libx264"]
         if self.ffmpeg_params["video_encoder"] not in valid_encoders:
-            warnings.append(f"Invalid encoder: {self.ffmpeg_params['video_encoder']}. Using libx265.")
+            warnings.append(
+                f"Invalid encoder: {self.ffmpeg_params['video_encoder']}. Using libx265."
+            )
             self.ffmpeg_params["video_encoder"] = "libx265"
 
         valid_presets = ["ultrafast", "veryfast", "medium", None]
         if self.ffmpeg_params["preset"] not in valid_presets:
-            warnings.append(f"Invalid preset: {self.ffmpeg_params['preset']}. Using ultrafast.")
+            warnings.append(
+                f"Invalid preset: {self.ffmpeg_params['preset']}. Using ultrafast."
+            )
             self.ffmpeg_params["preset"] = "ultrafast"
 
         valid_tunes = ["zerolatency", "film", "animation", None]
         if self.ffmpeg_params["tune"] not in valid_tunes:
-            warnings.append(f"Invalid tune: {self.ffmpeg_params['tune']}. Using zerolatency.")
+            warnings.append(
+                f"Invalid tune: {self.ffmpeg_params['tune']}. Using zerolatency."
+            )
             self.ffmpeg_params["tune"] = "zerolatency"
 
         valid_fps = [30, 60, 120]
@@ -261,12 +272,15 @@ class Config:
 
         # Check parallel jobs
         if not isinstance(self.max_parallel_jobs, int) or self.max_parallel_jobs < 1:
-            warnings.append(f"Invalid parallel jobs: {self.max_parallel_jobs}. Recalculating.")
+            warnings.append(
+                f"Invalid parallel jobs: {self.max_parallel_jobs}. Recalculating."
+            )
             self.max_parallel_jobs = self._calculate_parallel_jobs()
 
         # Check regex patterns
         try:
             import re
+
             re.compile(self.file_rename_pattern)
             re.compile(self.file_validation_pattern)
             re.compile(self.folder_organization_pattern)
@@ -288,17 +302,15 @@ class Config:
                     "enable_http2": True,
                     "enable_http3": False,
                     "enable_cors": True,
-                    "cors_origin": "*"
+                    "cors_origin": "*",
                 },
                 "nginx": {
                     "output_path": str(self.output_folder / "nginx.conf"),
                     "server_name": "yourdomain.com",
                     "ssl_enabled": True,
-                    "enable_http3": False
+                    "enable_http3": False,
                 },
-                "linux": {
-                    "apply_changes": False
-                }
+                "linux": {"apply_changes": False},
             }
 
         return errors, warnings
@@ -309,26 +321,26 @@ class Config:
         Args:
             args: Command line arguments object
         """
-        if hasattr(args, 'input') and args.input:
+        if hasattr(args, "input") and args.input:
             self.input_folder = Path(args.input)
 
-        if hasattr(args, 'output') and args.output:
+        if hasattr(args, "output") and args.output:
             self.output_folder = Path(args.output)
 
-        if hasattr(args, 'encoder') and args.encoder:
+        if hasattr(args, "encoder") and args.encoder:
             self.ffmpeg_params["video_encoder"] = args.encoder
 
-        if hasattr(args, 'preset') and args.preset:
+        if hasattr(args, "preset") and args.preset:
             self.ffmpeg_params["preset"] = args.preset
 
-        if hasattr(args, 'tune') and args.tune:
+        if hasattr(args, "tune") and args.tune:
             self.ffmpeg_params["tune"] = args.tune
 
-        if hasattr(args, 'fps') and args.fps is not None:
+        if hasattr(args, "fps") and args.fps is not None:
             self.ffmpeg_params["fps"] = args.fps
 
-        if hasattr(args, 'no_audio') and args.no_audio:
+        if hasattr(args, "no_audio") and args.no_audio:
             self.ffmpeg_params["include_audio"] = False
 
-        if hasattr(args, 'jobs') and args.jobs is not None:
+        if hasattr(args, "jobs") and args.jobs is not None:
             self.max_parallel_jobs = args.jobs

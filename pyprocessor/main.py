@@ -20,6 +20,7 @@ logger = None
 encoder = None
 scheduler = None
 
+
 def signal_handler(sig, frame):
     """Handle termination signals for clean shutdown"""
     global logger, encoder, scheduler
@@ -40,6 +41,7 @@ def signal_handler(sig, frame):
 
     sys.exit(0)
 
+
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description="Video Processor")
@@ -51,48 +53,87 @@ def parse_args():
     parser.add_argument("--profile", help="Configuration profile name")
 
     # Processing options
-    parser.add_argument("--encoder", choices=["libx265", "h264_nvenc", "libx264"],
-                       help="Video encoder to use")
-    parser.add_argument("--preset", choices=["ultrafast", "veryfast", "medium"],
-                       help="Encoding preset")
-    parser.add_argument("--tune", choices=["zerolatency", "film", "animation"],
-                       help="Encoding tune parameter")
-    parser.add_argument("--fps", type=int, choices=[30, 60, 120],
-                       help="Frames per second")
-    parser.add_argument("--no-audio", action="store_true",
-                       help="Exclude audio from output")
+    parser.add_argument(
+        "--encoder",
+        choices=["libx265", "h264_nvenc", "libx264"],
+        help="Video encoder to use",
+    )
+    parser.add_argument(
+        "--preset", choices=["ultrafast", "veryfast", "medium"], help="Encoding preset"
+    )
+    parser.add_argument(
+        "--tune",
+        choices=["zerolatency", "film", "animation"],
+        help="Encoding tune parameter",
+    )
+    parser.add_argument(
+        "--fps", type=int, choices=[30, 60, 120], help="Frames per second"
+    )
+    parser.add_argument(
+        "--no-audio", action="store_true", help="Exclude audio from output"
+    )
     parser.add_argument("--jobs", type=int, help="Number of parallel jobs")
 
     # Execution options
-    parser.add_argument("--no-gui", action="store_true",
-                       help="Run without GUI")
-    parser.add_argument("--verbose", action="store_true",
-                       help="Enable verbose logging")
+    parser.add_argument("--no-gui", action="store_true", help="Run without GUI")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     # Server optimization options
-    server_group = parser.add_argument_group('Server Optimization')
-    server_group.add_argument("--optimize-server", choices=["iis", "nginx", "linux"],
-                       help="Optimize server for video streaming")
-    server_group.add_argument("--site-name", default="Default Web Site",
-                       help="IIS site name (for --optimize-server=iis)")
-    server_group.add_argument("--video-path",
-                       help="Path to video content directory (for --optimize-server=iis)")
-    server_group.add_argument("--enable-http2", action="store_true", default=True,
-                       help="Enable HTTP/2 protocol (for --optimize-server=iis)")
-    server_group.add_argument("--enable-http3", action="store_true", default=False,
-                       help="Enable HTTP/3 with Alt-Svc headers for auto-upgrading (for --optimize-server=iis or nginx)")
-    server_group.add_argument("--enable-cors", action="store_true", default=True,
-                       help="Enable CORS headers (for --optimize-server=iis)")
-    server_group.add_argument("--cors-origin", default="*",
-                       help="CORS origin value (for --optimize-server=iis)")
-    server_group.add_argument("--output-config",
-                       help="Output path for server configuration (for --optimize-server=nginx)")
-    server_group.add_argument("--server-name", default="yourdomain.com",
-                       help="Server name for configuration (for --optimize-server=nginx)")
-    server_group.add_argument("--apply-changes", action="store_true",
-                       help="Apply changes directly (for --optimize-server=linux)")
+    server_group = parser.add_argument_group("Server Optimization")
+    server_group.add_argument(
+        "--optimize-server",
+        choices=["iis", "nginx", "linux"],
+        help="Optimize server for video streaming",
+    )
+    server_group.add_argument(
+        "--site-name",
+        default="Default Web Site",
+        help="IIS site name (for --optimize-server=iis)",
+    )
+    server_group.add_argument(
+        "--video-path",
+        help="Path to video content directory (for --optimize-server=iis)",
+    )
+    server_group.add_argument(
+        "--enable-http2",
+        action="store_true",
+        default=True,
+        help="Enable HTTP/2 protocol (for --optimize-server=iis)",
+    )
+    server_group.add_argument(
+        "--enable-http3",
+        action="store_true",
+        default=False,
+        help="Enable HTTP/3 with Alt-Svc headers for auto-upgrading (for --optimize-server=iis or nginx)",
+    )
+    server_group.add_argument(
+        "--enable-cors",
+        action="store_true",
+        default=True,
+        help="Enable CORS headers (for --optimize-server=iis)",
+    )
+    server_group.add_argument(
+        "--cors-origin",
+        default="*",
+        help="CORS origin value (for --optimize-server=iis)",
+    )
+    server_group.add_argument(
+        "--output-config",
+        help="Output path for server configuration (for --optimize-server=nginx)",
+    )
+    server_group.add_argument(
+        "--server-name",
+        default="yourdomain.com",
+        help="Server name for configuration (for --optimize-server=nginx)",
+    )
+    server_group.add_argument(
+        "--apply-changes",
+        action="store_true",
+        help="Apply changes directly (for --optimize-server=linux)",
+    )
 
     return parser.parse_args()
+
 
 def apply_args_to_config(args, config):
     """Apply command line arguments to configuration"""
@@ -152,7 +193,10 @@ def apply_args_to_config(args, config):
         # Linux options
         elif args.optimize_server == "linux":
             if args.apply_changes is not None:
-                config.server_optimization["linux"]["apply_changes"] = args.apply_changes
+                config.server_optimization["linux"][
+                    "apply_changes"
+                ] = args.apply_changes
+
 
 def run_cli_mode(config, logger, file_manager, encoder, scheduler):
     """Run in command-line mode"""
@@ -162,6 +206,7 @@ def run_cli_mode(config, logger, file_manager, encoder, scheduler):
         # Check if server optimization is requested
         if config.server_optimization.get("enabled", False):
             from pyprocessor.utils.server_optimizer import ServerOptimizer
+
             server_optimizer = ServerOptimizer(config, logger)
 
             server_type = config.server_optimization["server_type"]
@@ -179,14 +224,14 @@ def run_cli_mode(config, logger, file_manager, encoder, scheduler):
                         video_path=iis_config["video_path"],
                         enable_http2=iis_config["enable_http2"],
                         enable_cors=iis_config["enable_cors"],
-                        cors_origin=iis_config["cors_origin"]
+                        cors_origin=iis_config["cors_origin"],
                     )
                 elif server_type == "nginx":
                     nginx_config = config.server_optimization["nginx"]
                     success, message = server_optimizer.optimize_nginx(
                         output_path=nginx_config["output_path"],
                         server_name=nginx_config["server_name"],
-                        ssl_enabled=nginx_config.get("ssl_enabled", True)
+                        ssl_enabled=nginx_config.get("ssl_enabled", True),
                     )
                 elif server_type == "linux":
                     linux_config = config.server_optimization["linux"]
@@ -253,6 +298,7 @@ def run_cli_mode(config, logger, file_manager, encoder, scheduler):
         logger.error(f"Error in command-line mode: {str(e)}")
         return 1
 
+
 def main():
     """Main application entry point"""
     global config, logger, encoder, scheduler
@@ -294,7 +340,7 @@ def main():
     scheduler = ProcessingScheduler(config, logger, file_manager, encoder)
 
     # Register signal handlers
-    signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
     signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
 
     # Run in CLI or GUI mode
@@ -312,7 +358,10 @@ def main():
             logger.error(f"Failed to initialize theme manager: {str(e)}")
             theme_manager = None
 
-        return show_main_window(app, config, logger, file_manager, encoder, scheduler, theme_manager)
+        return show_main_window(
+            app, config, logger, file_manager, encoder, scheduler, theme_manager
+        )
+
 
 if __name__ == "__main__":
     sys.exit(main())

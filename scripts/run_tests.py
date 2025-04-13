@@ -29,8 +29,17 @@ import subprocess
 import argparse
 from pathlib import Path
 
-def run_tests(unit_only=False, integration_only=False, coverage=False, html_report=False,
-            module=None, test_class=None, verbose=False, fail_fast=False):
+
+def run_tests(
+    unit_only=False,
+    integration_only=False,
+    coverage=False,
+    html_report=False,
+    module=None,
+    test_class=None,
+    verbose=False,
+    fail_fast=False,
+):
     """Run the test suite with the specified options."""
     # Ensure the tests directory exists
     tests_dir = Path("tests")
@@ -110,17 +119,34 @@ def run_tests(unit_only=False, integration_only=False, coverage=False, html_repo
         print(f"\n✗ Error running tests: {e}")
         return False
 
+
 def main():
     """Parse arguments and run tests."""
     parser = argparse.ArgumentParser(description="Run PyProcessor tests")
     parser.add_argument("--unit", action="store_true", help="Run only unit tests")
-    parser.add_argument("--integration", action="store_true", help="Run only integration tests")
-    parser.add_argument("--coverage", action="store_true", help="Generate coverage report")
-    parser.add_argument("--html", action="store_true", help="Generate HTML coverage report")
-    parser.add_argument("--module", help="Run tests in a specific module (e.g., config)")
-    parser.add_argument("--class", dest="test_class", help="Run tests in a specific class (e.g., Config)")
-    parser.add_argument("--verbose", action="store_true", help="Show more detailed output")
-    parser.add_argument("--fail-fast", action="store_true", help="Stop on first failure")
+    parser.add_argument(
+        "--integration", action="store_true", help="Run only integration tests"
+    )
+    parser.add_argument(
+        "--coverage", action="store_true", help="Generate coverage report"
+    )
+    parser.add_argument(
+        "--html", action="store_true", help="Generate HTML coverage report"
+    )
+    parser.add_argument(
+        "--module", help="Run tests in a specific module (e.g., config)"
+    )
+    parser.add_argument(
+        "--class",
+        dest="test_class",
+        help="Run tests in a specific class (e.g., Config)",
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Show more detailed output"
+    )
+    parser.add_argument(
+        "--fail-fast", action="store_true", help="Stop on first failure"
+    )
     args = parser.parse_args()
 
     success = run_tests(
@@ -131,10 +157,11 @@ def main():
         module=args.module,
         test_class=args.test_class,
         verbose=args.verbose,
-        fail_fast=args.fail_fast
+        fail_fast=args.fail_fast,
     )
 
     sys.exit(0 if success else 1)
+
 
 if __name__ == "__main__":
     main()

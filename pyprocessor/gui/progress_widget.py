@@ -1,5 +1,14 @@
-from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                           QProgressBar, QGroupBox, QTextEdit, QSizePolicy)
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QProgressBar,
+    QGroupBox,
+    QTextEdit,
+    QSizePolicy,
+)
+
 
 class ProcessingProgressWidget(QWidget):
     """Widget for displaying processing progress"""
@@ -86,12 +95,14 @@ class ProcessingProgressWidget(QWidget):
         self.output_log.clear()
 
         import time
+
         self.process_start_time = time.time()
         self.files_processed = 0
 
     def add_output_file(self, filename, resolution=None):
         """Add an output file to the log"""
         import time
+
         timestamp = time.strftime("%H:%M:%S")
 
         if resolution:

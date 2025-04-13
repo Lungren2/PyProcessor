@@ -14,6 +14,7 @@ from pyprocessor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
 progress_queue = None
 output_files_queue = None
 
+
 # Standalone function for multiprocessing that doesn't require encoder or logger
 def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=None):
     """Process a single video file - standalone function for multiprocessing"""
@@ -41,7 +42,7 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
         bitrates = ffmpeg_params["bitrates"]
         bufsizes = {}
         for res, bitrate in bitrates.items():
-            bufsize_value = int(bitrate.rstrip('k')) * 2
+            bufsize_value = int(bitrate.rstrip("k")) * 2
             bufsizes[res] = f"{bufsize_value}k"
 
         # Build filter complex string
@@ -49,17 +50,36 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
 
         # Build FFmpeg command
         ffmpeg_path = get_ffmpeg_path()
-        cmd = [ffmpeg_path, "-hide_banner", "-loglevel", "info", "-stats",
-               "-i", str(file), "-filter_complex", filter_complex]
+        cmd = [
+            ffmpeg_path,
+            "-hide_banner",
+            "-loglevel",
+            "info",
+            "-stats",
+            "-i",
+            str(file),
+            "-filter_complex",
+            filter_complex,
+        ]
 
         # Video streams for all resolutions
-        for i, (res, bitrate) in enumerate([("1080p", bitrates["1080p"]),
-                                           ("720p", bitrates["720p"]),
-                                           ("480p", bitrates["480p"]),
-                                           ("360p", bitrates["360p"])]):
+        for i, (res, bitrate) in enumerate(
+            [
+                ("1080p", bitrates["1080p"]),
+                ("720p", bitrates["720p"]),
+                ("480p", bitrates["480p"]),
+                ("360p", bitrates["360p"]),
+            ]
+        ):
             # Map video stream
-            cmd.extend(["-map", f"[v{i+1}out]",
-                       "-c:v:" + str(i), ffmpeg_params["video_encoder"]])
+            cmd.extend(
+                [
+                    "-map",
+                    f"[v{i+1}out]",
+                    "-c:v:" + str(i),
+                    ffmpeg_params["video_encoder"],
+                ]
+            )
 
             # Add preset and tune if applicable
             if ffmpeg_params["preset"]:
@@ -68,18 +88,33 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
                 cmd.extend([f"-tune:v:{i}", ffmpeg_params["tune"]])
 
             # Bitrate settings
-            cmd.extend([f"-b:v:{i}", bitrate,
-                       f"-maxrate:v:{i}", bitrate,
-                       f"-bufsize:v:{i}", bufsizes[res]])
+            cmd.extend(
+                [
+                    f"-b:v:{i}",
+                    bitrate,
+                    f"-maxrate:v:{i}",
+                    bitrate,
+                    f"-bufsize:v:{i}",
+                    bufsizes[res],
+                ]
+            )
 
         # Audio streams if available and enabled
         audio_bitrates = ffmpeg_params["audio_bitrates"]
         if has_audio:
             for i, bitrate in enumerate(audio_bitrates):
-                cmd.extend(["-map", "a:0",
-                           f"-c:a:{i}", "aac",
-                           f"-b:a:{i}", bitrate,
-                           "-ac", "2"])
+                cmd.extend(
+                    [
+                        "-map",
+                        "a:0",
+                        f"-c:a:{i}",
+                        "aac",
+                        f"-b:a:{i}",
+                        bitrate,
+                        "-ac",
+                        "2",
+                    ]
+                )
             var_stream_map = "v:0,a:0 v:1,a:1 v:2,a:2 v:3,a:3"
         else:
             var_stream_map = "v:0 v:1 v:2 v:3"
@@ -88,16 +123,29 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
         segment_path = str(output_subfolder) + "/%v/segment_%03d.ts"
         playlist_path = str(output_subfolder) + "/%v/playlist.m3u8"
 
-        cmd.extend(["-f", "hls",
-                   "-g", str(ffmpeg_params["fps"]),
-                   "-hls_time", "1",
-                   "-hls_playlist_type", "vod",
-                   "-hls_flags", "independent_segments",
-                   "-hls_segment_type", "mpegts",
-                   "-hls_segment_filename", segment_path,
-                   "-master_pl_name", "master.m3u8",
-                   "-var_stream_map", var_stream_map,
-                   playlist_path])
+        cmd.extend(
+            [
+                "-f",
+                "hls",
+                "-g",
+                str(ffmpeg_params["fps"]),
+                "-hls_time",
+                "1",
+                "-hls_playlist_type",
+                "vod",
+                "-hls_flags",
+                "independent_segments",
+                "-hls_segment_type",
+                "mpegts",
+                "-hls_segment_filename",
+                segment_path,
+                "-master_pl_name",
+                "master.m3u8",
+                "-var_stream_map",
+                var_stream_map,
+                playlist_path,
+            ]
+        )
 
         # Execute FFmpeg
         process = subprocess.Popen(
@@ -106,7 +154,7 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
             stderr=subprocess.PIPE,
             text=True,
             universal_newlines=True,
-            bufsize=1  # Line buffered
+            bufsize=1,  # Line buffered
         )
 
         # Process stderr in real-time to extract progress
@@ -146,7 +194,12 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
         # Check if output files were created
         m3u8_file = output_subfolder / "master.m3u8"
         if not m3u8_file.exists():
-            return (file.name, False, time.time() - start_time, "Failed to create master playlist")
+            return (
+                file.name,
+                False,
+                time.time() - start_time,
+                "Failed to create master playlist",
+            )
 
         # Log created files
         global output_files_queue
@@ -171,7 +224,9 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
 
                     # If there are more segments, log a summary
                     if len(segments) > 3:
-                        output_files_queue.put((task_id, f"... and {len(segments)-3} more segments", res))
+                        output_files_queue.put(
+                            (task_id, f"... and {len(segments)-3} more segments", res)
+                        )
 
         # Ensure we report 100% at the end
         if progress_queue is not None and task_id is not None:
@@ -182,22 +237,32 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
     except Exception as e:
         return (file.name, False, time.time() - start_time, str(e))
 
+
 # Helper function to check for audio streams
 def check_for_audio(file_path):
     """Check if the video file has audio streams"""
     try:
         ffprobe_path = get_ffprobe_path()
         result = subprocess.run(
-            [ffprobe_path, "-i", str(file_path), "-show_streams",
-             "-select_streams", "a", "-loglevel", "error"],
+            [
+                ffprobe_path,
+                "-i",
+                str(file_path),
+                "-show_streams",
+                "-select_streams",
+                "a",
+                "-loglevel",
+                "error",
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            timeout=10
+            timeout=10,
         )
         return bool(result.stdout.strip())
     except subprocess.SubprocessError:
         return False
+
 
 class ProcessingScheduler:
     """Enhanced parallel processing scheduler for video encoding"""
@@ -220,14 +285,18 @@ class ProcessingScheduler:
         if callable(callback):
             self.progress_callback = callback
         else:
-            self.logger.warning(f"Invalid progress callback: {callback} is not callable")
+            self.logger.warning(
+                f"Invalid progress callback: {callback} is not callable"
+            )
 
     def set_output_file_callback(self, callback):
         """Set a callback function for output file notifications"""
         if callable(callback):
             self.output_file_callback = callback
         else:
-            self.logger.warning(f"Invalid output file callback: {callback} is not callable")
+            self.logger.warning(
+                f"Invalid output file callback: {callback} is not callable"
+            )
 
     def _monitor_progress_queue(self):
         """Monitor the progress queue for file-level progress updates"""
@@ -247,7 +316,9 @@ class ProcessingScheduler:
 
                     # Call the progress callback with file-level progress
                     if self.progress_callback:
-                        self.progress_callback(filename, progress, self.processed_count, self.total_files)
+                        self.progress_callback(
+                            filename, progress, self.processed_count, self.total_files
+                        )
 
                 except Exception:
                     # Queue.Empty or other exception, just continue
@@ -255,11 +326,12 @@ class ProcessingScheduler:
 
             except Exception as e:
                 # Log any other errors but keep the thread running
-                if hasattr(self, 'logger'):
+                if hasattr(self, "logger"):
                     self.logger.error(f"Error in progress monitor: {str(e)}")
 
             # Small sleep to prevent CPU spinning
             import time
+
             time.sleep(0.01)
 
     def _monitor_output_files_queue(self):
@@ -282,11 +354,12 @@ class ProcessingScheduler:
 
             except Exception as e:
                 # Log any other errors but keep the thread running
-                if hasattr(self, 'logger'):
+                if hasattr(self, "logger"):
                     self.logger.error(f"Error in output files monitor: {str(e)}")
 
             # Small sleep to prevent CPU spinning
             import time
+
             time.sleep(0.01)
 
     def get_progress(self):
@@ -340,20 +413,20 @@ class ProcessingScheduler:
 
             # Thread for progress updates
             progress_thread = threading.Thread(
-                target=self._monitor_progress_queue,
-                daemon=True
+                target=self._monitor_progress_queue, daemon=True
             )
             progress_thread.start()
 
             # Thread for output file notifications
             output_files_thread = threading.Thread(
-                target=self._monitor_output_files_queue,
-                daemon=True
+                target=self._monitor_output_files_queue, daemon=True
             )
             output_files_thread.start()
 
             # Process files in parallel using ProcessPoolExecutor
-            with ProcessPoolExecutor(max_workers=self.config.max_parallel_jobs) as executor:
+            with ProcessPoolExecutor(
+                max_workers=self.config.max_parallel_jobs
+            ) as executor:
                 # Submit all tasks
                 futures = []
                 for i, file in enumerate(valid_files):
@@ -363,7 +436,7 @@ class ProcessingScheduler:
                         str(file),  # Convert Path to string for pickling
                         str(self.config.output_folder),
                         self.config.ffmpeg_params,
-                        i  # Task ID for progress tracking
+                        i,  # Task ID for progress tracking
                     )
                     futures.append(future)
 
@@ -390,14 +463,20 @@ class ProcessingScheduler:
                         # Call progress callback if set - this is for overall progress
                         # File-level progress is handled by the progress_queue thread
                         if self.progress_callback:
-                            self.progress_callback(filename, 100, current, self.total_files)
+                            self.progress_callback(
+                                filename, 100, current, self.total_files
+                            )
 
                         if success:
-                            self.logger.info(f"Completed processing: {filename} ({duration:.2f}s)")
+                            self.logger.info(
+                                f"Completed processing: {filename} ({duration:.2f}s)"
+                            )
                             successful_count += 1
                         else:
                             if error_msg:
-                                self.logger.error(f"Error processing {filename}: {error_msg}")
+                                self.logger.error(
+                                    f"Error processing {filename}: {error_msg}"
+                                )
                             else:
                                 self.logger.error(f"Failed to process: {filename}")
                             failed_count += 1
@@ -415,7 +494,9 @@ class ProcessingScheduler:
             processing_duration = time.time() - processing_start
             processing_minutes = processing_duration / 60
 
-            self.logger.info(f"Processing completed: {successful_count} successful, {failed_count} failed")
+            self.logger.info(
+                f"Processing completed: {successful_count} successful, {failed_count} failed"
+            )
             self.logger.info(f"Total processing time: {processing_minutes:.2f} minutes")
 
             self.is_running = False

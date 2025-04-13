@@ -1,6 +1,7 @@
 """
 Performance tests for the server optimizer functionality.
 """
+
 import os
 import sys
 import tempfile
@@ -8,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -16,7 +17,13 @@ from pyprocessor.utils.logging import Logger
 from pyprocessor.utils.server_optimizer import ServerOptimizer
 
 # Import performance test base
-from tests.performance.test_performance_base import PerformanceTest, time_function, PerformanceResult, MemoryUsage
+from tests.performance.test_performance_base import (
+    PerformanceTest,
+    time_function,
+    PerformanceResult,
+    MemoryUsage,
+)
+
 
 class IISOptimizerPerformanceTest(PerformanceTest):
     """Test the performance of IIS server optimization."""
@@ -57,8 +64,9 @@ class IISOptimizerPerformanceTest(PerformanceTest):
 
         # Create mock IIS optimization script
         iis_script_path = optimization_utils_dir / "iis-optimization.ps1"
-        with open(iis_script_path, 'w') as f:
-            f.write("""
+        with open(iis_script_path, "w") as f:
+            f.write(
+                """
             param (
                 [string]$SiteName = "Default Web Site",
                 [string]$VideoPath = "C:\\inetpub\\wwwroot\\videos",
@@ -79,7 +87,8 @@ class IISOptimizerPerformanceTest(PerformanceTest):
             Start-Sleep -Milliseconds 100
 
             Write-Output "IIS optimization completed successfully"
-            """)
+            """
+            )
 
         # Override optimization utils directory
         self.server_optimizer.optimization_utils_dir = optimization_utils_dir
@@ -89,16 +98,18 @@ class IISOptimizerPerformanceTest(PerformanceTest):
         if self.temp_dir:
             self.temp_dir.cleanup()
 
-    @patch('platform.system')
-    @patch('shutil.which')
-    @patch('subprocess.run')
+    @patch("platform.system")
+    @patch("shutil.which")
+    @patch("subprocess.run")
     def run_iteration(self, mock_run, mock_which, mock_platform) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock platform.system to return Windows
         mock_platform.return_value = "Windows"
 
         # Mock shutil.which to return PowerShell
-        mock_which.return_value = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+        mock_which.return_value = (
+            "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+        )
 
         # Mock subprocess.run to return success
         mock_run.return_value.returncode = 0
@@ -113,12 +124,13 @@ class IISOptimizerPerformanceTest(PerformanceTest):
             enable_http2=True,
             enable_http3=True,
             enable_cors=True,
-            cors_origin="*"
+            cors_origin="*",
         )
 
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
+
 
 class NginxOptimizerPerformanceTest(PerformanceTest):
     """Test the performance of Nginx server optimization."""
@@ -169,7 +181,7 @@ class NginxOptimizerPerformanceTest(PerformanceTest):
         else:  # large
             template_content = self._create_large_template()
 
-        with open(nginx_template_path, 'w') as f:
+        with open(nginx_template_path, "w") as f:
             f.write(template_content)
 
         # Override optimization utils directory
@@ -371,12 +383,13 @@ class NginxOptimizerPerformanceTest(PerformanceTest):
             output_path=str(self.output_path),
             server_name="example.com",
             ssl_enabled=True,
-            enable_http3=True
+            enable_http3=True,
         )
 
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
+
 
 class LinuxOptimizerPerformanceTest(PerformanceTest):
     """Test the performance of Linux system optimization."""
@@ -389,7 +402,9 @@ class LinuxOptimizerPerformanceTest(PerformanceTest):
             apply_changes: Whether to apply changes directly
             iterations: Number of iterations to run
         """
-        super().__init__(f"Linux System Optimization (apply_changes={apply_changes})", iterations)
+        super().__init__(
+            f"Linux System Optimization (apply_changes={apply_changes})", iterations
+        )
         self.apply_changes = apply_changes
         self.temp_dir = None
         self.config = None
@@ -416,8 +431,9 @@ class LinuxOptimizerPerformanceTest(PerformanceTest):
 
         # Create mock Linux optimization script
         linux_script_path = optimization_utils_dir / "linux-optimizations.bash"
-        with open(linux_script_path, 'w') as f:
-            f.write("""
+        with open(linux_script_path, "w") as f:
+            f.write(
+                """
             #!/bin/bash
 
             echo "Optimizing Linux system for video streaming"
@@ -427,7 +443,8 @@ class LinuxOptimizerPerformanceTest(PerformanceTest):
 
             echo "Linux system optimization completed successfully"
             exit 0
-            """)
+            """
+            )
 
         # Make the script executable
         linux_script_path.chmod(0o755)
@@ -440,8 +457,8 @@ class LinuxOptimizerPerformanceTest(PerformanceTest):
         if self.temp_dir:
             self.temp_dir.cleanup()
 
-    @patch('platform.system')
-    @patch('subprocess.run')
+    @patch("platform.system")
+    @patch("subprocess.run")
     def run_iteration(self, mock_run, mock_platform) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock platform.system to return Linux if apply_changes is True
@@ -449,29 +466,33 @@ class LinuxOptimizerPerformanceTest(PerformanceTest):
 
         # Mock subprocess.run to return success
         mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = "Linux system optimization completed successfully"
+        mock_run.return_value.stdout = (
+            "Linux system optimization completed successfully"
+        )
         mock_run.return_value.stderr = ""
 
         # Time the optimization
         _, execution_time = time_function(
-            self.server_optimizer.optimize_linux,
-            apply_changes=self.apply_changes
+            self.server_optimizer.optimize_linux, apply_changes=self.apply_changes
         )
 
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
 
-@patch('platform.system')
-@patch('shutil.which')
-@patch('subprocess.run')
+
+@patch("platform.system")
+@patch("shutil.which")
+@patch("subprocess.run")
 def test_iis_optimizer_performance(mock_run, mock_which, mock_platform):
     """Test the performance of IIS server optimization."""
     # Mock platform.system to return Windows
     mock_platform.return_value = "Windows"
 
     # Mock shutil.which to return PowerShell
-    mock_which.return_value = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    mock_which.return_value = (
+        "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    )
 
     # Mock subprocess.run to return success
     mock_run.return_value.returncode = 0
@@ -485,6 +506,7 @@ def test_iis_optimizer_performance(mock_run, mock_which, mock_platform):
     # Assert that the performance is reasonable
     assert results["avg_time"] < 0.1, "IIS server optimization is too slow"
 
+
 def test_nginx_optimizer_performance():
     """Test the performance of Nginx server optimization with different configuration sizes."""
     config_sizes = ["small", "medium", "large"]
@@ -496,14 +518,21 @@ def test_nginx_optimizer_performance():
 
         # Assert that the performance is reasonable
         if config_size == "small":
-            assert results["avg_time"] < 0.01, f"Nginx server optimization for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.01
+            ), f"Nginx server optimization for {config_size} config is too slow"
         elif config_size == "medium":
-            assert results["avg_time"] < 0.05, f"Nginx server optimization for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.05
+            ), f"Nginx server optimization for {config_size} config is too slow"
         elif config_size == "large":
-            assert results["avg_time"] < 0.1, f"Nginx server optimization for {config_size} config is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"Nginx server optimization for {config_size} config is too slow"
 
-@patch('platform.system')
-@patch('subprocess.run')
+
+@patch("platform.system")
+@patch("subprocess.run")
 def test_linux_optimizer_performance(mock_run, mock_platform):
     """Test the performance of Linux system optimization."""
     # Mock subprocess.run to return success
@@ -524,8 +553,13 @@ def test_linux_optimizer_performance(mock_run, mock_platform):
     test_true.print_results(results_true)
 
     # Assert that the performance is reasonable
-    assert results_false["avg_time"] < 0.05, "Linux system optimization (generate script) is too slow"
-    assert results_true["avg_time"] < 0.1, "Linux system optimization (apply changes) is too slow"
+    assert (
+        results_false["avg_time"] < 0.05
+    ), "Linux system optimization (generate script) is too slow"
+    assert (
+        results_true["avg_time"] < 0.1
+    ), "Linux system optimization (apply changes) is too slow"
+
 
 if __name__ == "__main__":
     test_iis_optimizer_performance()

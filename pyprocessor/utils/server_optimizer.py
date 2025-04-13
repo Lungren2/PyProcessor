@@ -30,14 +30,26 @@ class ServerOptimizer:
         self.logger = logger or Logger()
 
         # Get the base directory of the application
-        self.base_dir = Path(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        self.base_dir = Path(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
         self.optimization_utils_dir = self.base_dir / "optimization-utils"
 
         # Check if optimization utils directory exists
         if not self.optimization_utils_dir.exists():
-            self.logger.warning(f"Optimization utilities directory not found: {self.optimization_utils_dir}")
+            self.logger.warning(
+                f"Optimization utilities directory not found: {self.optimization_utils_dir}"
+            )
 
-    def optimize_iis(self, site_name, video_path, enable_http2=True, enable_http3=False, enable_cors=True, cors_origin="*"):
+    def optimize_iis(
+        self,
+        site_name,
+        video_path,
+        enable_http2=True,
+        enable_http3=False,
+        enable_cors=True,
+        cors_origin="*",
+    ):
         """Optimize IIS server for video streaming.
 
         Args:
@@ -72,14 +84,22 @@ class ServerOptimizer:
         safe_video_path = shlex.quote(video_path)
         command = [
             "powershell.exe",
-            "-ExecutionPolicy", "Bypass",
-            "-File", str(script_path),
-            "-SiteName", safe_site_name,
-            "-VideoPath", safe_video_path,
-            "-EnableHttp2", "$true" if enable_http2 else "$false",
-            "-EnableHttp3", "$true" if enable_http3 else "$false",
-            "-EnableCors", "$true" if enable_cors else "$false",
-            "-CorsOrigin", cors_origin
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script_path),
+            "-SiteName",
+            safe_site_name,
+            "-VideoPath",
+            safe_video_path,
+            "-EnableHttp2",
+            "$true" if enable_http2 else "$false",
+            "-EnableHttp3",
+            "$true" if enable_http3 else "$false",
+            "-EnableCors",
+            "$true" if enable_cors else "$false",
+            "-CorsOrigin",
+            cors_origin,
         ]
 
         try:
@@ -87,10 +107,7 @@ class ServerOptimizer:
 
             # Run the PowerShell script
             result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                check=False
+                command, capture_output=True, text=True, check=False
             )
 
             # Log the output
@@ -101,7 +118,10 @@ class ServerOptimizer:
             if result.returncode != 0:
                 for line in result.stderr.splitlines():
                     self.logger.error(f"IIS Optimizer Error: {line}")
-                return False, f"IIS optimization failed with exit code {result.returncode}"
+                return (
+                    False,
+                    f"IIS optimization failed with exit code {result.returncode}",
+                )
 
             return True, "IIS optimization completed successfully"
 
@@ -109,7 +129,13 @@ class ServerOptimizer:
             self.logger.error(f"Error running IIS optimization: {str(e)}")
             return False, f"Error running IIS optimization: {str(e)}"
 
-    def optimize_nginx(self, output_path, server_name="yourdomain.com", ssl_enabled=True, enable_http3=False):
+    def optimize_nginx(
+        self,
+        output_path,
+        server_name="yourdomain.com",
+        ssl_enabled=True,
+        enable_http3=False,
+    ):
         """Generate optimized Nginx configuration for video streaming.
 
         Args:
@@ -128,7 +154,7 @@ class ServerOptimizer:
 
         try:
             # Read the template
-            with open(template_path, 'r') as f:
+            with open(template_path, "r") as f:
                 config_content = f.read()
 
             # Replace placeholders
@@ -147,13 +173,15 @@ class ServerOptimizer:
     add_header Alt-Svc 'h3=":443"; ma=86400, h3-29=":443"; ma=86400';
 """
                 # Insert HTTP/3 config after the SSL configuration
-                config_content = config_content.replace("listen 443 ssl http2;", "listen 443 ssl http2;\n" + http3_config)
+                config_content = config_content.replace(
+                    "listen 443 ssl http2;", "listen 443 ssl http2;\n" + http3_config
+                )
 
             # Create output directory if it doesn't exist
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
             # Write the configuration file
-            with open(output_path, 'w') as f:
+            with open(output_path, "w") as f:
                 f.write(config_content)
 
             self.logger.info(f"Nginx configuration saved to: {output_path}")
@@ -181,14 +209,18 @@ class ServerOptimizer:
         try:
             if apply_changes:
                 if platform.system() != "Linux":
-                    return False, "Cannot apply Linux optimizations on non-Linux system", None
+                    return (
+                        False,
+                        "Cannot apply Linux optimizations on non-Linux system",
+                        None,
+                    )
 
                 # Apply optimizations directly
                 result = subprocess.run(
                     ["bash", str(script_path)],
                     capture_output=True,
                     text=True,
-                    check=False
+                    check=False,
                 )
 
                 # Log the output
@@ -199,7 +231,11 @@ class ServerOptimizer:
                 if result.returncode != 0:
                     for line in result.stderr.splitlines():
                         self.logger.error(f"Linux Optimizer Error: {line}")
-                    return False, f"Linux optimization failed with exit code {result.returncode}", None
+                    return (
+                        False,
+                        f"Linux optimization failed with exit code {result.returncode}",
+                        None,
+                    )
 
                 return True, "Linux optimizations applied successfully", None
             else:
@@ -211,7 +247,11 @@ class ServerOptimizer:
 
                 self.logger.info(f"Linux optimization script copied to: {output_path}")
 
-                return True, f"Linux optimization script copied to: {output_path}", output_path
+                return (
+                    True,
+                    f"Linux optimization script copied to: {output_path}",
+                    output_path,
+                )
 
         except Exception as e:
             self.logger.error(f"Error with Linux optimizations: {str(e)}")

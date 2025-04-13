@@ -1,6 +1,7 @@
 """
 Unit tests for the FFmpeg encoder.
 """
+
 import pytest
 import os
 import sys
@@ -9,12 +10,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
 from pyprocessor.utils.logging import Logger
 from pyprocessor.processing.encoder import FFmpegEncoder
+
 
 class TestFFmpegEncoder:
     """Test the FFmpegEncoder class functionality"""
@@ -30,7 +32,7 @@ class TestFFmpegEncoder:
 
         # Create a mock video file (not a real video, just for testing)
         self.test_video = self.input_dir / "test_video.mp4"
-        with open(self.test_video, 'w') as f:
+        with open(self.test_video, "w") as f:
             f.write("Mock video content")
 
         # Create config with test settings
@@ -47,8 +49,8 @@ class TestFFmpegEncoder:
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Create logger
@@ -62,17 +64,20 @@ class TestFFmpegEncoder:
         # Stop any running process
         if self.encoder.process:
             from contextlib import suppress
+
             with suppress(Exception):
                 self.encoder.process.terminate()
 
         self.temp_dir.cleanup()
 
-    @patch('pyprocessor.processing.encoder.subprocess.run')
+    @patch("pyprocessor.processing.encoder.subprocess.run")
     def test_check_ffmpeg(self, mock_run):
         """Test FFmpeg availability check"""
         # Mock successful FFmpeg check
         mock_process = MagicMock()
-        mock_process.stdout = "ffmpeg version 4.4 Copyright (c) 2000-2021 the FFmpeg developers"
+        mock_process.stdout = (
+            "ffmpeg version 4.4 Copyright (c) 2000-2021 the FFmpeg developers"
+        )
         mock_run.return_value = mock_process
 
         # Check FFmpeg
@@ -82,7 +87,7 @@ class TestFFmpegEncoder:
         assert result is True
         mock_run.assert_called_once()
 
-    @patch('pyprocessor.processing.encoder.subprocess.run')
+    @patch("pyprocessor.processing.encoder.subprocess.run")
     def test_check_ffmpeg_not_found(self, mock_run):
         """Test FFmpeg check when FFmpeg is not found"""
         # Mock FFmpeg not found
@@ -122,18 +127,20 @@ class TestFFmpegEncoder:
         # Check that the command contains -an (no audio)
         assert "-an" in cmd
 
-    @patch('pyprocessor.processing.encoder.subprocess.Popen')
+    @patch("pyprocessor.processing.encoder.subprocess.Popen")
     def test_encode_video(self, mock_popen):
         """Test video encoding process"""
         # Mock the FFmpeg process
         mock_process = MagicMock()
-        mock_process.stderr = iter([
-            "Duration: 00:10:00.00, start: 0.000000, bitrate: 5000 kb/s",
-            "frame=  100 fps=25 q=28.0 size=    500kB time=00:00:04.00 bitrate=1024.0kbits/s speed=1x",
-            "frame=  200 fps=25 q=28.0 size=   1000kB time=00:00:08.00 bitrate=1024.0kbits/s speed=1x",
-            "frame=  300 fps=25 q=28.0 size=   1500kB time=00:00:12.00 bitrate=1024.0kbits/s speed=1x",
-            "video:1500kB audio:500kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 1.000000%"
-        ])
+        mock_process.stderr = iter(
+            [
+                "Duration: 00:10:00.00, start: 0.000000, bitrate: 5000 kb/s",
+                "frame=  100 fps=25 q=28.0 size=    500kB time=00:00:04.00 bitrate=1024.0kbits/s speed=1x",
+                "frame=  200 fps=25 q=28.0 size=   1000kB time=00:00:08.00 bitrate=1024.0kbits/s speed=1x",
+                "frame=  300 fps=25 q=28.0 size=   1500kB time=00:00:12.00 bitrate=1024.0kbits/s speed=1x",
+                "video:1500kB audio:500kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 1.000000%",
+            ]
+        )
         mock_process.poll.side_effect = [None, None, None, None, 0]
         mock_popen.return_value = mock_process
 
@@ -141,7 +148,9 @@ class TestFFmpegEncoder:
         progress_callback = MagicMock()
 
         # Encode video
-        result = self.encoder.encode_video(self.test_video, self.output_dir, progress_callback)
+        result = self.encoder.encode_video(
+            self.test_video, self.output_dir, progress_callback
+        )
 
         # Verify the result
         assert result is True
@@ -150,16 +159,18 @@ class TestFFmpegEncoder:
         # Check that the progress callback was called
         assert progress_callback.call_count > 0
 
-    @patch('pyprocessor.processing.encoder.subprocess.Popen')
+    @patch("pyprocessor.processing.encoder.subprocess.Popen")
     def test_encode_video_error(self, mock_popen):
         """Test video encoding process with an error"""
         # Mock the FFmpeg process with an error
         mock_process = MagicMock()
-        mock_process.stderr = iter([
-            "Duration: 00:10:00.00, start: 0.000000, bitrate: 5000 kb/s",
-            "frame=  100 fps=25 q=28.0 size=    500kB time=00:00:04.00 bitrate=1024.0kbits/s speed=1x",
-            "Error: Invalid data found when processing input"
-        ])
+        mock_process.stderr = iter(
+            [
+                "Duration: 00:10:00.00, start: 0.000000, bitrate: 5000 kb/s",
+                "frame=  100 fps=25 q=28.0 size=    500kB time=00:00:04.00 bitrate=1024.0kbits/s speed=1x",
+                "Error: Invalid data found when processing input",
+            ]
+        )
         mock_process.poll.side_effect = [None, None, 1]
         mock_popen.return_value = mock_process
 
@@ -170,7 +181,7 @@ class TestFFmpegEncoder:
         assert result is False
         mock_popen.assert_called_once()
 
-    @patch('pyprocessor.processing.encoder.subprocess.Popen')
+    @patch("pyprocessor.processing.encoder.subprocess.Popen")
     def test_stop_encoding(self, mock_popen):
         """Test stopping the encoding process"""
         # Mock the FFmpeg process
@@ -201,7 +212,9 @@ class TestFFmpegEncoder:
     def test_parse_progress_invalid(self):
         """Test parsing progress with invalid input"""
         # Test with an invalid time output
-        time_line = "frame=  100 fps=25 q=28.0 size=    500kB bitrate=1024.0kbits/s speed=1x"
+        time_line = (
+            "frame=  100 fps=25 q=28.0 size=    500kB bitrate=1024.0kbits/s speed=1x"
+        )
         duration_seconds = 10 * 60  # 10 minutes in seconds
 
         progress = self.encoder._parse_progress(time_line, duration_seconds)

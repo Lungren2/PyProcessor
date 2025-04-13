@@ -1,6 +1,7 @@
 """
 Performance tests for the GUI components.
 """
+
 import os
 import sys
 import time
@@ -10,7 +11,7 @@ from unittest.mock import MagicMock
 from PyQt5.QtWidgets import QApplication
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -21,17 +22,25 @@ from pyprocessor.processing.scheduler import ProcessingScheduler
 from pyprocessor.gui.main_window import MainWindow
 from pyprocessor.gui.progress_widget import ProcessingProgressWidget
 from pyprocessor.gui.settings_widgets import (
-    EncodingSettingsWidget, ProcessingSettingsWidget, AdvancedSettingsWidget,
-    ServerOptimizationWidget
+    EncodingSettingsWidget,
+    ProcessingSettingsWidget,
+    AdvancedSettingsWidget,
+    ServerOptimizationWidget,
 )
 
 # Import performance test base
-from tests.performance.test_performance_base import PerformanceTest, PerformanceResult, MemoryUsage, time_function
+from tests.performance.test_performance_base import (
+    PerformanceTest,
+    PerformanceResult,
+    MemoryUsage,
+    time_function,
+)
 
 # Create a QApplication instance for testing
 app = QApplication.instance()
 if app is None:
     app = QApplication([])
+
 
 class MainWindowInitializationPerformanceTest(PerformanceTest):
     """Test the performance of main window initialization."""
@@ -78,7 +87,9 @@ class MainWindowInitializationPerformanceTest(PerformanceTest):
         self.encoder = FFmpegEncoder(self.config, self.logger)
 
         # Create scheduler
-        self.scheduler = ProcessingScheduler(self.config, self.logger, self.file_manager, self.encoder)
+        self.scheduler = ProcessingScheduler(
+            self.config, self.logger, self.file_manager, self.encoder
+        )
 
         # Create theme manager mock
         self.theme_manager = MagicMock()
@@ -92,12 +103,17 @@ class MainWindowInitializationPerformanceTest(PerformanceTest):
         """Run a single iteration of the test."""
         _, execution_time = time_function(
             MainWindow,
-            self.config, self.logger, self.file_manager,
-            self.encoder, self.scheduler, self.theme_manager
+            self.config,
+            self.logger,
+            self.file_manager,
+            self.encoder,
+            self.scheduler,
+            self.theme_manager,
         )
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
+
 
 class ProgressWidgetUpdatePerformanceTest(PerformanceTest):
     """Test the performance of progress widget updates."""
@@ -149,6 +165,7 @@ class ProgressWidgetUpdatePerformanceTest(PerformanceTest):
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
 
+
 class TabSwitchingPerformanceTest(PerformanceTest):
     """Test the performance of switching between tabs in the main window."""
 
@@ -185,15 +202,21 @@ class TabSwitchingPerformanceTest(PerformanceTest):
         self.encoder = FFmpegEncoder(self.config, self.logger)
 
         # Create scheduler
-        self.scheduler = ProcessingScheduler(self.config, self.logger, self.file_manager, self.encoder)
+        self.scheduler = ProcessingScheduler(
+            self.config, self.logger, self.file_manager, self.encoder
+        )
 
         # Create theme manager mock
         self.theme_manager = MagicMock()
 
         # Create main window
         self.main_window = MainWindow(
-            self.config, self.logger, self.file_manager,
-            self.encoder, self.scheduler, self.theme_manager
+            self.config,
+            self.logger,
+            self.file_manager,
+            self.encoder,
+            self.scheduler,
+            self.theme_manager,
         )
         self.main_window.show()
 
@@ -220,6 +243,7 @@ class TabSwitchingPerformanceTest(PerformanceTest):
         # Create a dummy memory usage object with zero values
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
+
 
 class SettingsWidgetLoadPerformanceTest(PerformanceTest):
     """Test the performance of loading settings into widgets."""
@@ -255,8 +279,8 @@ class SettingsWidgetLoadPerformanceTest(PerformanceTest):
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
         self.config.file_rename_pattern = r"(.+?)_\d+p"
         self.config.file_validation_pattern = r".+_\d+p\.mp4$"
@@ -311,6 +335,7 @@ class SettingsWidgetLoadPerformanceTest(PerformanceTest):
         memory_usage = MemoryUsage(0, 0, 0)
         return PerformanceResult(execution_time, memory_usage)
 
+
 def test_main_window_initialization_performance():
     """Test the performance of main window initialization."""
     test = MainWindowInitializationPerformanceTest()
@@ -319,6 +344,7 @@ def test_main_window_initialization_performance():
 
     # Assert that the performance is reasonable
     assert results["avg_time"] < 0.5, "Main window initialization is too slow"
+
 
 def test_progress_widget_update_performance():
     """Test the performance of progress widget updates with different update counts."""
@@ -331,11 +357,18 @@ def test_progress_widget_update_performance():
 
         # Assert that the performance is reasonable
         if update_count == 10:
-            assert results["avg_time"] < 0.1, f"Progress widget update for {update_count} updates is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"Progress widget update for {update_count} updates is too slow"
         elif update_count == 100:
-            assert results["avg_time"] < 0.5, f"Progress widget update for {update_count} updates is too slow"
+            assert (
+                results["avg_time"] < 0.5
+            ), f"Progress widget update for {update_count} updates is too slow"
         elif update_count == 1000:
-            assert results["avg_time"] < 5.0, f"Progress widget update for {update_count} updates is too slow"
+            assert (
+                results["avg_time"] < 5.0
+            ), f"Progress widget update for {update_count} updates is too slow"
+
 
 def test_tab_switching_performance():
     """Test the performance of tab switching with different switch counts."""
@@ -348,11 +381,18 @@ def test_tab_switching_performance():
 
         # Assert that the performance is reasonable
         if switch_count == 10:
-            assert results["avg_time"] < 0.1, f"Tab switching for {switch_count} switches is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"Tab switching for {switch_count} switches is too slow"
         elif switch_count == 50:
-            assert results["avg_time"] < 0.5, f"Tab switching for {switch_count} switches is too slow"
+            assert (
+                results["avg_time"] < 0.5
+            ), f"Tab switching for {switch_count} switches is too slow"
         elif switch_count == 100:
-            assert results["avg_time"] < 1.0, f"Tab switching for {switch_count} switches is too slow"
+            assert (
+                results["avg_time"] < 1.0
+            ), f"Tab switching for {switch_count} switches is too slow"
+
 
 def test_settings_widget_load_performance():
     """Test the performance of loading settings into widgets."""
@@ -362,6 +402,7 @@ def test_settings_widget_load_performance():
 
     # Assert that the performance is reasonable
     assert results["avg_time"] < 0.1, "Settings widget load is too slow"
+
 
 if __name__ == "__main__":
     test_main_window_initialization_performance()

@@ -1,6 +1,7 @@
 """
 Unit tests for the processing scheduler.
 """
+
 import os
 import sys
 import tempfile
@@ -9,7 +10,7 @@ from unittest.mock import MagicMock, patch
 from concurrent.futures import ProcessPoolExecutor
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -17,6 +18,7 @@ from pyprocessor.utils.logging import Logger
 from pyprocessor.processing.file_manager import FileManager
 from pyprocessor.processing.encoder import FFmpegEncoder
 from pyprocessor.processing.scheduler import ProcessingScheduler
+
 
 class TestProcessingScheduler:
     """Test the ProcessingScheduler class functionality"""
@@ -35,11 +37,11 @@ class TestProcessingScheduler:
             "Movie_Title_1080p.mp4",
             "Another_Movie_720p.mp4",
             "TV_Show_S01E01_480p.mp4",
-            "Documentary_2020_360p.mp4"
+            "Documentary_2020_360p.mp4",
         ]
 
         for filename in self.test_files:
-            with open(self.input_dir / filename, 'w') as f:
+            with open(self.input_dir / filename, "w") as f:
                 f.write("Test content")
 
         # Create config
@@ -58,8 +60,8 @@ class TestProcessingScheduler:
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
-            }
+                "360p": "800k",
+            },
         }
 
         # Create logger
@@ -70,7 +72,9 @@ class TestProcessingScheduler:
         self.encoder = MagicMock(spec=FFmpegEncoder)
 
         # Create scheduler
-        self.scheduler = ProcessingScheduler(self.config, self.logger, self.file_manager, self.encoder)
+        self.scheduler = ProcessingScheduler(
+            self.config, self.logger, self.file_manager, self.encoder
+        )
 
     def teardown_method(self):
         """Clean up after each test method"""
@@ -131,7 +135,7 @@ class TestProcessingScheduler:
         assert result is False
         assert self.scheduler.abort_requested is False
 
-    @patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
+    @patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
     def test_process_videos(self, mock_executor_class):
         """Test processing videos"""
         # Mock the ProcessPoolExecutor
@@ -141,7 +145,9 @@ class TestProcessingScheduler:
         # Mock the file manager's validate_files method
         valid_files = [Path(self.input_dir / filename) for filename in self.test_files]
         invalid_files = []
-        self.file_manager.validate_files = MagicMock(return_value=(valid_files, invalid_files))
+        self.file_manager.validate_files = MagicMock(
+            return_value=(valid_files, invalid_files)
+        )
 
         # Mock the executor's submit method
         mock_future = MagicMock()
@@ -158,7 +164,7 @@ class TestProcessingScheduler:
         # Verify that submit was called for each file
         assert mock_executor.submit.call_count == len(self.test_files)
 
-    @patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
+    @patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
     def test_process_videos_no_valid_files(self, mock_executor_class):
         """Test processing videos with no valid files"""
         # Mock the file manager's validate_files method to return no valid files
@@ -174,7 +180,7 @@ class TestProcessingScheduler:
         # Verify that the executor was not used
         mock_executor_class.assert_not_called()
 
-    @patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
+    @patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
     def test_process_videos_with_abort(self, mock_executor_class):
         """Test aborting video processing"""
         # Mock the ProcessPoolExecutor
@@ -184,7 +190,9 @@ class TestProcessingScheduler:
         # Mock the file manager's validate_files method
         valid_files = [Path(self.input_dir / filename) for filename in self.test_files]
         invalid_files = []
-        self.file_manager.validate_files = MagicMock(return_value=(valid_files, invalid_files))
+        self.file_manager.validate_files = MagicMock(
+            return_value=(valid_files, invalid_files)
+        )
 
         # Mock the executor's submit method
         mock_future = MagicMock()
@@ -211,7 +219,7 @@ class TestProcessingScheduler:
         # Verify that the executor was shut down
         mock_executor.shutdown.assert_called_once_with(wait=False)
 
-    @patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
+    @patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
     def test_process_videos_with_errors(self, mock_executor_class):
         """Test processing videos with errors"""
         # Mock the ProcessPoolExecutor
@@ -221,17 +229,27 @@ class TestProcessingScheduler:
         # Mock the file manager's validate_files method
         valid_files = [Path(self.input_dir / filename) for filename in self.test_files]
         invalid_files = []
-        self.file_manager.validate_files = MagicMock(return_value=(valid_files, invalid_files))
+        self.file_manager.validate_files = MagicMock(
+            return_value=(valid_files, invalid_files)
+        )
 
         # Mock the executor's submit method to return a mix of success and failure
         mock_success_future = MagicMock()
         mock_success_future.result.return_value = ("success_file.mp4", True, 5.20, None)
 
         mock_failure_future = MagicMock()
-        mock_failure_future.result.return_value = ("failure_file.mp4", False, 0.0, "Simulated error")
+        mock_failure_future.result.return_value = (
+            "failure_file.mp4",
+            False,
+            0.0,
+            "Simulated error",
+        )
 
         # Alternate between success and failure
-        mock_executor.submit.side_effect = [mock_success_future, mock_failure_future] * 2
+        mock_executor.submit.side_effect = [
+            mock_success_future,
+            mock_failure_future,
+        ] * 2
 
         # Process videos
         result = self.scheduler.process_videos()

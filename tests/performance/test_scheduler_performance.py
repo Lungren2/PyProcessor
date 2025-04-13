@@ -1,6 +1,7 @@
 """
 Performance tests for the processing scheduler component.
 """
+
 import os
 import sys
 import tempfile
@@ -9,7 +10,7 @@ from unittest.mock import MagicMock, patch
 from concurrent.futures import ProcessPoolExecutor
 
 # Add the project root to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 # Import the modules to test
 from pyprocessor.utils.config import Config
@@ -19,7 +20,13 @@ from pyprocessor.processing.encoder import FFmpegEncoder
 from pyprocessor.processing.scheduler import ProcessingScheduler
 
 # Import performance test base
-from tests.performance.test_performance_base import PerformanceTest, PerformanceResult, time_and_memory_function, create_test_videos
+from tests.performance.test_performance_base import (
+    PerformanceTest,
+    PerformanceResult,
+    time_and_memory_function,
+    create_test_videos,
+)
+
 
 class SchedulerInitializationPerformanceTest(PerformanceTest):
     """Test the performance of scheduler initialization."""
@@ -74,9 +81,10 @@ class SchedulerInitializationPerformanceTest(PerformanceTest):
             self.config,
             self.logger,
             self.file_manager,
-            self.encoder
+            self.encoder,
         )
         return PerformanceResult(execution_time, memory_usage)
+
 
 class TaskSubmissionPerformanceTest(PerformanceTest):
     """Test the performance of task submission in the scheduler."""
@@ -114,8 +122,8 @@ class TaskSubmissionPerformanceTest(PerformanceTest):
         # Just create a few small placeholder files
         for i in range(min(10, self.file_count)):
             file_path = self.input_dir / f"test_video_{i+1}_1080p.mp4"
-            with open(file_path, 'wb') as f:
-                f.write(b'test')
+            with open(file_path, "wb") as f:
+                f.write(b"test")
             self.test_files.append(file_path)
 
         # Create config
@@ -134,9 +142,9 @@ class TaskSubmissionPerformanceTest(PerformanceTest):
                 "1080p": "5000k",
                 "720p": "3000k",
                 "480p": "1500k",
-                "360p": "800k"
+                "360p": "800k",
             },
-            "audio_bitrates": ["192k", "128k", "96k", "64k"]
+            "audio_bitrates": ["192k", "128k", "96k", "64k"],
         }
 
         # Create logger
@@ -148,23 +156,30 @@ class TaskSubmissionPerformanceTest(PerformanceTest):
 
         # Configure mocks
         self.file_manager.validate_files.return_value = (
-            [Path(self.input_dir / f"test_video_{i+1}_1080p.mp4") for i in range(self.file_count)],
-            []
+            [
+                Path(self.input_dir / f"test_video_{i+1}_1080p.mp4")
+                for i in range(self.file_count)
+            ],
+            [],
         )
 
         # Create scheduler
-        self.scheduler = ProcessingScheduler(self.config, self.logger, self.file_manager, self.encoder)
+        self.scheduler = ProcessingScheduler(
+            self.config, self.logger, self.file_manager, self.encoder
+        )
 
     def teardown(self) -> None:
         """Clean up the test environment."""
-        if hasattr(self.scheduler, 'is_running'):
+        if hasattr(self.scheduler, "is_running"):
             self.scheduler.is_running = False
         if self.temp_dir:
             self.temp_dir.cleanup()
 
-    @patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
-    @patch('pyprocessor.processing.scheduler.Manager')
-    def run_iteration(self, mock_manager_class, mock_executor_class) -> PerformanceResult:
+    @patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
+    @patch("pyprocessor.processing.scheduler.Manager")
+    def run_iteration(
+        self, mock_manager_class, mock_executor_class
+    ) -> PerformanceResult:
         """Run a single iteration of the test."""
         # Mock the manager and queues
         mock_manager = MagicMock()
@@ -176,13 +191,21 @@ class TaskSubmissionPerformanceTest(PerformanceTest):
         # Mock the executor
         mock_executor = MagicMock(spec=ProcessPoolExecutor)
         mock_future = MagicMock()
-        mock_future.result.return_value = ("output_file.mp4", True, 8.33, None)  # Updated to match expected format
+        mock_future.result.return_value = (
+            "output_file.mp4",
+            True,
+            8.33,
+            None,
+        )  # Updated to match expected format
         mock_executor.submit.return_value = mock_future
         mock_executor_class.return_value.__enter__.return_value = mock_executor
 
         # Time the task submission
-        _, execution_time, memory_usage = time_and_memory_function(self.scheduler.process_videos)
+        _, execution_time, memory_usage = time_and_memory_function(
+            self.scheduler.process_videos
+        )
         return PerformanceResult(execution_time, memory_usage)
+
 
 class ProgressTrackingPerformanceTest(PerformanceTest):
     """Test the performance of progress tracking in the scheduler."""
@@ -229,7 +252,9 @@ class ProgressTrackingPerformanceTest(PerformanceTest):
         self.encoder = MagicMock(spec=FFmpegEncoder)
 
         # Create scheduler
-        self.scheduler = ProcessingScheduler(self.config, self.logger, self.file_manager, self.encoder)
+        self.scheduler = ProcessingScheduler(
+            self.config, self.logger, self.file_manager, self.encoder
+        )
 
         # Set up progress tracking state
         self.scheduler.total_files = self.file_count
@@ -242,10 +267,13 @@ class ProgressTrackingPerformanceTest(PerformanceTest):
 
     def run_iteration(self) -> PerformanceResult:
         """Run a single iteration of the test."""
-        _, execution_time, memory_usage = time_and_memory_function(self.scheduler.get_progress)
+        _, execution_time, memory_usage = time_and_memory_function(
+            self.scheduler.get_progress
+        )
         return PerformanceResult(execution_time, memory_usage)
 
-@patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
+
+@patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
 def test_scheduler_initialization_performance(mock_executor_class):
     """Test the performance of scheduler initialization."""
     test = SchedulerInitializationPerformanceTest()
@@ -255,8 +283,9 @@ def test_scheduler_initialization_performance(mock_executor_class):
     # Assert that the performance is reasonable
     assert results["avg_time"] < 0.01, "Scheduler initialization is too slow"
 
-@patch('pyprocessor.processing.scheduler.ProcessPoolExecutor')
-@patch('pyprocessor.processing.scheduler.Manager')
+
+@patch("pyprocessor.processing.scheduler.ProcessPoolExecutor")
+@patch("pyprocessor.processing.scheduler.Manager")
 def test_task_submission_performance(mock_manager_class, mock_executor_class):
     """Test the performance of task submission with different file counts."""
     # Use smaller file counts to avoid excessive test duration
@@ -275,9 +304,14 @@ def test_task_submission_performance(mock_manager_class, mock_executor_class):
 
         # Assert that the performance is reasonable
         if file_count == 10:
-            assert results["avg_time"] < 0.1, f"Task submission for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 0.1
+            ), f"Task submission for {file_count} files is too slow"
         elif file_count == 50:
-            assert results["avg_time"] < 0.5, f"Task submission for {file_count} files is too slow"
+            assert (
+                results["avg_time"] < 0.5
+            ), f"Task submission for {file_count} files is too slow"
+
 
 def test_progress_tracking_performance():
     """Test the performance of progress tracking with different file counts."""
@@ -290,7 +324,10 @@ def test_progress_tracking_performance():
         test.print_results(results)
 
         # Assert that the performance is reasonable
-        assert results["avg_time"] < 0.001, f"Progress tracking for {file_count} files is too slow"
+        assert (
+            results["avg_time"] < 0.001
+        ), f"Progress tracking for {file_count} files is too slow"
+
 
 if __name__ == "__main__":
     test_scheduler_initialization_performance()

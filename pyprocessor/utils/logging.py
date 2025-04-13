@@ -3,6 +3,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+
 class Logger:
     """Advanced logging system with rotation and detailed levels"""
 
@@ -10,6 +11,7 @@ class Logger:
         # Get the pyprocessor package directory
         if log_dir is None:
             import pyprocessor
+
             package_dir = Path(pyprocessor.__file__).parent
             # Use a dedicated logs directory in the package
             self.log_dir = package_dir / "logs"
@@ -34,24 +36,28 @@ class Logger:
                 logging.INFO: "info",
                 logging.WARNING: "warn",
                 logging.ERROR: "error",
-                logging.CRITICAL: "critical"
+                logging.CRITICAL: "critical",
             }
             level_str = level_map.get(level, "info")
 
         # Get username for the log file
         import getpass
+
         username = getpass.getuser()
 
         # Get system info
         import platform
+
         system_info = platform.system().lower()
 
         # Create a descriptive filename
-        filename = f"vp_{date_part}_{time_part}_{level_str}_{username}_{system_info}.log"
+        filename = (
+            f"vp_{date_part}_{time_part}_{level_str}_{username}_{system_info}.log"
+        )
         self.log_file = self.log_dir / filename
 
         # Set up logger
-        self.logger = logging.getLogger('pyprocessor')
+        self.logger = logging.getLogger("pyprocessor")
         self.logger.setLevel(level)
 
         # Remove existing handlers if necessary
@@ -69,10 +75,9 @@ class Logger:
 
         # Create formatters
         detailed_formatter = logging.Formatter(
-            '[%(asctime)s][%(levelname)s] %(message)s',
-            '%Y-%m-%d %H:%M:%S'
+            "[%(asctime)s][%(levelname)s] %(message)s", "%Y-%m-%d %H:%M:%S"
         )
-        simple_formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        simple_formatter = logging.Formatter("[%(levelname)s] %(message)s")
 
         # Set formatters
         self.file_handler.setFormatter(detailed_formatter)
@@ -97,7 +102,7 @@ class Logger:
 
             # If we have more logs than allowed, delete the oldest ones
             if len(log_files) > self.max_logs:
-                for old_log in log_files[:-self.max_logs]:
+                for old_log in log_files[: -self.max_logs]:
                     try:
                         old_log.unlink()
                         print(f"Deleted old log: {old_log}")
@@ -137,10 +142,10 @@ class Logger:
             return "Log file not found"
 
         try:
-            with open(self.log_file, 'r') as f:
+            with open(self.log_file, "r") as f:
                 # Read all lines and get the last 'lines' number
                 all_lines = f.readlines()
-                return ''.join(all_lines[-lines:])
+                return "".join(all_lines[-lines:])
         except Exception as e:
             return f"Error reading log: {str(e)}"
 
