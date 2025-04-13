@@ -1,15 +1,12 @@
 import os
 import json
 import multiprocessing
-import platform
 from pathlib import Path
 import datetime
 
 from pyprocessor.utils.path_utils import (
     normalize_path,
-    expand_env_vars,
-    get_default_media_root,
-    get_app_data_dir
+    get_default_media_root
 )
 
 

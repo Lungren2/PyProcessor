@@ -2,14 +2,11 @@
 Unit tests for ApplicationContext.
 """
 
-import os
 import signal
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, call, patch
 
-import pytest
 
 from pyprocessor.utils.application_context import ApplicationContext
 

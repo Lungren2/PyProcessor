@@ -5,7 +5,6 @@ Application context for managing application state and lifecycle.
 import signal
 import sys
 import time
-from pathlib import Path
 
 from PyQt5.QtWidgets import QApplication
 

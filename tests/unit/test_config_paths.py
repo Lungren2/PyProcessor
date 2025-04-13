@@ -7,7 +7,6 @@ import os
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from pyprocessor.utils.config import Config
 

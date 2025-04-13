@@ -6,7 +6,6 @@ import os
 import platform
 from pathlib import Path
 
-import pytest
 
 from pyprocessor.utils.path_utils import (
     expand_env_vars,

@@ -113,7 +113,7 @@ def save_results(module, track_memory, execution_time):
 
     # Ensure psutil is available
     try:
-        import psutil
+        pass
     except ImportError:
         ensure_dependencies()
 

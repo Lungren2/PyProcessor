@@ -133,7 +133,7 @@ class ServerOptimizer:
         self,
         output_path,
         server_name="yourdomain.com",
-        ssl_enabled=True,
+#         ssl_enabled=True, # Unused variable
         enable_http3=False,
     ):
         """Generate optimized Nginx configuration for video streaming.

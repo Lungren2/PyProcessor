@@ -24,7 +24,6 @@ from tests.performance.test_performance_base import (
     PerformanceTest,
     PerformanceResult,
     time_and_memory_function,
-    create_test_videos,
 )
 
 
