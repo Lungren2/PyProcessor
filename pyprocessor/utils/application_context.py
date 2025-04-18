@@ -6,15 +6,12 @@ import signal
 import sys
 import time
 
-from PyQt5.QtWidgets import QApplication
-
 from pyprocessor.processing.encoder import FFmpegEncoder
 from pyprocessor.processing.file_manager import FileManager
 from pyprocessor.processing.scheduler import ProcessingScheduler
 from pyprocessor.utils.config import Config
 from pyprocessor.utils.logging import Logger
 from pyprocessor.utils.path_utils import normalize_path
-from pyprocessor.utils.theme_manager import ThemeManager
 
 
 class ApplicationContext:
@@ -32,8 +29,7 @@ class ApplicationContext:
         self.file_manager = None
         self.encoder = None
         self.scheduler = None
-        self.theme_manager = None
-        self.app = None
+        # GUI components removed
         self._initialized = False
 
     def initialize(self, args):
@@ -197,39 +193,7 @@ class ApplicationContext:
             self.logger.error(f"Error in CLI mode: {str(e)}")
             return 1
 
-    def run_gui_mode(self):
-        """
-        Run the application in GUI mode.
-
-        Returns:
-            Exit code from the GUI application
-        """
-        if not self._initialized:
-            return 1
-
-        from pyprocessor.gui.main_window import show_main_window
-
-        # Create QApplication instance
-        self.app = QApplication(sys.argv)
-
-        # Initialize and setup theme manager
-        try:
-            self.theme_manager = ThemeManager(self.app, self.logger)
-            self.theme_manager.setup_theme()
-        except Exception as e:
-            self.logger.error(f"Failed to initialize theme manager: {str(e)}")
-            self.theme_manager = None
-
-        # Show the main window
-        return show_main_window(
-            self.app,
-            self.config,
-            self.logger,
-            self.file_manager,
-            self.encoder,
-            self.scheduler,
-            self.theme_manager,
-        )
+    # GUI mode removed
 
     def shutdown(self):
         """Perform cleanup operations before shutdown."""

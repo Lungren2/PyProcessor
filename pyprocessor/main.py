@@ -41,7 +41,6 @@ def parse_args():
     parser.add_argument("--jobs", type=int, help="Number of parallel jobs")
 
     # Execution options
-    parser.add_argument("--no-gui", action="store_true", help="Run without GUI")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     # Server optimization options
@@ -264,11 +263,8 @@ def main():
     if not app_context.initialize(args):
         return 1
 
-    # Run in CLI or GUI mode
-    if args.no_gui:
-        return run_cli_mode(app_context)
-    else:
-        return app_context.run_gui_mode()
+    # Run in CLI mode
+    return run_cli_mode(app_context)
 
 
 if __name__ == "__main__":

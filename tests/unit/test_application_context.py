@@ -32,7 +32,6 @@ class TestApplicationContext:
         self.args.input = str(self.input_dir)
         self.args.output = str(self.output_dir)
         self.args.verbose = False
-        self.args.no_gui = True
 
         # Save original signal handlers
         self.original_sigint = signal.getsignal(signal.SIGINT)

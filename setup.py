@@ -5,10 +5,7 @@ setup(
     version="0.1.0",
     packages=find_packages(),
     install_requires=[
-        "PyQt5>=5.15.0,<6.0.0",
         "tqdm>=4.60.0",
-        "darkdetect>=0.7.1,<0.8.0",
-        "pyqtdarktheme-fork>=2.3.4",
     ],
     entry_points={
         "console_scripts": [

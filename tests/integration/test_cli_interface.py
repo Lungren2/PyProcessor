@@ -74,7 +74,6 @@ class TestCLIInterface:
             "--no-audio",
             "--jobs",
             "2",
-            "--no-gui",
             "--verbose",
         ]
 
@@ -91,7 +90,7 @@ class TestCLIInterface:
         assert args.fps == 30
         assert args.no_audio is True
         assert args.jobs == 2
-        assert args.no_gui is True
+        # --no-gui option removed
         assert args.verbose is True
 
     def test_apply_args_to_config(self):
@@ -217,7 +216,6 @@ class TestCLIInterface:
             str(self.input_dir),
             "--output",
             str(self.output_dir),
-            "--no-gui",
         ]
 
         # Mock the main function

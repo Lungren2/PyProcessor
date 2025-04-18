@@ -1,10 +1,9 @@
 # PyProcessor
 
-A Python application for video processing and HLS encoding based on FFmpeg. This tool provides both a graphical user interface and command-line interface for processing video files with various encoding options, supporting parallel processing for improved performance.
+A Python application for video processing and HLS encoding based on FFmpeg. This command-line tool supports processing video files with various encoding options, utilizing parallel processing for improved performance.
 
 ## Features
 
-- Graphical user interface for easy configuration and monitoring
 - Command-line interface for automation and scripting
 - Fast parallel processing of multiple video files
 - Support for multiple encoders (libx265, h264_nvenc, libx264)
@@ -12,20 +11,14 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 - Automatic file organization and renaming
 - Configuration profiles for different encoding scenarios
 - Detailed logging system
-- Dark/light theme that follows system settings
+
 - Server optimization for IIS, Nginx, and Linux systems with HTTP/3 support
 
 ## Requirements
 
 - Python 3.6 or higher
 - FFmpeg installed and available in PATH
-- PyQt5 for the graphical interface
-- tqdm for progress display in CLI mode
-
-### Optional Dependencies
-
-- darkdetect for system theme detection
-- pyqtdarktheme for high-quality dark/light themes
+- tqdm for progress display
 
 ## Installation
 
@@ -69,7 +62,6 @@ PyProcessor/
 │   ├── unit/                  # Unit tests
 │   └── integration/           # Integration tests
 ├── pyprocessor/           # Main package
-│   ├── gui/                   # GUI components
 │   ├── processing/            # Processing logic
 │   ├── utils/                 # Utility functions
 │   ├── profiles/              # Profile storage
@@ -89,26 +81,16 @@ PyProcessor/
 
 ## Usage
 
-### Graphical Interface
-
-To start the application with the graphical interface:
+To use the application:
 
 ```bash
-pyprocessor
+pyprocessor [options]
 ```
 
 or
 
 ```bash
-python -m pyprocessor
-```
-
-### Command Line Interface
-
-To use the command-line interface:
-
-```bash
-pyprocessor --no-gui [options]
+python -m pyprocessor [options]
 ```
 
 Available command-line options:
@@ -124,7 +106,7 @@ Available command-line options:
 --fps NUMBER         Frames per second
 --no-audio           Disable audio in output
 --jobs NUMBER        Number of parallel encoding jobs
---no-gui             Run without GUI
+
 --verbose            Enable verbose logging
 
 # Server Optimization Options
@@ -268,7 +250,7 @@ python scripts/run_tests.py --integration # Run only integration tests
 
 ### Viewing Logs
 
-You can view logs either through the GUI (Tools > View Logs) or by examining the log files in the `pyprocessor/logs/` directory.
+You can view logs by examining the log files in the `pyprocessor/logs/` directory.
 
 ## License
 

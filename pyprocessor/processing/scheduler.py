@@ -7,6 +7,10 @@ from pathlib import Path
 # Multiprocessing queue for progress updates
 from multiprocessing import Manager
 import re
+import sys
+
+# Import tqdm for CLI progress bars
+from tqdm import tqdm
 
 from pyprocessor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
 
@@ -304,6 +308,7 @@ class ProcessingScheduler:
 
         # Keep track of the current progress for each task
         file_progress = {}
+        last_progress = {}
 
         while self.is_running and progress_queue is not None:
             try:
@@ -313,6 +318,15 @@ class ProcessingScheduler:
 
                     # Store the progress for this task
                     file_progress[task_id] = (filename, progress)
+
+                    # Update CLI progress bar if progress has changed
+                    if task_id not in last_progress or last_progress[task_id] != progress:
+                        if hasattr(self, 'progress_bars') and 'file' in self.progress_bars:
+                            # Update the file progress bar
+                            self.progress_bars['file'].set_description(f"Processing: {filename}")
+                            self.progress_bars['file'].n = progress
+                            self.progress_bars['file'].refresh()
+                        last_progress[task_id] = progress
 
                     # Call the progress callback with file-level progress
                     if self.progress_callback:
@@ -378,7 +392,7 @@ class ProcessingScheduler:
         return True
 
     def process_videos(self):
-        """Process all video files in parallel"""
+        """Process all video files in parallel with CLI progress reporting"""
         self.is_running = True
         self.abort_requested = False
 
@@ -399,6 +413,32 @@ class ProcessingScheduler:
             self.logger.info(f"Found {len(valid_files)} valid files to process")
             self.total_files = len(valid_files)
             self.processed_count = 0
+
+            # Create overall progress bar
+            overall_progress = tqdm(
+                total=len(valid_files),
+                desc="Overall Progress",
+                unit="file",
+                position=0,
+                leave=True,
+                file=sys.stdout
+            )
+
+            # Create file progress bar
+            file_progress_bar = tqdm(
+                total=100,
+                desc="Current File",
+                unit="%",
+                position=1,
+                leave=True,
+                file=sys.stdout
+            )
+
+            # Store the progress bars for updating
+            self.progress_bars = {
+                'overall': overall_progress,
+                'file': file_progress_bar
+            }
 
             processing_start = time.time()
 
@@ -467,6 +507,12 @@ class ProcessingScheduler:
                                 filename, 100, current, self.total_files
                             )
 
+                        # Update overall progress bar
+                        if hasattr(self, 'progress_bars') and 'overall' in self.progress_bars:
+                            self.progress_bars['overall'].update(1)
+                            self.progress_bars['file'].reset()
+                            self.progress_bars['file'].set_description(f"Completed: {filename}")
+
                         if success:
                             self.logger.info(
                                 f"Completed processing: {filename} ({duration:.2f}s)"
@@ -489,6 +535,12 @@ class ProcessingScheduler:
             # global progress_queue, output_files_queue
             progress_queue = None
             output_files_queue = None
+
+            # Close progress bars
+            if hasattr(self, 'progress_bars'):
+                for bar in self.progress_bars.values():
+                    bar.close()
+                del self.progress_bars
 
             # Calculate statistics
             processing_duration = time.time() - processing_start
