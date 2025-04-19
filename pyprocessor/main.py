@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from pyprocessor.utils.application_context import ApplicationContext
+from pyprocessor.utils.core.application_context import ApplicationContext
 
 # Signal handling is now managed by ApplicationContext
 
@@ -37,6 +37,24 @@ def parse_args():
         "--no-audio", action="store_true", help="Exclude audio from output"
     )
     parser.add_argument("--jobs", type=int, help="Number of parallel jobs")
+
+    # Batch processing options
+    batch_group = parser.add_argument_group("Batch Processing")
+    batch_group.add_argument(
+        "--batch-mode",
+        choices=["enabled", "disabled"],
+        help="Enable or disable batch processing mode"
+    )
+    batch_group.add_argument(
+        "--batch-size",
+        type=int,
+        help="Number of videos to process in a single batch"
+    )
+    batch_group.add_argument(
+        "--max-memory",
+        type=int,
+        help="Maximum memory usage percentage before throttling batches"
+    )
 
     # Execution options
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")

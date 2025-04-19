@@ -267,6 +267,21 @@ make build  # Build executable
 make run    # Run the application
 ```
 
+## TODO
+
+The project has several ongoing development tasks organized by category. Each task has its own detailed markdown file in the `docs/todo/` directory.
+
+When a task is completed, simply remove its corresponding file from the `docs/todo/` directory.
+
+### Recently Completed
+
+- ✅ Implement intelligent batch processing with dynamic sizing based on system resources
+- ✅ Create a resource monitoring and allocation system for optimal hardware utilization
+
+### In Progress
+
+See the individual task files in the [docs/todo](docs/todo/) directory for detailed information on each task.
+
 ## Troubleshooting
 
 ### Common Issues

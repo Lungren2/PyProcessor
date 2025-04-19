@@ -114,6 +114,19 @@ class ApplicationContext:
         # Use the apply_args method from the Config class
         self.config.apply_args(args)
 
+        # Handle batch processing options
+        if hasattr(args, "batch_mode") and args.batch_mode:
+            if args.batch_mode == "enabled":
+                self.config.config_manager.set("batch_processing.enabled", True)
+            elif args.batch_mode == "disabled":
+                self.config.config_manager.set("batch_processing.enabled", False)
+
+        if hasattr(args, "batch_size") and args.batch_size is not None:
+            self.config.config_manager.set("batch_processing.batch_size", args.batch_size)
+
+        if hasattr(args, "max_memory") and args.max_memory is not None:
+            self.config.config_manager.set("batch_processing.max_memory_percent", args.max_memory)
+
         # Handle server optimization options
         if hasattr(args, "optimize_server") and args.optimize_server:
             # Set server optimization enabled and type

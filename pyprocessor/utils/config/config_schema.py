@@ -11,7 +11,7 @@ from enum import Enum
 
 class ConfigValueType(Enum):
     """Enumeration of configuration value types."""
-    
+
     STRING = "string"
     INTEGER = "integer"
     FLOAT = "float"
@@ -26,29 +26,29 @@ class ConfigValueType(Enum):
 class ConfigSchema:
     """
     Configuration schema for PyProcessor.
-    
+
     This class defines the schema for the PyProcessor configuration,
     including default values, types, and validation rules.
     """
-    
+
     @staticmethod
     def get_schema() -> Dict[str, Any]:
         """
         Get the configuration schema.
-        
+
         Returns:
             Dict[str, Any]: Configuration schema
         """
         from pyprocessor.utils.path_manager import get_default_media_root
         import multiprocessing
-        
+
         # Calculate default parallel jobs
         cores = multiprocessing.cpu_count()
         default_parallel_jobs = max(1, int(cores * 0.75))
-        
+
         # Get default media root
         media_root = get_default_media_root()
-        
+
         # Define schema
         return {
             "input_folder": {
@@ -147,6 +147,35 @@ class ConfigSchema:
                 "min": 1,
                 "max": 32,
                 "env_var": "PYPROCESSOR_MAX_PARALLEL_JOBS",
+            },
+            "batch_processing": {
+                "type": ConfigValueType.OBJECT,
+                "description": "Batch processing settings",
+                "properties": {
+                    "enabled": {
+                        "type": ConfigValueType.BOOLEAN,
+                        "default": True,
+                        "description": "Whether to enable batch processing",
+                        "env_var": "PYPROCESSOR_BATCH_PROCESSING_ENABLED",
+                    },
+                    "batch_size": {
+                        "type": ConfigValueType.INTEGER,
+                        "default": None,  # None means auto-calculate based on resources
+                        "description": "Number of videos to process in a single batch (None for auto-calculation)",
+                        "min": 1,
+                        "max": 100,
+                        "env_var": "PYPROCESSOR_BATCH_SIZE",
+                        "nullable": True,
+                    },
+                    "max_memory_percent": {
+                        "type": ConfigValueType.INTEGER,
+                        "default": 80,
+                        "description": "Maximum memory usage percentage before throttling batches",
+                        "min": 50,
+                        "max": 95,
+                        "env_var": "PYPROCESSOR_MAX_MEMORY_PERCENT",
+                    },
+                },
             },
             "auto_rename_files": {
                 "type": ConfigValueType.BOOLEAN,
@@ -347,35 +376,35 @@ class ConfigSchema:
                 },
             },
         }
-        
+
     @staticmethod
     def get_default_config() -> Dict[str, Any]:
         """
         Get the default configuration.
-        
+
         Returns:
             Dict[str, Any]: Default configuration
         """
         schema = ConfigSchema.get_schema()
         return ConfigSchema._extract_defaults(schema)
-        
+
     @staticmethod
     def _extract_defaults(schema: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extract default values from schema.
-        
+
         Args:
             schema: Schema to extract defaults from
-            
+
         Returns:
             Dict[str, Any]: Default values
         """
         defaults = {}
-        
+
         for key, value in schema.items():
             if "default" in value:
                 defaults[key] = value["default"]
             elif value["type"] == ConfigValueType.OBJECT and "properties" in value:
                 defaults[key] = ConfigSchema._extract_defaults(value["properties"])
-                
+
         return defaults

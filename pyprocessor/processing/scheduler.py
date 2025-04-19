@@ -21,8 +21,20 @@ output_files_queue = None
 
 
 # Standalone function for multiprocessing that doesn't require encoder or logger
-def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=None):
-    """Process a single video file - standalone function for multiprocessing"""
+def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=None, progress_callback=None, output_file_callback=None):
+    """Process a single video file - standalone function for multiprocessing or batch processing
+
+    Args:
+        file_path: Path to the video file
+        output_folder_path: Path to the output folder
+        ffmpeg_params: FFmpeg parameters
+        task_id: Task ID for progress tracking
+        progress_callback: Optional direct callback for progress updates (used in batch mode)
+        output_file_callback: Optional direct callback for output file notifications (used in batch mode)
+
+    Returns:
+        Tuple of (filename, success, duration, error_message)
+    """
     # Convert string paths to Path objects
     file = Path(file_path)
     output_folder = Path(output_folder_path)
@@ -178,13 +190,20 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
 
             # Extract current time
             time_match = time_regex.search(line)
-            if time_match and duration_seconds > 0 and progress_queue is not None:
+            if time_match and duration_seconds > 0:
                 h, m, s, ms = map(int, time_match.groups())
                 current_seconds = h * 3600 + m * 60 + s + ms / 100
                 progress = min(int((current_seconds / duration_seconds) * 100), 100)
-                # Put progress update in the queue
+
+                # Report progress either through queue or direct callback
                 if task_id is not None:
-                    progress_queue.put((task_id, file.name, progress))
+                    # Put progress update in the queue if available
+                    if progress_queue is not None:
+                        progress_queue.put((task_id, file.name, progress))
+
+                    # Use direct callback if provided (batch mode)
+                    if progress_callback is not None:
+                        progress_callback(file.name, progress, task_id, None)
 
         # Wait for process to complete
         process.wait()
@@ -208,34 +227,45 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
 
         # Log created files
         global output_files_queue
-        if output_files_queue is not None and task_id is not None:
-            # Log master playlist
-            output_files_queue.put((task_id, "master.m3u8", None))
 
-            # Log variant playlists and segments
-            resolutions = ["1080p", "720p", "480p", "360p"]
-            for res in resolutions:
-                variant_dir = output_subfolder / res
-                if variant_dir.exists():
-                    # Log playlist
-                    playlist_file = f"{res}/playlist.m3u8"
-                    output_files_queue.put((task_id, playlist_file, res))
+        # Function to report output files (either through queue or direct callback)
+        def report_output_file(filename, resolution=None):
+            if output_files_queue is not None and task_id is not None:
+                output_files_queue.put((task_id, filename, resolution))
+            if output_file_callback is not None:
+                output_file_callback(filename, resolution)
 
-                    # Log a few segments (not all to avoid cluttering)
-                    segments = list(variant_dir.glob("segment_*.ts"))
-                    for i, segment in enumerate(segments[:3]):  # Log first 3 segments
-                        segment_file = f"{res}/{segment.name}"
-                        output_files_queue.put((task_id, segment_file, res))
+        # Log master playlist
+        report_output_file("master.m3u8", None)
 
-                    # If there are more segments, log a summary
-                    if len(segments) > 3:
-                        output_files_queue.put(
-                            (task_id, f"... and {len(segments)-3} more segments", res)
-                        )
+        # Log variant playlists and segments
+        resolutions = ["1080p", "720p", "480p", "360p"]
+        for res in resolutions:
+            variant_dir = output_subfolder / res
+            if variant_dir.exists():
+                # Log playlist
+                playlist_file = f"{res}/playlist.m3u8"
+                report_output_file(playlist_file, res)
+
+                # Log a few segments (not all to avoid cluttering)
+                segments = list(variant_dir.glob("segment_*.ts"))
+                for i, segment in enumerate(segments[:3]):  # Log first 3 segments
+                    segment_file = f"{res}/{segment.name}"
+                    report_output_file(segment_file, res)
+
+                # If there are more segments, log a summary
+                if len(segments) > 3:
+                    report_output_file(f"... and {len(segments)-3} more segments", res)
 
         # Ensure we report 100% at the end
-        if progress_queue is not None and task_id is not None:
-            progress_queue.put((task_id, file.name, 100))
+        if task_id is not None:
+            # Report through queue if available
+            if progress_queue is not None:
+                progress_queue.put((task_id, file.name, 100))
+
+            # Use direct callback if provided (batch mode)
+            if progress_callback is not None:
+                progress_callback(file.name, 100, task_id, None)
 
         return (file.name, True, time.time() - start_time, None)
 
@@ -441,8 +471,145 @@ class ProcessingScheduler:
                 'file': file_progress_bar
             }
 
+            # Record start time
             processing_start = time.time()
 
+            # Check if batch processing is enabled
+            batch_enabled = self.config.get("batch_processing.enabled", True)
+
+            if batch_enabled:
+                # Use batch processing
+                self.logger.info("Using batch processing mode")
+                return self._process_videos_batch(valid_files, processing_start)
+            else:
+                # Use individual process mode
+                self.logger.info("Using individual process mode")
+                return self._process_videos_individual(valid_files, processing_start)
+
+        except Exception as e:
+            self.logger.error(f"Error in process_videos: {str(e)}")
+            self.is_running = False
+            return False
+
+        finally:
+            self.is_running = False
+
+    def _process_videos_batch(self, valid_files, processing_start):
+        """Process videos using batch processing"""
+        try:
+            # Import batch processor here to avoid circular imports
+            from pyprocessor.processing.batch_processor import BatchProcessor, create_batches
+
+            # Create a manager for sharing queues between processes
+            global progress_queue, output_files_queue
+            manager = Manager()
+            progress_queue = manager.Queue()
+            output_files_queue = manager.Queue()
+
+            # Create threads to monitor the queues
+            import threading
+
+            # Thread for progress updates
+            progress_thread = threading.Thread(
+                target=self._monitor_progress_queue, daemon=True
+            )
+            progress_thread.start()
+
+            # Thread for output file notifications
+            output_files_thread = threading.Thread(
+                target=self._monitor_output_files_queue, daemon=True
+            )
+            output_files_thread.start()
+
+            # Create batch processor
+            batch_processor = BatchProcessor(self.config, self.logger)
+
+            # Get batch size if specified, otherwise use dynamic sizing
+            batch_size = self.config.get("batch_processing.batch_size", None)
+
+            # Create batches with dynamic sizing if batch_size is None
+            batches = create_batches(valid_files, batch_size, self.config, self.logger)
+
+            # Log batch information
+            if batch_size is None:
+                self.logger.info(f"Created {len(batches)} batches with dynamic sizing")
+            else:
+                self.logger.info(f"Created {len(batches)} batches of up to {batch_size} files each")
+
+            # Process each batch
+            successful_count = 0
+            failed_count = 0
+
+            for i, batch in enumerate(batches):
+                if self.abort_requested:
+                    self.logger.warning("Processing aborted by user")
+                    self.is_running = False
+                    return False
+
+                self.logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} files")
+
+                # Process the batch
+                results = batch_processor.process_batch(
+                    batch,
+                    self.config.output_folder,
+                    self.config.ffmpeg_params,
+                    self.progress_callback,
+                    self.output_file_callback
+                )
+
+                # Process results
+                for filename, success, duration, error_msg in results:
+                    # Update progress counter
+                    with self.lock:
+                        self.processed_count += 1
+                        current = self.processed_count
+
+                    # Update overall progress bar
+                    if hasattr(self, 'progress_bars') and 'overall' in self.progress_bars:
+                        self.progress_bars['overall'].update(1)
+                        self.progress_bars['file'].reset()
+                        self.progress_bars['file'].set_description(f"Completed: {filename}")
+
+                    if success:
+                        successful_count += 1
+                        self.logger.info(f"Completed processing: {filename} ({duration:.2f}s)")
+                    else:
+                        failed_count += 1
+                        if error_msg:
+                            self.logger.error(f"Error processing {filename}: {error_msg}")
+                        else:
+                            self.logger.error(f"Failed to process: {filename}")
+
+            # Clean up the queues
+            progress_queue = None
+            output_files_queue = None
+
+            # Close progress bars
+            if hasattr(self, 'progress_bars'):
+                for bar in self.progress_bars.values():
+                    bar.close()
+                del self.progress_bars
+
+            # Calculate statistics
+            processing_duration = time.time() - processing_start
+            processing_minutes = processing_duration / 60
+
+            self.logger.info(
+                f"Processing completed: {successful_count} successful, {failed_count} failed"
+            )
+            self.logger.info(f"Total processing time: {processing_minutes:.2f} minutes")
+
+            self.is_running = False
+            return failed_count == 0
+
+        except Exception as e:
+            self.logger.error(f"Error in batch processing: {str(e)}")
+            self.is_running = False
+            return False
+
+    def _process_videos_individual(self, valid_files, processing_start):
+        """Process videos using individual processes for each file"""
+        try:
             # Create a manager for sharing queues between processes
             global progress_queue, output_files_queue
             manager = Manager()
@@ -567,9 +734,6 @@ class ProcessingScheduler:
             return failed_count == 0
 
         except Exception as e:
-            self.logger.error(f"Error in process_videos: {str(e)}")
+            self.logger.error(f"Error in individual processing: {str(e)}")
             self.is_running = False
             return False
-
-        finally:
-            self.is_running = False
