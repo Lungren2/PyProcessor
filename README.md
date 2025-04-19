@@ -1,8 +1,22 @@
-# PyProcessor
+# [PyProcessor](https://pyprocessor.netlify.app/) &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Lungren2/PyProcessor/blob/main/LICENSE) [![(Runtime) Build and Test](https://github.com/Lungren2/PyProcessor/actions/workflows/build.yml/badge.svg)](https://github.com/Lungren2/PyProcessor/actions/workflows/build.yml) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Lungren2/PyProcessor/blob/main/docs/developer/CONTRIBUTING.md)
 
-A cross-platform Python application for media processing and HLS encoding based on FFmpeg. This tool supports processing video files with various encoding options, utilizing parallel processing for improved performance, and works seamlessly on Windows, macOS, and Linux.
+A cross-platform Python application for media processing and HLS encoding based on FFmpeg. PyProcessor supports processing video files with various encoding options, utilizing parallel processing for improved performance, and works seamlessly on Windows, macOS, and Linux.
+
+## Overview
+
+PyProcessor is designed to be a powerful yet flexible media processing engine that can handle everything from simple video encoding to complex adaptive streaming package creation. It features intelligent resource management, batch processing capabilities, and a plugin system for extensibility.
+
+The application is built with a focus on:
+
+- **Performance**: Optimized for speed with parallel processing and GPU acceleration
+- **Flexibility**: Configurable for various use cases through profiles and command-line options
+- **Extensibility**: Plugin system allows adding custom functionality
+- **Security**: Content encryption for protecting sensitive media files
+- **Cross-Platform**: Works consistently across Windows, macOS, and Linux
 
 ## Features
+
+### Core Features
 
 - **Cross-Platform Compatibility**: Works on Windows, macOS, and Linux
 - **Command-line Interface**: For automation and scripting
@@ -12,7 +26,13 @@ A cross-platform Python application for media processing and HLS encoding based 
 - **Automatic Organization**: File renaming and folder organization
 - **Configuration Profiles**: Save and reuse encoding settings
 - **Detailed Logging**: Comprehensive logging system
-- **Server Optimization**: Tools for IIS (Windows), Nginx (Linux/macOS), and other systems
+
+### Advanced Features
+
+- **Intelligent Batch Processing**: Dynamically adjusts batch sizes based on system resources
+- **Resource Monitoring**: Monitors CPU, memory, and GPU usage during processing
+- **Plugin System**: Extend functionality through custom plugins
+- **Server Optimization**: Tools for IIS (Windows), Nginx (Linux/macOS), and Apache
 - **HTTP/3 Support**: Modern protocol support with Alt-Svc headers for auto-upgrading
 - **Content Encryption**: AES-256 encryption for protecting sensitive media files
 
@@ -127,6 +147,8 @@ PyProcessor/
 
 ## Usage
 
+### Basic Usage
+
 To use the application:
 
 ```bash
@@ -139,7 +161,60 @@ or
 python -m pyprocessor [options]
 ```
 
-Available command-line options:
+### Quick Start Examples
+
+#### Basic Video Processing
+
+```bash
+# Process all videos in input directory with default settings
+pyprocessor --input /path/to/videos --output /path/to/output
+
+# Use a specific encoder and preset
+pyprocessor --input /path/to/videos --output /path/to/output --encoder libx265 --preset medium
+
+# Process videos with a saved profile
+pyprocessor --input /path/to/videos --output /path/to/output --profile high_quality
+```
+
+#### Batch Processing
+
+```bash
+# Enable batch processing with automatic batch sizing
+pyprocessor --input /path/to/videos --output /path/to/output --batch-mode enabled
+
+# Specify a fixed batch size
+pyprocessor --input /path/to/videos --output /path/to/output --batch-mode enabled --batch-size 10
+
+# Limit memory usage for batch processing
+pyprocessor --input /path/to/videos --output /path/to/output --batch-mode enabled --max-memory 70
+```
+
+#### Server Optimization
+
+```bash
+# Optimize IIS server
+pyprocessor --optimize-server iis --site-name "My Video Site" --video-path "C:\inetpub\wwwroot\videos" --enable-http3
+
+# Generate Nginx configuration
+pyprocessor --optimize-server nginx --server-name example.com --output-config /etc/nginx/sites-available/videos.conf
+
+# Apply Linux system optimizations
+pyprocessor --optimize-server linux --apply-changes
+```
+
+#### Content Encryption
+
+```bash
+# Enable encryption for output files
+pyprocessor --input /path/to/videos --output /path/to/output --enable-encryption --encrypt-output
+
+# Use a specific encryption key
+pyprocessor --input /path/to/videos --output /path/to/output --enable-encryption --encrypt-output --encryption-key KEY_ID
+```
+
+### Available Command-Line Options
+
+#### Core Options
 
 ```text
 --input PATH         Input directory path
@@ -152,11 +227,21 @@ Available command-line options:
 --fps NUMBER         Frames per second
 --no-audio           Disable audio in output
 --jobs NUMBER        Number of parallel encoding jobs
-
 --verbose            Enable verbose logging
+```
 
-# Server Optimization Options
---optimize-server    Server type to optimize (iis, nginx, linux)
+#### Batch Processing Options
+
+```text
+--batch-mode         Enable or disable batch processing mode (enabled, disabled)
+--batch-size         Number of videos to process in a single batch
+--max-memory         Maximum memory usage percentage before throttling batches
+```
+
+#### Server Optimization Options
+
+```text
+--optimize-server    Server type to optimize (iis, nginx, apache, linux)
 --site-name          IIS site name (for IIS optimization)
 --video-path         Path to video content directory (for IIS)
 --enable-http2       Enable HTTP/2 protocol (for IIS)
@@ -166,8 +251,11 @@ Available command-line options:
 --output-config      Output path for server configuration (for Nginx)
 --server-name        Server name for configuration (for Nginx)
 --apply-changes      Apply changes directly (for Linux)
+```
 
-# Security Options
+#### Security Options
+
+```text
 --enable-encryption  Enable content encryption
 --encrypt-output     Encrypt output files
 --encryption-key     Encryption key ID to use
@@ -175,14 +263,66 @@ Available command-line options:
 
 ## Configuration
 
-The application uses a configuration system that supports:
+PyProcessor uses a flexible, hierarchical configuration system that allows you to customize every aspect of the application's behavior.
+
+### Configuration Hierarchy
+
+The configuration system follows this hierarchy (from lowest to highest precedence):
 
 1. **Default Configuration**: Built-in defaults for all settings
-2. **User Configuration**: Saved in JSON format
-3. **Profiles**: Multiple named configurations for different scenarios
-4. **Command-line Overrides**: Options specified via command line take precedence
+2. **User Configuration**: Saved in JSON format in the user's configuration directory
+3. **Profiles**: Named configurations for different scenarios
+4. **Environment Variables**: Settings specified via environment variables
+5. **Command-line Overrides**: Options specified via command line take precedence over all other settings
 
-### Configuration Options
+### Configuration Profiles
+
+Profiles allow you to save and reuse configurations for different encoding scenarios. They are stored as JSON files in the `pyprocessor/profiles/` directory.
+
+#### Default Profile
+
+The default profile (`default.json`) includes sensible defaults for most settings:
+
+```json
+{
+  "input_folder": "${MEDIA_ROOT}/input",
+  "output_folder": "${MEDIA_ROOT}/output",
+  "ffmpeg_params": {
+    "video_encoder": "libx265",
+    "preset": "ultrafast",
+    "tune": "zerolatency",
+    "fps": 60,
+    "include_audio": true,
+    "bitrates": {
+      "1080p": "11000k",
+      "720p": "6500k",
+      "480p": "4000k",
+      "360p": "1500k"
+    },
+    "audio_bitrates": ["192k", "128k", "96k", "64k"]
+  },
+  "max_parallel_jobs": 4,
+  "batch_processing": {
+    "enabled": true,
+    "batch_size": null,
+    "max_memory_percent": 80
+  },
+  "auto_rename_files": true,
+  "auto_organize_folders": true
+}
+```
+
+#### Creating Custom Profiles
+
+To create a custom profile:
+
+1. Create a new JSON file in the `pyprocessor/profiles/` directory (e.g., `high_quality.json`)
+2. Add your custom settings (you only need to specify settings that differ from the defaults)
+3. Use the profile with the `--profile` command-line option
+
+### Configuration Categories
+
+#### Core Settings
 
 - **Input/Output Folders**: Directories for source and processed files
 - **FFmpeg Parameters**:
@@ -193,12 +333,18 @@ The application uses a configuration system that supports:
   - Audio inclusion/exclusion
   - Bitrates for different resolutions (1080p, 720p, 480p, 360p)
   - Audio bitrates
-- **Processing Options**:
-  - Maximum parallel jobs
-  - Auto-rename files
-  - Auto-organize folders
+
+#### Processing Options
+
+- **Parallel Processing**: Maximum number of parallel jobs
+- **Batch Processing**: Batch size and memory usage limits
+- **File Organization**: Auto-rename files and auto-organize folders
+- **Pattern Matching**: Regular expressions for file validation, renaming, and organization
+
+#### Advanced Configuration Options
+
 - **Server Optimization**:
-  - Server type (IIS, Nginx, Linux)
+  - Server type (IIS, Nginx, Apache, Linux)
   - HTTP/3 support with Alt-Svc headers for auto-upgrading
   - Server-specific configuration options
   - Network and performance optimizations
@@ -207,12 +353,20 @@ The application uses a configuration system that supports:
   - Key management and rotation
   - Password-based encryption
 
-### Configuration Files
+### File Processing Patterns
 
-Configuration files are stored as JSON in the `pyprocessor/profiles/` directory. You can create multiple profiles for different encoding scenarios. The configuration includes flags that control file processing behavior:
+PyProcessor uses regular expression patterns to handle file naming and organization. These patterns are controlled by configuration flags:
 
 - `auto_rename_files`: When enabled, input files are renamed according to the `file_rename_pattern`
 - `auto_organize_folders`: When enabled, output folders are organized according to the `folder_organization_pattern`
+- `file_validation_pattern`: Files that don't match this pattern are considered invalid and will be skipped
+
+### Environment Variables
+
+You can use environment variables in configuration files and on the command line. For example:
+
+- `${MEDIA_ROOT}`: Root directory for media files
+- `${PYPROCESSOR_DATA_DIR}`: PyProcessor data directory
 
 For detailed information about configuration options and flag-pattern relationships, see the [Configuration Documentation](docs/developer/CONFIGURATION.md) and [Regex Patterns Documentation](docs/regex_patterns.md).
 
@@ -220,25 +374,42 @@ For detailed information about configuration options and flag-pattern relationsh
 
 The application maintains detailed logs in the `pyprocessor/logs/` directory. Log files include timestamps, log levels, and detailed information about the processing operations.
 
-## Development
+## Documentation
 
-For detailed information about development, please refer to the documentation in the `docs/` directory:
+PyProcessor includes comprehensive documentation for both users and developers.
+
+### User Documentation
 
 - [User Guide](docs/user/USER_GUIDE.md) - Comprehensive guide for using PyProcessor
+- [Batch Processing](docs/user/BATCH_PROCESSING.md) - How to use the batch processing system
+- [Server Optimization](docs/user/SERVER_OPTIMIZATION.md) - How to optimize servers for video streaming
+- [Content Encryption](docs/user/CONTENT_ENCRYPTION.md) - How to use content encryption features
+
+### Developer Documentation
+
 - [Contributing Guide](docs/developer/CONTRIBUTING.md) - How to contribute to the project
 - [Architecture Overview](docs/developer/ARCHITECTURE.md) - Detailed explanation of the project architecture
 - [Code Style Guide](docs/developer/CODE_STYLE.md) - Coding standards and style guidelines
 - [Development Workflow](docs/developer/DEVELOPMENT_WORKFLOW.md) - Recommended development process
+- [Plugin System](docs/developer/PLUGIN_SYSTEM.md) - How to create and use plugins
 - [Logging System](docs/developer/LOGGING.md) - Details about the logging system
 - [FFmpeg Integration](docs/developer/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
-- [Packaging](docs/developer/PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
-- [NSIS Packaging](docs/developer/NSIS_PACKAGING.md) - Detailed guide for creating an installer with NSIS
-- [Server Optimization](docs/developer/SERVER_OPTIMIZATION.md) - Prerequisites and details for server optimization
+- [Packaging](docs/developer/PACKAGING.md) - How to package the application into an executable
+- [NSIS Packaging](docs/developer/NSIS_PACKAGING.md) - Creating an installer with NSIS
 - [Dependencies](docs/developer/DEPENDENCIES.md) - Managing dependencies across platforms
-- [API Reference](docs/api/API_REFERENCE.md) - Reference for the PyProcessor API
 - [Path Handling](docs/developer/PATH_HANDLING.md) - How paths and environment variables are handled
 - [Application Context](docs/developer/APPLICATION_CONTEXT.md) - How application state and lifecycle are managed
-- [Content Encryption](docs/security/CONTENT_ENCRYPTION.md) - How content encryption works
+
+### API Documentation
+
+- [API Reference](docs/api/API_REFERENCE.md) - Reference for the PyProcessor API
+
+### Security Documentation
+
+- [Content Encryption](docs/security/CONTENT_ENCRYPTION.md) - Technical details of content encryption
+- [Security Best Practices](docs/security/SECURITY_BEST_PRACTICES.md) - Security recommendations
+
+## Development
 
 ### Development Setup
 
