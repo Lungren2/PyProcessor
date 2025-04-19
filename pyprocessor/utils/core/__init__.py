@@ -20,3 +20,9 @@ from pyprocessor.utils.core.validation_manager import (
     ValidationManager, get_validation_manager, ValidationRule,
     ValidationResult, validate
 )
+from pyprocessor.utils.security import (
+    SecurityManager, get_security_manager, AuthManager, get_auth_manager,
+    SessionManager, get_session_manager, ApiKeyManager, get_api_key_manager,
+    AuditLogger, get_audit_logger, PasswordPolicy, get_password_policy,
+    User, Role, Permission, Session, ApiKey
+)

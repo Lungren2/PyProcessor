@@ -6,8 +6,8 @@ including locating executables, downloading binaries, checking availability,
 and executing FFmpeg commands.
 """
 
-import os
 import sys
+import os  # Keep os for chmod and other operations
 import platform
 import subprocess
 import zipfile
@@ -18,15 +18,17 @@ import time
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any, List, Union, Callable
 
-from pyprocessor.utils.file_system.path_utils import (
-    find_executable, get_base_dir, get_executable_extension
+from pyprocessor.utils.file_system.path_manager import (
+    find_executable, get_base_dir, get_executable_extension,
+    normalize_path, file_exists
 )
 from pyprocessor.utils.file_system.file_manager import get_file_manager
 from pyprocessor.utils.logging.error_manager import (
-    get_error_manager, with_error_handling, safe_call,
-    EncodingError, ProcessError, FileSystemError, NetworkError, ValidationError,
-    ErrorSeverity, ErrorCategory
+    with_error_handling,
+    EncodingError, ProcessError, FileSystemError, ValidationError,
+    ErrorSeverity
 )
+from pyprocessor.utils.core.dependency_manager import check_ffmpeg as dependency_check_ffmpeg
 
 
 class FFmpegManager:
@@ -135,29 +137,29 @@ class FFmpegManager:
         if system == "windows":
             # Windows common locations
             paths_to_check.extend([
-                Path(os.environ.get("ProgramFiles", "C:\\Program Files")) / "FFmpeg" / "bin" / executable_name,
-                Path(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")) / "FFmpeg" / "bin" / executable_name,
-                Path(os.environ.get("LOCALAPPDATA", "")) / "FFmpeg" / "bin" / executable_name,
+                normalize_path("${ProgramFiles}/FFmpeg/bin") / executable_name,
+                normalize_path("${ProgramFiles(x86)}/FFmpeg/bin") / executable_name,
+                normalize_path("${LOCALAPPDATA}/FFmpeg/bin") / executable_name,
             ])
         elif system == "darwin":
             # macOS common locations
             paths_to_check.extend([
-                Path("/usr/local/bin") / executable_name,
-                Path("/opt/homebrew/bin") / executable_name,
-                Path("/opt/local/bin") / executable_name,
-                Path(os.path.expanduser("~/homebrew/bin")) / executable_name,
+                normalize_path("/usr/local/bin") / executable_name,
+                normalize_path("/opt/homebrew/bin") / executable_name,
+                normalize_path("/opt/local/bin") / executable_name,
+                normalize_path("~/homebrew/bin") / executable_name,
             ])
         else:
             # Linux common locations
             paths_to_check.extend([
-                Path("/usr/bin") / executable_name,
-                Path("/usr/local/bin") / executable_name,
-                Path("/opt/ffmpeg/bin") / executable_name,
+                normalize_path("/usr/bin") / executable_name,
+                normalize_path("/usr/local/bin") / executable_name,
+                normalize_path("/opt/ffmpeg/bin") / executable_name,
             ])
 
         # Check all paths
         for path in paths_to_check:
-            if self.file_manager.get_file_size(path) > 0 and os.access(str(path), os.X_OK):
+            if self.file_manager.get_file_size(path) > 0 and path.exists() and path.is_file() and path.stat().st_mode & 0o111:
                 return str(path)
 
         # 3. Fall back to system PATH
@@ -210,29 +212,29 @@ class FFmpegManager:
         if system == "windows":
             # Windows common locations
             paths_to_check.extend([
-                Path(os.environ.get("ProgramFiles", "C:\\Program Files")) / "FFmpeg" / "bin" / executable_name,
-                Path(os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")) / "FFmpeg" / "bin" / executable_name,
-                Path(os.environ.get("LOCALAPPDATA", "")) / "FFmpeg" / "bin" / executable_name,
+                normalize_path("${ProgramFiles}/FFmpeg/bin") / executable_name,
+                normalize_path("${ProgramFiles(x86)}/FFmpeg/bin") / executable_name,
+                normalize_path("${LOCALAPPDATA}/FFmpeg/bin") / executable_name,
             ])
         elif system == "darwin":
             # macOS common locations
             paths_to_check.extend([
-                Path("/usr/local/bin") / executable_name,
-                Path("/opt/homebrew/bin") / executable_name,
-                Path("/opt/local/bin") / executable_name,
-                Path(os.path.expanduser("~/homebrew/bin")) / executable_name,
+                normalize_path("/usr/local/bin") / executable_name,
+                normalize_path("/opt/homebrew/bin") / executable_name,
+                normalize_path("/opt/local/bin") / executable_name,
+                normalize_path("~/homebrew/bin") / executable_name,
             ])
         else:
             # Linux common locations
             paths_to_check.extend([
-                Path("/usr/bin") / executable_name,
-                Path("/usr/local/bin") / executable_name,
-                Path("/opt/ffmpeg/bin") / executable_name,
+                normalize_path("/usr/bin") / executable_name,
+                normalize_path("/usr/local/bin") / executable_name,
+                normalize_path("/opt/ffmpeg/bin") / executable_name,
             ])
 
         # Check all paths
         for path in paths_to_check:
-            if self.file_manager.get_file_size(path) > 0 and os.access(str(path), os.X_OK):
+            if self.file_manager.get_file_size(path) > 0 and path.exists() and path.is_file() and path.stat().st_mode & 0o111:
                 return str(path)
 
         # 3. Fall back to system PATH
@@ -254,6 +256,14 @@ class FFmpegManager:
         Raises:
             ProcessError: If FFmpeg check fails
         """
+        # Use the dependency manager to check FFmpeg
+        is_available, version_string, _ = dependency_check_ffmpeg()
+
+        if is_available and version_string:
+            self.log("info", f"Found FFmpeg: {version_string}")
+            return True
+
+        # Fall back to the old method if dependency manager fails
         ffmpeg_path = self.get_ffmpeg_path()
 
         try:
@@ -305,32 +315,8 @@ class FFmpegManager:
         Returns:
             tuple: (is_installed, version_string, error_message)
         """
-        error_manager = get_error_manager()
-
-        try:
-            # Try to check FFmpeg using the error-handled method
-            if self.check_ffmpeg():
-                # FFmpeg is available, get the version string
-                ffmpeg_path = self.get_ffmpeg_path()
-                result = subprocess.run(
-                    [ffmpeg_path, "-version"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    timeout=5,
-                )
-
-                # Extract version string
-                version_line = result.stdout.split('\n')[0]
-                return True, version_line, None
-        except ProcessError as e:
-            # Convert the error to a user-friendly message
-            return False, None, str(e)
-        except Exception as e:
-            # Handle any other exceptions
-            error = error_manager.convert_exception(e)
-            error_manager.handle_error(error)
-            return False, None, str(error)
+        # Use the dependency manager to check FFmpeg
+        return dependency_check_ffmpeg()
 
     @with_error_handling
     def has_audio(self, file_path: Union[str, Path]) -> bool:
@@ -349,7 +335,7 @@ class FFmpegManager:
         """
         # Convert to string and check if file exists
         file_path_str = str(file_path)
-        if not os.path.exists(file_path_str):
+        if not file_exists(file_path_str):
             raise FileSystemError(
                 f"File not found: {file_path_str}",
                 severity=ErrorSeverity.ERROR,
@@ -414,7 +400,7 @@ class FFmpegManager:
         """
         # Convert to string and check if file exists
         file_path_str = str(file_path)
-        if not os.path.exists(file_path_str):
+        if not file_exists(file_path_str):
             raise FileSystemError(
                 f"File not found: {file_path_str}",
                 severity=ErrorSeverity.ERROR,
@@ -537,7 +523,7 @@ class FFmpegManager:
         extract_dir_str = str(extract_dir)
 
         # Check if archive exists
-        if not os.path.exists(archive_path_str):
+        if not file_exists(archive_path_str):
             raise FileSystemError(
                 f"Archive file not found: {archive_path_str}",
                 severity=ErrorSeverity.ERROR,

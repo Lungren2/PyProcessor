@@ -12,8 +12,8 @@ import sys
 # Import tqdm for CLI progress bars
 from tqdm import tqdm
 
-from pyprocessor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
-from pyprocessor.utils.scheduler_manager import get_scheduler_manager, schedule_task, wait_for_task
+from pyprocessor.utils.media.ffmpeg_manager import get_ffmpeg_path, get_ffprobe_path
+from pyprocessor.utils.process.scheduler_manager import get_scheduler_manager, schedule_task, wait_for_task
 
 # Global queues that will be shared between processes
 progress_queue = None
@@ -21,7 +21,7 @@ output_files_queue = None
 
 
 # Standalone function for multiprocessing that doesn't require encoder or logger
-def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=None, progress_callback=None, output_file_callback=None):
+def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=None, progress_callback=None, output_file_callback=None, encrypt_output=False, encryption_key_id=None):
     """Process a single video file - standalone function for multiprocessing or batch processing
 
     Args:
@@ -267,6 +267,21 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
             if progress_callback is not None:
                 progress_callback(file.name, 100, task_id, None)
 
+        # Encrypt output if requested
+        if encrypt_output:
+            # Import here to avoid circular imports
+            from pyprocessor.utils.security.encryption_manager import get_encryption_manager
+
+            # Get encryption manager
+            encryption_manager = get_encryption_manager()
+
+            # Encrypt output files
+            # Use print for standalone process mode (no logger available)
+            print(f"Encrypting output files in {output_subfolder}")
+            encryption_success = encryption_manager.encrypt_output(output_subfolder, encryption_key_id)
+            if not encryption_success:
+                print(f"Warning: Encryption of output files in {output_subfolder} was not fully successful")
+
         return (file.name, True, time.time() - start_time, None)
 
     except Exception as e:
@@ -422,8 +437,13 @@ class ProcessingScheduler:
         self.abort_requested = True
         return True
 
-    def process_videos(self):
-        """Process all video files in parallel with CLI progress reporting"""
+    def process_videos(self, encrypt_output=None, encryption_key_id=None):
+        """Process all video files in parallel with CLI progress reporting
+
+        Args:
+            encrypt_output: Whether to encrypt output files (overrides config setting)
+            encryption_key_id: Encryption key ID to use (overrides config setting)
+        """
         self.is_running = True
         self.abort_requested = False
 
@@ -474,17 +494,32 @@ class ProcessingScheduler:
             # Record start time
             processing_start = time.time()
 
+            # Get encryption settings from config if not provided
+            if encrypt_output is None:
+                encrypt_output = self.config.get("security.encryption.encrypt_output", False)
+
+            if encryption_key_id is None:
+                encryption_key_id = self.config.get("security.encryption.key_id", None)
+
+            # Log encryption settings
+            if encrypt_output:
+                self.logger.info(f"Output encryption is enabled")
+                if encryption_key_id:
+                    self.logger.info(f"Using encryption key: {encryption_key_id}")
+                else:
+                    self.logger.info("Using default encryption key")
+
             # Check if batch processing is enabled
             batch_enabled = self.config.get("batch_processing.enabled", True)
 
             if batch_enabled:
                 # Use batch processing
                 self.logger.info("Using batch processing mode")
-                return self._process_videos_batch(valid_files, processing_start)
+                return self._process_videos_batch(valid_files, processing_start, encrypt_output, encryption_key_id)
             else:
                 # Use individual process mode
                 self.logger.info("Using individual process mode")
-                return self._process_videos_individual(valid_files, processing_start)
+                return self._process_videos_individual(valid_files, processing_start, encrypt_output, encryption_key_id)
 
         except Exception as e:
             self.logger.error(f"Error in process_videos: {str(e)}")
@@ -494,7 +529,7 @@ class ProcessingScheduler:
         finally:
             self.is_running = False
 
-    def _process_videos_batch(self, valid_files, processing_start):
+    def _process_videos_batch(self, valid_files, processing_start, encrypt_output=False, encryption_key_id=None):
         """Process videos using batch processing"""
         try:
             # Import batch processor here to avoid circular imports
@@ -554,7 +589,9 @@ class ProcessingScheduler:
                     self.config.output_folder,
                     self.config.ffmpeg_params,
                     self.progress_callback,
-                    self.output_file_callback
+                    self.output_file_callback,
+                    encrypt_output=encrypt_output,
+                    encryption_key_id=encryption_key_id
                 )
 
                 # Process results
@@ -607,7 +644,7 @@ class ProcessingScheduler:
             self.is_running = False
             return False
 
-    def _process_videos_individual(self, valid_files, processing_start):
+    def _process_videos_individual(self, valid_files, processing_start, encrypt_output=False, encryption_key_id=None):
         """Process videos using individual processes for each file"""
         try:
             # Create a manager for sharing queues between processes
@@ -683,7 +720,9 @@ class ProcessingScheduler:
                     self.config.ffmpeg_params,
                     i,  # Task ID for progress tracking
                     callback=task_callback,
-                    priority=i  # Lower index = higher priority
+                    priority=i,  # Lower index = higher priority
+                    encrypt_output=encrypt_output,
+                    encryption_key_id=encryption_key_id
                 )
                 task_ids.append(task_id)
 

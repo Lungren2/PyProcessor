@@ -12,13 +12,16 @@ Supported server types:
 - Generic Linux optimizations (Linux only)
 """
 
-import os
 import subprocess
 import platform
 import shutil
 from pathlib import Path
 import tempfile
 import shlex
+
+from pyprocessor.utils.file_system.path_manager import (
+    normalize_path, ensure_dir_exists, get_base_dir, dir_exists
+)
 
 from pyprocessor.utils.logging.log_manager import get_logger
 
@@ -47,9 +50,7 @@ class ServerOptimizer:
         self.is_linux = self.system == "linux"
 
         # Get the base directory of the application
-        self.base_dir = Path(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        )
+        self.base_dir = get_base_dir()
         self.optimization_utils_dir = self.base_dir / "optimization-utils"
 
         # Check if optimization utils directory exists
@@ -125,7 +126,7 @@ class ServerOptimizer:
             return False, "PowerShell is not available"
 
         # Check if video path exists
-        if not os.path.exists(video_path):
+        if not dir_exists(video_path):
             return False, f"Video path does not exist: {video_path}"
 
         # Path to the IIS optimization script
@@ -205,11 +206,11 @@ class ServerOptimizer:
         # Set default output path if not provided
         if output_path is None:
             if self.is_windows:
-                output_path = os.path.join(os.environ.get("USERPROFILE", "C:\\"), "Desktop", "nginx.conf")
+                output_path = normalize_path("${USERPROFILE}/Desktop/nginx.conf")
             elif self.is_macos:
-                output_path = os.path.expanduser("~/Desktop/nginx.conf")
+                output_path = normalize_path("~/Desktop/nginx.conf")
             else:  # Linux
-                output_path = "/tmp/nginx.conf"
+                output_path = normalize_path("/tmp/nginx.conf")
 
         # Path to the Nginx configuration template
         template_path = self.optimization_utils_dir / "nginx.config"
@@ -254,9 +255,8 @@ class ServerOptimizer:
                 )
 
             # Create output directory if it doesn't exist
-            output_dir = os.path.dirname(output_path)
-            if output_dir:  # Skip if output_path has no directory component
-                os.makedirs(output_dir, exist_ok=True)
+            output_path = normalize_path(output_path)
+            ensure_dir_exists(output_path.parent)
 
             # Write the configuration file
             with open(output_path, "w") as f:
@@ -299,11 +299,11 @@ class ServerOptimizer:
         # Set default output path if not provided
         if output_path is None:
             if self.is_windows:
-                output_path = os.path.join(os.environ.get("USERPROFILE", "C:\\"), "Desktop", "apache.conf")
+                output_path = normalize_path("${USERPROFILE}/Desktop/apache.conf")
             elif self.is_macos:
-                output_path = os.path.expanduser("~/Desktop/apache.conf")
+                output_path = normalize_path("~/Desktop/apache.conf")
             else:  # Linux
-                output_path = "/tmp/apache.conf"
+                output_path = normalize_path("/tmp/apache.conf")
 
         try:
             # Create a basic Apache configuration for video streaming
@@ -373,9 +373,8 @@ AddType video/mp2t .ts
 """
 
             # Create output directory if it doesn't exist
-            output_dir = os.path.dirname(output_path)
-            if output_dir:  # Skip if output_path has no directory component
-                os.makedirs(output_dir, exist_ok=True)
+            output_path = normalize_path(output_path)
+            ensure_dir_exists(output_path.parent)
 
             # Write the configuration file
             with open(output_path, "w") as f:
@@ -437,8 +436,8 @@ AddType video/mp2t .ts
                 return True, "Linux optimizations applied successfully", None
             else:
                 # Copy the script to a temporary location
-                temp_dir = tempfile.mkdtemp()
-                output_path = os.path.join(temp_dir, "linux-optimizations.bash")
+                temp_dir = Path(tempfile.mkdtemp())
+                output_path = temp_dir / "linux-optimizations.bash"
 
                 shutil.copy2(script_path, output_path)
 

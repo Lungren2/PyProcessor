@@ -113,6 +113,23 @@ def parse_args():
         help="Apply changes directly (for --optimize-server=linux)",
     )
 
+    # Security options
+    security_group = parser.add_argument_group("Security Options")
+    security_group.add_argument(
+        "--enable-encryption",
+        action="store_true",
+        help="Enable content encryption",
+    )
+    security_group.add_argument(
+        "--encrypt-output",
+        action="store_true",
+        help="Encrypt output files",
+    )
+    security_group.add_argument(
+        "--encryption-key",
+        help="Encryption key ID to use (uses default key if not specified)",
+    )
+
     return parser.parse_args()
 
 

@@ -9,10 +9,12 @@ import time
 from pyprocessor.processing.encoder import FFmpegEncoder
 from pyprocessor.utils.file_system.file_manager import get_file_manager
 from pyprocessor.processing.scheduler import ProcessingScheduler
-from pyprocessor.utils.config.config_manager import Config, get_config
+from pyprocessor.utils.config.config_manager import Config
 from pyprocessor.utils.logging.log_manager import get_logger
-from pyprocessor.utils.file_system.path_utils import normalize_path, ensure_dir_exists
+from pyprocessor.utils.file_system.path_utils import ensure_dir_exists
 from pyprocessor.utils.core.plugin_manager import get_plugin_manager, load_all_plugins, discover_plugins
+from pyprocessor.utils.core.dependency_manager import check_dependencies
+from pyprocessor.utils.security.security_manager import get_security_manager
 
 
 class ApplicationContext:
@@ -31,6 +33,7 @@ class ApplicationContext:
         self.encoder = None
         self.scheduler = None
         self.plugin_manager = None
+        self.security_manager = None
         self.plugins = {}
         # GUI components removed
         self._initialized = False
@@ -76,6 +79,19 @@ class ApplicationContext:
             for warning in warnings:
                 self.logger.warning(f"Configuration warning: {warning}")
 
+        # Validate dependencies
+        self.logger.info("Checking dependencies...")
+        dependency_errors, dependency_warnings = check_dependencies()
+
+        if dependency_errors:
+            for error in dependency_errors:
+                self.logger.error(f"Dependency error: {error}")
+            return False
+
+        if dependency_warnings:
+            for warning in dependency_warnings:
+                self.logger.warning(f"Dependency warning: {warning}")
+
         # Initialize components
         self.file_manager = get_file_manager(self.config, self.logger)
         self.encoder = FFmpegEncoder(self.config, self.logger)
@@ -97,6 +113,12 @@ class ApplicationContext:
             # Log loaded plugins
             for plugin_name, plugin in self.plugins.items():
                 self.logger.info(f"Loaded plugin: {plugin_name} (v{plugin.version})")
+
+        # Initialize security manager
+        self.logger.info("Initializing security manager...")
+        self.security_manager = get_security_manager()
+        self.security_manager.initialize(self.config)
+        self.logger.info("Security manager initialized")
 
         # Register signal handlers
         self._register_signal_handlers()
@@ -162,6 +184,17 @@ class ApplicationContext:
                 if hasattr(args, "apply_changes"):
                     self.config.config_manager.set("server_optimization.linux.apply_changes", args.apply_changes)
 
+        # Handle security options
+        if hasattr(args, "enable_encryption") and args.enable_encryption:
+            self.config.config_manager.set("security.encryption.enabled", True)
+
+        if hasattr(args, "encrypt_output") and args.encrypt_output:
+            self.config.config_manager.set("security.encryption.encrypt_output", True)
+
+        if hasattr(args, "encryption_key") and args.encryption_key:
+            # Store the key ID for later use during encoding
+            self.config.config_manager.set("security.encryption.key_id", args.encryption_key)
+
     def _register_signal_handlers(self):
         """Register signal handlers for clean shutdown."""
         signal.signal(signal.SIGINT, self._signal_handler)  # Ctrl+C
@@ -190,6 +223,11 @@ class ApplicationContext:
             self.logger.info("Unloading plugins...")
             from pyprocessor.utils.core.plugin_manager import unload_all_plugins
             unload_all_plugins()
+
+        # Shutdown security manager
+        if self.security_manager:
+            self.logger.info("Shutting down security manager...")
+            self.security_manager.shutdown()
 
         if self.logger:
             self.logger.info("Shutdown complete")
@@ -246,7 +284,8 @@ class ApplicationContext:
                     self.logger.error(f"Server optimization failed: {message}")
                     return 1
 
-            # Check if FFmpeg is available
+            # FFmpeg availability is already checked during initialization
+            # This is kept for backward compatibility
             if not self.encoder.check_ffmpeg():
                 self.logger.error("FFmpeg is not available. Please install FFmpeg.")
                 return 1
@@ -269,7 +308,16 @@ class ApplicationContext:
 
             # Step 2: Process videos
             self.logger.info("Processing videos...")
-            success = self.scheduler.process_videos()
+
+            # Get encryption settings from config
+            encrypt_output = self.config.get("security.encryption.encrypt_output", False)
+            encryption_key_id = self.config.get("security.encryption.key_id", None)
+
+            # Process videos with encryption settings
+            success = self.scheduler.process_videos(
+                encrypt_output=encrypt_output,
+                encryption_key_id=encryption_key_id
+            )
 
             # Step 3: Organize folders (if enabled)
             if self.config.auto_organize_folders:
@@ -305,6 +353,12 @@ class ApplicationContext:
             from pyprocessor.utils.core.plugin_manager import unload_all_plugins
             unload_all_plugins()
             self.logger.info("All plugins unloaded")
+
+        # Shutdown security manager
+        if self.security_manager:
+            self.logger.info("Shutting down security manager...")
+            self.security_manager.shutdown()
+            self.logger.info("Security manager shutdown complete")
 
         # Log shutdown
         if self.logger:

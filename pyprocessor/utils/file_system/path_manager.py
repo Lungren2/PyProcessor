@@ -700,21 +700,119 @@ class PathManager:
 
     def is_valid_path(self, path: Union[str, Path]) -> bool:
         """
-        Check if a path is valid.
+        Check if a path is valid and safe.
+
+        Validates that a path:
+        1. Can be normalized
+        2. Doesn't contain invalid characters
+        3. Isn't a potential path traversal attack
 
         Args:
             path: Path to check
 
         Returns:
-            bool: True if the path is valid, False otherwise
+            bool: True if the path is valid and safe, False otherwise
         """
         try:
             # Try to normalize the path
             path = self.normalize_path(path)
+            path_str = str(path)
 
-            # Check if the path is valid
+            # Check for null bytes (potential security issue)
+            if '\0' in path_str:
+                self.logger.warning(f"Path contains null bytes: {path}")
+                return False
+
+            # Check for suspicious path traversal patterns
+            if self._contains_path_traversal(path_str):
+                self.logger.warning(f"Path contains suspicious traversal patterns: {path}")
+                return False
+
+            # Additional platform-specific checks
+            if self.is_windows:
+                # Check for reserved Windows device names
+                parts = path.parts
+                if parts and parts[0].upper() in (
+                    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
+                    "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
+                    "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+                ):
+                    self.logger.warning(f"Path contains reserved Windows device name: {path}")
+                    return False
+
             return True
-        except Exception:
+        except Exception as e:
+            self.logger.debug(f"Invalid path: {path}, error: {str(e)}")
+            return False
+
+    def _contains_path_traversal(self, path_str: str) -> bool:
+        """
+        Check if a path contains suspicious path traversal patterns.
+
+        Args:
+            path_str: Path string to check
+
+        Returns:
+            bool: True if suspicious patterns are found, False otherwise
+        """
+        # Check for suspicious patterns that might indicate path traversal attacks
+        suspicious_patterns = [
+            "../", "..\\", "/..", "\\..",  # Parent directory traversal
+            "/.\\.", "\\./."  # Current directory with obfuscation
+        ]
+
+        # Normalize path separators for consistent checking
+        normalized = path_str.replace("\\", "/")
+
+        # Check for suspicious patterns
+        for pattern in suspicious_patterns:
+            pattern = pattern.replace("\\", "/")
+            if pattern in normalized:
+                return True
+
+        return False
+
+    def is_safe_path(self, base_path: Union[str, Path], path: Union[str, Path]) -> bool:
+        """
+        Check if a path is safe (doesn't escape the base path).
+
+        This is useful for preventing path traversal attacks when working with
+        user-supplied paths that should be confined to a specific directory.
+
+        Args:
+            base_path: The base path that should contain the path
+            path: The path to check
+
+        Returns:
+            bool: True if the path is safe, False otherwise
+        """
+        try:
+            base_path = self.normalize_path(base_path).resolve()
+            path = self.normalize_path(path)
+
+            # First check if the path is valid
+            if not self.is_valid_path(path):
+                return False
+
+            # Try to resolve the path (this will follow symlinks)
+            # If it fails, the path might not exist yet
+            try:
+                resolved_path = path.resolve()
+                # Check if the resolved path starts with the base path
+                return str(resolved_path).startswith(str(base_path))
+            except Exception:
+                # If we can't resolve, use a different approach
+                # Normalize both paths and check if the normalized path is within the base path
+                normalized_path = os.path.normpath(str(path))
+                normalized_base = os.path.normpath(str(base_path))
+
+                # Check if the normalized path starts with the normalized base path
+                # and that there's either an exact match or a directory separator after the base path
+                return (normalized_path == normalized_base or
+                        normalized_path.startswith(normalized_base + os.sep))
+
+        except Exception as e:
+            self.logger.error(f"Error checking if path is safe: {str(e)}")
             return False
 
     def is_absolute_path(self, path: Union[str, Path]) -> bool:
@@ -735,6 +833,84 @@ class PathManager:
             return path.is_absolute()
         except Exception:
             return False
+
+    def sanitize_filename(self, filename: str) -> str:
+        """
+        Sanitize a filename to remove invalid characters.
+
+        Args:
+            filename: Filename to sanitize
+
+        Returns:
+            str: Sanitized filename
+        """
+        if not filename:
+            return ""
+
+        # Replace invalid characters with underscores
+        # This covers Windows, macOS, and Linux invalid characters
+        invalid_chars = r'[<>:"/\\|?*\x00-\x1F]'
+        sanitized = re.sub(invalid_chars, '_', filename)
+
+        # Remove leading/trailing whitespace and periods
+        # (Windows doesn't allow filenames ending with periods)
+        sanitized = sanitized.strip('. ')
+
+        # Ensure the filename isn't empty after sanitization
+        if not sanitized:
+            sanitized = "unnamed_file"
+
+        # Ensure the filename isn't a reserved name on Windows
+        if self.is_windows and sanitized.upper() in (
+            "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
+            "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
+            "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+        ):
+            sanitized = f"_{sanitized}"
+
+        return sanitized
+
+    def sanitize_path(self, path: Union[str, Path]) -> Path:
+        """
+        Sanitize a path to remove invalid characters and make it safe.
+
+        Args:
+            path: Path to sanitize
+
+        Returns:
+            Path: Sanitized path
+        """
+        try:
+            path = self.normalize_path(path)
+            parts = list(path.parts)
+
+            # Sanitize each part of the path
+            for i in range(len(parts)):
+                if i == 0 and path.is_absolute():
+                    # Don't sanitize the drive letter or root
+                    continue
+                parts[i] = self.sanitize_filename(parts[i])
+
+            # Reconstruct the path
+            if path.is_absolute():
+                sanitized_path = Path(*parts)
+            else:
+                sanitized_path = Path(*parts)
+
+            # Resolve the path to eliminate any remaining path traversal issues
+            # Only if the path exists or we're creating a new path
+            if sanitized_path.exists() or sanitized_path.parent.exists():
+                try:
+                    sanitized_path = sanitized_path.resolve()
+                except Exception:
+                    # If resolution fails, keep the sanitized path
+                    pass
+
+            return sanitized_path
+        except Exception as e:
+            self.logger.error(f"Error sanitizing path {path}: {str(e)}")
+            # Return a safe default path if sanitization fails
+            return Path(self.get_temp_dir() / "sanitized_path")
 
     def make_relative(self, path: Union[str, Path], base: Union[str, Path]) -> Path:
         """
@@ -1321,6 +1497,46 @@ def is_absolute_path(path):
         bool: True if the path is absolute, False otherwise
     """
     return get_path_manager().is_absolute_path(path)
+
+
+def sanitize_filename(filename):
+    """
+    Sanitize a filename to remove invalid characters.
+
+    Args:
+        filename: Filename to sanitize
+
+    Returns:
+        str: Sanitized filename
+    """
+    return get_path_manager().sanitize_filename(filename)
+
+
+def sanitize_path(path):
+    """
+    Sanitize a path to remove invalid characters and make it safe.
+
+    Args:
+        path: Path to sanitize
+
+    Returns:
+        Path: Sanitized path
+    """
+    return get_path_manager().sanitize_path(path)
+
+
+def is_safe_path(base_path, path):
+    """
+    Check if a path is safe (doesn't escape the base path).
+
+    Args:
+        base_path: The base path that should contain the path
+        path: The path to check
+
+    Returns:
+        bool: True if the path is safe, False otherwise
+    """
+    return get_path_manager().is_safe_path(base_path, path)
 
 
 def make_relative(path, base):

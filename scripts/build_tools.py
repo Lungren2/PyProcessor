@@ -40,7 +40,9 @@ from pyprocessor.utils.logging.log_manager import get_logger
 
 # Import path utilities if available
 try:
-    from pyprocessor.utils.file_system.path_utils import ensure_dir_exists, file_exists, copy_file
+    from pyprocessor.utils.file_system.path_manager import (
+        ensure_dir_exists, file_exists, copy_file
+    )
 except ImportError:
     # If the module is not installed yet, define simple versions
     def ensure_dir_exists(path):
@@ -56,6 +58,10 @@ except ImportError:
     def copy_file(src, dst):
         """Copy a file from source to destination."""
         return Path(shutil.copy2(src, dst))
+
+    def normalize_path(path):
+        """Normalize a path string to use the correct path separators."""
+        return Path(path)
 
 
 #
@@ -339,7 +345,7 @@ def find_nsis():
         import winreg
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\NSIS") as key:
             nsis_path = winreg.QueryValueEx(key, "")[0]
-            makensis_path = os.path.join(nsis_path, "makensis.exe")
+            makensis_path = Path(nsis_path) / "makensis.exe"
 
             if file_exists(makensis_path):
                 return makensis_path

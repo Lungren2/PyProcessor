@@ -25,6 +25,7 @@ from contextlib import contextmanager
 from pyprocessor.utils.log_manager import get_logger
 from pyprocessor.utils.path_manager import get_temp_dir, normalize_path
 from pyprocessor.utils.error_manager import with_error_handling, PyProcessorError, ErrorSeverity
+from pyprocessor.utils.security.process_sandbox import run_sandboxed_process, terminate_sandboxed_process
 
 
 class ProcessError(PyProcessorError):
@@ -561,6 +562,131 @@ class ProcessManager:
                 result.append(info)
 
             return result
+
+    @with_error_handling
+    def run_sandboxed_process(self, cmd: List[str],
+                           cwd: Optional[Union[str, Path]] = None,
+                           env: Optional[Dict[str, str]] = None,
+                           input_data: Optional[str] = None,
+                           process_id: Optional[str] = None,
+                           wait: bool = True,
+                           timeout: Optional[float] = None,
+                           sandbox_policy=None) -> Union[Dict[str, Any], str]:
+        """
+        Run a process in a sandbox with security restrictions.
+
+        Args:
+            cmd: Command to run as a list of strings
+            cwd: Working directory for the command
+            env: Environment variables for the command
+            input_data: Input data to pass to the process
+            process_id: Optional ID for the process (auto-generated if None)
+            wait: Whether to wait for the process to complete
+            timeout: Timeout in seconds
+            sandbox_policy: Optional sandbox policy to use
+
+        Returns:
+            If wait=True, returns a dictionary with process information.
+            If wait=False, returns the process ID as a string.
+        """
+        # Generate process ID if not provided
+        if process_id is None:
+            process_id = str(uuid.uuid4())
+
+        # Normalize working directory if provided
+        if cwd is not None:
+            cwd = str(normalize_path(cwd))
+
+        # Log the command
+        cmd_str = " ".join(cmd) if isinstance(cmd, list) else cmd
+        self.logger.debug(f"Running sandboxed process: {cmd_str}", process_id=process_id)
+
+        try:
+            # Run the process in a sandbox
+            result = run_sandboxed_process(
+                cmd=cmd,
+                cwd=cwd,
+                env=env,
+                input_data=input_data,
+                process_id=process_id,
+                wait=wait,
+                timeout=timeout,
+                policy=sandbox_policy
+            )
+
+            # If wait=True, result is a dict with process information
+            if wait:
+                # Log completion
+                self.logger.debug(
+                    f"Sandboxed process completed with exit code {result.get('exit_code')}",
+                    process_id=process_id,
+                    duration=result.get('duration'),
+                    exit_code=result.get('exit_code'),
+                )
+            else:
+                # If wait=False, result is the process ID
+                self.logger.debug(f"Started sandboxed process with ID {result}", process_id=result)
+
+            return result
+
+        except Exception as e:
+            # Process failed to start or other error
+            self.logger.error(
+                f"Sandboxed process error: {str(e)}",
+                process_id=process_id,
+                error=str(e),
+            )
+
+            raise ProcessError(
+                f"Sandboxed process error: {str(e)}",
+                severity=ErrorSeverity.ERROR,
+                original_exception=e,
+                details={
+                    "process_id": process_id,
+                    "command": cmd,
+                }
+            )
+
+    @with_error_handling
+    def terminate_sandboxed_process(self, process_id: str, timeout: float = 5.0) -> bool:
+        """
+        Terminate a sandboxed process.
+
+        Args:
+            process_id: ID of the process to terminate
+            timeout: Timeout in seconds to wait for graceful termination
+
+        Returns:
+            True if the process was terminated, False if it was not found
+        """
+        self.logger.debug(f"Terminating sandboxed process {process_id}", process_id=process_id)
+
+        try:
+            # Terminate the sandboxed process
+            result = terminate_sandboxed_process(process_id, timeout)
+
+            if result:
+                self.logger.debug(f"Sandboxed process {process_id} terminated", process_id=process_id)
+            else:
+                self.logger.warning(f"Sandboxed process {process_id} not found", process_id=process_id)
+
+            return result
+
+        except Exception as e:
+            self.logger.error(
+                f"Error terminating sandboxed process: {str(e)}",
+                process_id=process_id,
+                error=str(e),
+            )
+
+            raise ProcessError(
+                f"Error terminating sandboxed process: {str(e)}",
+                severity=ErrorSeverity.ERROR,
+                original_exception=e,
+                details={
+                    "process_id": process_id,
+                }
+            )
 
     @with_error_handling
     def cleanup_processes(self) -> int:
@@ -1814,6 +1940,50 @@ def terminate_all_processes(timeout: float = 5.0) -> int:
         Number of processes terminated
     """
     return get_process_manager().terminate_all_processes(timeout)
+
+
+def run_sandboxed_process(cmd: List[str],
+                        cwd: Optional[Union[str, Path]] = None,
+                        env: Optional[Dict[str, str]] = None,
+                        input_data: Optional[str] = None,
+                        process_id: Optional[str] = None,
+                        wait: bool = True,
+                        timeout: Optional[float] = None,
+                        sandbox_policy=None) -> Union[Dict[str, Any], str]:
+    """
+    Run a process in a sandbox with security restrictions.
+
+    Args:
+        cmd: Command to run as a list of strings
+        cwd: Working directory for the command
+        env: Environment variables for the command
+        input_data: Input data to pass to the process
+        process_id: Optional ID for the process (auto-generated if None)
+        wait: Whether to wait for the process to complete
+        timeout: Timeout in seconds
+        sandbox_policy: Optional sandbox policy to use
+
+    Returns:
+        If wait=True, returns a dictionary with process information.
+        If wait=False, returns the process ID as a string.
+    """
+    return get_process_manager().run_sandboxed_process(
+        cmd, cwd, env, input_data, process_id, wait, timeout, sandbox_policy
+    )
+
+
+def terminate_sandboxed_process(process_id: str, timeout: float = 5.0) -> bool:
+    """
+    Terminate a sandboxed process.
+
+    Args:
+        process_id: ID of the process to terminate
+        timeout: Timeout in seconds to wait for graceful termination
+
+    Returns:
+        True if the process was terminated, False if it was not found
+    """
+    return get_process_manager().terminate_sandboxed_process(process_id, timeout)
 
 
 # Process Pool Management Functions

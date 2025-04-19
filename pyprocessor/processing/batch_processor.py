@@ -51,7 +51,9 @@ class BatchProcessor:
     def process_batch(self, files: List[Path], output_folder: Path,
                      ffmpeg_params: Dict[str, Any],
                      progress_callback: Optional[Callable] = None,
-                     output_file_callback: Optional[Callable] = None) -> List[Tuple[str, bool, float, str]]:
+                     output_file_callback: Optional[Callable] = None,
+                     encrypt_output: bool = False,
+                     encryption_key_id: Optional[str] = None) -> List[Tuple[str, bool, float, str]]:
         """
         Process a batch of video files.
 
@@ -77,7 +79,7 @@ class BatchProcessor:
 
         # Add files to processing queue
         for file in files:
-            self.processing_queue.put((file, output_folder, ffmpeg_params))
+            self.processing_queue.put((file, output_folder, ffmpeg_params, encrypt_output, encryption_key_id))
 
         # Start worker threads
         num_threads = min(len(files), self.batch_size)
@@ -136,7 +138,7 @@ class BatchProcessor:
             try:
                 # Get next file from queue with timeout to allow checking abort flag
                 try:
-                    file, output_folder, ffmpeg_params = self.processing_queue.get(timeout=0.5)
+                    file, output_folder, ffmpeg_params, encrypt_output, encryption_key_id = self.processing_queue.get(timeout=0.5)
                 except queue.Empty:
                     break
 
@@ -155,7 +157,9 @@ class BatchProcessor:
                         ffmpeg_params,
                         thread_id,
                         progress_callback=progress_callback,
-                        output_file_callback=output_file_callback
+                        output_file_callback=output_file_callback,
+                        encrypt_output=encrypt_output,
+                        encryption_key_id=encryption_key_id
                     )
 
                     # Add result to results queue

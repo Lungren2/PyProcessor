@@ -1,14 +1,9 @@
 """
-Cache utilities for PyProcessor.
-
-This module provides a centralized way to cache data, including:
-- Memory caching
-- Disk caching
-- Cache invalidation strategies
-- Cache statistics
+Simple test script for the enhanced caching system.
 """
 
 import os
+import sys
 import time
 import json
 import pickle
@@ -18,19 +13,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Callable
 
-from pyprocessor.utils.log_manager import get_logger
-from pyprocessor.utils.path_manager import get_user_cache_dir, ensure_dir_exists
-
-
+# Define the necessary classes for testing
 class CacheBackend(Enum):
     """Cache backend types."""
     MEMORY = "memory"
     DISK = "disk"
     MULTI = "multi"  # Multi-level cache (memory + disk)
-    # TODO: Add more backends (Redis, etc.)
-
-
-# This class is replaced by the more comprehensive CachePolicy class below
 
 
 class CachePolicy(Enum):
@@ -128,66 +116,27 @@ class CacheEntry:
         return now - self.last_accessed
 
 
-class CacheManager:
-    """
-    Centralized manager for caching operations.
+class SimpleCacheManager:
+    """A simplified version of the CacheManager for testing."""
 
-    This class provides:
-    - Memory caching
-    - Disk caching
-    - Cache invalidation strategies
-    - Cache statistics
-    """
-
-    _instance = None
-    _lock = threading.Lock()
-
-    def __new__(cls, *args, **kwargs):
-        with cls._lock:
-            if cls._instance is None:
-                cls._instance = super(CacheManager, cls).__new__(cls)
-                cls._instance._initialized = False
-            return cls._instance
-
-    def __init__(self, max_memory_size: int = 1000, max_disk_size: int = 1024 * 1024 * 100,
+    def __init__(self, max_memory_size: int = 100, max_disk_size: int = 1024 * 1024,
                  eviction_policy: CachePolicy = CachePolicy.LRU,
-                 default_ttl_strategy: TTLStrategy = TTLStrategy.FIXED,
-                 auto_adjust_sizes: bool = True):
-        """
-        Initialize the cache manager.
-
-        Args:
-            max_memory_size: Maximum number of items in memory cache
-            max_disk_size: Maximum size of disk cache in bytes (default: 100MB)
-            eviction_policy: Cache eviction policy to use
-            default_ttl_strategy: Default TTL strategy to use
-            auto_adjust_sizes: Whether to automatically adjust cache sizes based on system resources
-        """
-        # Only initialize once
-        if getattr(self, '_initialized', False):
-            return
-
-        # Get logger
-        self.logger = get_logger()
-
+                 default_ttl_strategy: TTLStrategy = TTLStrategy.FIXED):
+        """Initialize the cache manager."""
         # Initialize memory cache
         self._memory_cache: Dict[str, CacheEntry] = {}
         self.max_memory_size = max_memory_size
         self.current_memory_size = 0
 
         # Initialize disk cache
-        self.cache_dir = ensure_dir_exists(get_user_cache_dir() / "cache")
+        self.cache_dir = Path("./cache")
+        self.cache_dir.mkdir(exist_ok=True)
         self.max_disk_size = max_disk_size
         self.current_disk_size = self._calculate_disk_cache_size()
 
         # Set eviction policy and TTL strategy
         self.eviction_policy = eviction_policy
         self.default_ttl_strategy = default_ttl_strategy
-
-        # Auto-adjust settings
-        self.auto_adjust_sizes = auto_adjust_sizes
-        if auto_adjust_sizes:
-            self._adjust_cache_sizes()
 
         # Initialize statistics
         self._stats = {
@@ -204,69 +153,35 @@ class CacheManager:
             "invalidations": 0,
         }
 
-        # Initialize file watchers for cache invalidation
-        self._file_watchers: Dict[str, float] = {}
-        self._file_watcher_thread = None
-        self._file_watcher_running = False
-
-        # Initialize frequently accessed items tracking
+        # Initialize access frequency tracking
         self._access_frequency: Dict[str, int] = {}
         self._preloaded_keys: List[str] = []
 
-        # Mark as initialized
-        self._initialized = True
-        self.logger.debug("Cache manager initialized")
+    def _calculate_disk_cache_size(self) -> int:
+        """Calculate the current size of the disk cache."""
+        try:
+            cache_files = list(self.cache_dir.glob("*.cache"))
+            return sum(f.stat().st_size for f in cache_files)
+        except Exception as e:
+            print(f"Error calculating disk cache size: {str(e)}")
+            return 0
 
     def _get_disk_path(self, key: str) -> Path:
-        """
-        Get the disk path for a cache key.
-
-        Args:
-            key: Cache key
-
-        Returns:
-            Path: Path to the cache file
-        """
+        """Get the disk path for a cache key."""
         # Create a hash of the key to use as the filename
         key_hash = hashlib.md5(key.encode()).hexdigest()
         return self.cache_dir / f"{key_hash}.cache"
 
     def _serialize(self, value: Any) -> bytes:
-        """
-        Serialize a value for disk storage.
-
-        Args:
-            value: Value to serialize
-
-        Returns:
-            bytes: Serialized value
-        """
+        """Serialize a value for disk storage."""
         return pickle.dumps(value)
 
     def _deserialize(self, data: bytes) -> Any:
-        """
-        Deserialize a value from disk storage.
-
-        Args:
-            data: Serialized data
-
-        Returns:
-            Any: Deserialized value
-        """
+        """Deserialize a value from disk storage."""
         return pickle.loads(data)
 
     def get(self, key: str, default: Any = None, backend: CacheBackend = CacheBackend.MEMORY) -> Any:
-        """
-        Get a value from the cache.
-
-        Args:
-            key: Cache key
-            default: Default value if key not found
-            backend: Cache backend to use
-
-        Returns:
-            Any: Cached value or default
-        """
+        """Get a value from the cache."""
         # Track access frequency for preloading
         self._access_frequency[key] = self._access_frequency.get(key, 0) + 1
 
@@ -322,7 +237,7 @@ class CacheManager:
                     self._stats["disk_hits"] += 1
                     return self._deserialize(data)
                 except Exception as e:
-                    self.logger.error(f"Error reading from disk cache: {str(e)}")
+                    print(f"Error reading from disk cache: {str(e)}")
                     self.delete(key, backend)
 
             self._stats["disk_misses"] += 1
@@ -351,16 +266,7 @@ class CacheManager:
     def set(self, key: str, value: Any, ttl: Optional[int] = None,
             backend: CacheBackend = CacheBackend.MEMORY,
             ttl_strategy: Optional[TTLStrategy] = None) -> None:
-        """
-        Set a value in the cache.
-
-        Args:
-            key: Cache key
-            value: Value to cache
-            ttl: Time to live in seconds (None for no expiration)
-            backend: Cache backend to use
-            ttl_strategy: TTL strategy to use (None for default)
-        """
+        """Set a value in the cache."""
         # Use default TTL strategy if not specified
         if ttl_strategy is None:
             ttl_strategy = self.default_ttl_strategy
@@ -409,7 +315,7 @@ class CacheManager:
                 self._check_disk_cache_size()
 
             except Exception as e:
-                self.logger.error(f"Error writing to disk cache: {str(e)}")
+                print(f"Error writing to disk cache: {str(e)}")
 
         elif backend == CacheBackend.MULTI:
             # Set in both memory and disk cache
@@ -417,16 +323,7 @@ class CacheManager:
             self.set(key, value, ttl, CacheBackend.DISK, ttl_strategy)
 
     def delete(self, key: str, backend: CacheBackend = CacheBackend.MEMORY) -> bool:
-        """
-        Delete a value from the cache.
-
-        Args:
-            key: Cache key
-            backend: Cache backend to use
-
-        Returns:
-            bool: True if deleted, False if not found
-        """
+        """Delete a value from the cache."""
         result = False
 
         if backend == CacheBackend.MEMORY:
@@ -447,7 +344,7 @@ class CacheManager:
                     cache_path.unlink()
                     result = True
                 except Exception as e:
-                    self.logger.error(f"Error deleting from disk cache: {str(e)}")
+                    print(f"Error deleting from disk cache: {str(e)}")
 
         elif backend == CacheBackend.MULTI:
             # Delete from both memory and disk cache
@@ -470,17 +367,12 @@ class CacheManager:
         return result
 
     def clear(self, backend: Optional[CacheBackend] = None) -> None:
-        """
-        Clear the cache.
-
-        Args:
-            backend: Cache backend to clear (None for all)
-        """
+        """Clear the cache."""
         if backend is None or backend == CacheBackend.MEMORY or backend == CacheBackend.MULTI:
             # Clear memory cache
             self._memory_cache.clear()
             self.current_memory_size = 0
-            self.logger.debug("Memory cache cleared")
+            print("Memory cache cleared")
 
         if backend is None or backend == CacheBackend.DISK or backend == CacheBackend.MULTI:
             # Clear disk cache
@@ -488,20 +380,17 @@ class CacheManager:
                 for cache_file in self.cache_dir.glob("*.cache"):
                     cache_file.unlink()
                 self.current_disk_size = 0
-                self.logger.debug("Disk cache cleared")
+                print("Disk cache cleared")
             except Exception as e:
-                self.logger.error(f"Error clearing disk cache: {str(e)}")
+                print(f"Error clearing disk cache: {str(e)}")
 
         # Clear tracking data
         if backend is None:
             self._access_frequency.clear()
             self._preloaded_keys.clear()
-            self._file_watchers.clear()
 
     def _evict_memory_cache(self) -> None:
-        """
-        Evict items from the memory cache based on the configured eviction policy.
-        """
+        """Evict items from the memory cache based on the configured eviction policy."""
         if not self._memory_cache:
             return
 
@@ -535,9 +424,7 @@ class CacheManager:
             self._stats["memory_evictions"] += 1
 
     def _check_disk_cache_size(self) -> None:
-        """
-        Check disk cache size and evict if necessary based on the configured eviction policy.
-        """
+        """Check disk cache size and evict if necessary based on the configured eviction policy."""
         try:
             # Get all cache files
             cache_files = list(self.cache_dir.glob("*.cache"))
@@ -608,82 +495,16 @@ class CacheManager:
                     eviction_count += 1
                     self.current_disk_size -= stat["size"]
                 except Exception as e:
-                    self.logger.error(f"Error removing cache file: {str(e)}")
+                    print(f"Error removing cache file: {str(e)}")
 
             self._stats["disk_evictions"] += eviction_count
-            self.logger.debug(f"Evicted {eviction_count} files from disk cache")
+            print(f"Evicted {eviction_count} files from disk cache")
 
         except Exception as e:
-            self.logger.error(f"Error checking disk cache size: {str(e)}")
-
-    def get_stats(self) -> Dict[str, int]:
-        """
-        Get cache statistics.
-
-        Returns:
-            Dict[str, int]: Cache statistics
-        """
-        return self._stats.copy()
-
-    def reset_stats(self) -> None:
-        """
-        Reset cache statistics.
-        """
-        for key in self._stats:
-            self._stats[key] = 0
-
-    def _calculate_disk_cache_size(self) -> int:
-        """
-        Calculate the current size of the disk cache.
-
-        Returns:
-            int: Size in bytes
-        """
-        try:
-            cache_files = list(self.cache_dir.glob("*.cache"))
-            return sum(f.stat().st_size for f in cache_files)
-        except Exception as e:
-            self.logger.error(f"Error calculating disk cache size: {str(e)}")
-            return 0
-
-    def _adjust_cache_sizes(self) -> None:
-        """
-        Adjust cache sizes based on available system resources.
-        """
-        try:
-            import psutil
-
-            # Get system memory info
-            mem = psutil.virtual_memory()
-            total_memory = mem.total
-            available_memory = mem.available
-
-            # Adjust memory cache size (use up to 5% of available memory)
-            max_memory_items = int((available_memory * 0.05) / 1024)  # Rough estimate: 1KB per item
-            self.max_memory_size = max(1000, min(max_memory_items, 100000))  # Between 1K and 100K items
-
-            # Adjust disk cache size (use up to 1% of free disk space)
-            disk = psutil.disk_usage(self.cache_dir)
-            free_disk = disk.free
-            self.max_disk_size = max(100 * 1024 * 1024, min(free_disk * 0.01, 10 * 1024 * 1024 * 1024))  # Between 100MB and 10GB
-
-            self.logger.debug(f"Adjusted cache sizes: memory={self.max_memory_size} items, disk={self.max_disk_size/1024/1024:.1f}MB")
-        except ImportError:
-            self.logger.warning("psutil not available, using default cache sizes")
-        except Exception as e:
-            self.logger.error(f"Error adjusting cache sizes: {str(e)}")
+            print(f"Error checking disk cache size: {str(e)}")
 
     def preload_frequently_accessed(self, min_access_count: int = 5, max_items: int = 100) -> int:
-        """
-        Preload frequently accessed items into memory cache.
-
-        Args:
-            min_access_count: Minimum access count to consider an item frequently accessed
-            max_items: Maximum number of items to preload
-
-        Returns:
-            int: Number of items preloaded
-        """
+        """Preload frequently accessed items into memory cache."""
         # Get frequently accessed items
         frequent_items = [(k, v) for k, v in self._access_frequency.items() if v >= min_access_count]
         frequent_items.sort(key=lambda x: x[1], reverse=True)  # Sort by access count (highest first)
@@ -707,258 +528,127 @@ class CacheManager:
 
         return preloaded
 
-    def watch_file(self, file_path: Union[str, Path], key_prefix: str = "") -> None:
-        """
-        Watch a file for changes and invalidate related cache entries when it changes.
-
-        Args:
-            file_path: Path to the file to watch
-            key_prefix: Prefix for cache keys to invalidate
-        """
-        file_path = Path(file_path)
-        if not file_path.exists():
-            self.logger.warning(f"Cannot watch non-existent file: {file_path}")
-            return
-
-        # Store the file's last modification time
-        self._file_watchers[str(file_path)] = file_path.stat().st_mtime
-
-        # Start the file watcher thread if not already running
-        self._start_file_watcher()
-
-    def _start_file_watcher(self) -> None:
-        """
-        Start the file watcher thread if not already running.
-        """
-        if self._file_watcher_thread is not None and self._file_watcher_running:
-            return
-
-        self._file_watcher_running = True
-        self._file_watcher_thread = threading.Thread(target=self._file_watcher_loop, daemon=True)
-        self._file_watcher_thread.start()
-
-    def _file_watcher_loop(self) -> None:
-        """
-        Loop that checks for file changes and invalidates cache entries.
-        """
-        while self._file_watcher_running:
-            try:
-                # Check each watched file
-                for file_path_str, last_mtime in list(self._file_watchers.items()):
-                    file_path = Path(file_path_str)
-                    if not file_path.exists():
-                        # File was deleted, remove from watchers
-                        del self._file_watchers[file_path_str]
-                        continue
-
-                    # Check if file was modified
-                    current_mtime = file_path.stat().st_mtime
-                    if current_mtime > last_mtime:
-                        # File was modified, invalidate related cache entries
-                        self._invalidate_for_file(file_path_str)
-                        # Update last modification time
-                        self._file_watchers[file_path_str] = current_mtime
-            except Exception as e:
-                self.logger.error(f"Error in file watcher: {str(e)}")
-
-            # Sleep for a bit
-            time.sleep(5)  # Check every 5 seconds
-
-    def _invalidate_for_file(self, file_path: str) -> None:
-        """
-        Invalidate cache entries related to a file.
-
-        Args:
-            file_path: Path to the file
-        """
-        # Find cache keys that contain the file path
-        keys_to_invalidate = []
-
-        # Check memory cache
-        for key in list(self._memory_cache.keys()):
-            if file_path in key:
-                keys_to_invalidate.append(key)
-
-        # Invalidate found keys
-        for key in keys_to_invalidate:
-            self.delete(key, CacheBackend.MULTI)
-
-        self.logger.debug(f"Invalidated {len(keys_to_invalidate)} cache entries for file: {file_path}")
-
-    def stop_file_watcher(self) -> None:
-        """
-        Stop the file watcher thread.
-        """
-        self._file_watcher_running = False
-        if self._file_watcher_thread is not None:
-            self._file_watcher_thread.join(timeout=1)
-            self._file_watcher_thread = None
+    def get_stats(self) -> Dict[str, int]:
+        """Get cache statistics."""
+        return self._stats.copy()
 
 
-# Singleton instance
-_cache_manager = None
+def test_cache():
+    """Test the enhanced caching system."""
+    print("Testing Enhanced Caching System")
+    print("==============================")
+    
+    # Create a cache manager instance
+    cache_manager = SimpleCacheManager(
+        max_memory_size=100,
+        max_disk_size=1024 * 1024,  # 1MB
+        eviction_policy=CachePolicy.LRU,
+        default_ttl_strategy=TTLStrategy.FIXED
+    )
+    
+    # Test memory caching
+    print("\n1. Memory Caching")
+    cache_manager.set("test_key", "test_value", backend=CacheBackend.MEMORY)
+    value = cache_manager.get("test_key", backend=CacheBackend.MEMORY)
+    print(f"Memory cache test: {'PASS' if value == 'test_value' else 'FAIL'}")
+    
+    # Test disk caching
+    print("\n2. Disk Caching")
+    cache_manager.set("test_key_disk", "test_value_disk", backend=CacheBackend.DISK)
+    value = cache_manager.get("test_key_disk", backend=CacheBackend.DISK)
+    print(f"Disk cache test: {'PASS' if value == 'test_value_disk' else 'FAIL'}")
+    
+    # Test multi-level caching
+    print("\n3. Multi-level Caching")
+    cache_manager.set("test_key_multi", "test_value_multi", backend=CacheBackend.MULTI)
+    
+    # Clear memory cache to test fallback
+    cache_manager._memory_cache.clear()
+    
+    # Should get from disk and promote to memory
+    value = cache_manager.get("test_key_multi", backend=CacheBackend.MULTI)
+    print(f"Multi-level cache test: {'PASS' if value == 'test_value_multi' else 'FAIL'}")
+    
+    # Should now be in memory
+    in_memory = "test_key_multi" in cache_manager._memory_cache
+    print(f"Promotion to memory test: {'PASS' if in_memory else 'FAIL'}")
+    
+    # Test TTL
+    print("\n4. TTL Test")
+    cache_manager.set("test_key_ttl", "test_value_ttl", ttl=2, backend=CacheBackend.MEMORY)
+    value1 = cache_manager.get("test_key_ttl", backend=CacheBackend.MEMORY)
+    print(f"Initial TTL test: {'PASS' if value1 == 'test_value_ttl' else 'FAIL'}")
+    
+    print("Waiting for TTL expiration...")
+    time.sleep(3)
+    
+    value2 = cache_manager.get("test_key_ttl", backend=CacheBackend.MEMORY)
+    print(f"After TTL test: {'PASS' if value2 is None else 'FAIL'}")
+    
+    # Test sliding TTL
+    print("\n5. Sliding TTL Test")
+    cache_manager.set("test_key_sliding", "test_value_sliding", ttl=3, 
+                     ttl_strategy=TTLStrategy.SLIDING, backend=CacheBackend.MEMORY)
+    
+    # Access to reset the TTL
+    for i in range(2):
+        print(f"Access {i+1}...")
+        value = cache_manager.get("test_key_sliding", backend=CacheBackend.MEMORY)
+        print(f"Value: {value}")
+        time.sleep(2)  # Wait 2 seconds (TTL is 3 seconds)
+    
+    # Should still be valid because of sliding TTL
+    value = cache_manager.get("test_key_sliding", backend=CacheBackend.MEMORY)
+    print(f"Sliding TTL test: {'PASS' if value == 'test_value_sliding' else 'FAIL'}")
+    
+    # Test eviction policy
+    print("\n6. Eviction Policy Test")
+    # Fill the cache to trigger eviction
+    for i in range(110):  # Cache size is 100
+        cache_manager.set(f"eviction_test_{i}", f"value_{i}", backend=CacheBackend.MEMORY)
+    
+    # Check if eviction happened
+    cache_size = len(cache_manager._memory_cache)
+    print(f"Cache size after filling: {cache_size}")
+    print(f"Eviction test: {'PASS' if cache_size <= 100 else 'FAIL'}")
+    
+    # Test preloading
+    print("\n7. Preloading Test")
+    # Cache items to disk
+    for i in range(10):
+        cache_manager.set(f"preload_test_{i}", f"value_{i}", backend=CacheBackend.DISK)
+    
+    # Access some items multiple times
+    for _ in range(5):
+        for i in [2, 5, 8]:
+            cache_manager._access_frequency[f"preload_test_{i}"] = 5
+    
+    # Clear memory cache
+    cache_manager._memory_cache.clear()
+    
+    # Preload
+    preloaded = cache_manager.preload_frequently_accessed(min_access_count=5, max_items=3)
+    print(f"Preloaded {preloaded} items")
+    
+    # Check which items were preloaded
+    preloaded_keys = [key for key in cache_manager._memory_cache.keys() if key.startswith("preload_test_")]
+    print(f"Preloaded keys: {preloaded_keys}")
+    print(f"Preloading test: {'PASS' if len(preloaded_keys) == 3 else 'FAIL'}")
+    
+    # Print statistics
+    stats = cache_manager.get_stats()
+    print("\nCache Statistics:")
+    for key, value in stats.items():
+        print(f"{key}: {value}")
+    
+    # Clean up
+    cache_manager.clear()
+    try:
+        os.rmdir("./cache")
+    except:
+        pass
+    
+    print("\nAll tests completed")
 
-
-def get_cache_manager() -> CacheManager:
-    """
-    Get the singleton cache manager instance.
-
-    Returns:
-        CacheManager: The singleton cache manager instance
-    """
-    global _cache_manager
-    if _cache_manager is None:
-        _cache_manager = CacheManager()
-    return _cache_manager
-
-
-# Module-level functions for convenience
-
-def cache_get(key: str, default: Any = None, backend: CacheBackend = CacheBackend.MEMORY) -> Any:
-    """
-    Get a value from the cache.
-
-    Args:
-        key: Cache key
-        default: Default value if key not found
-        backend: Cache backend to use
-
-    Returns:
-        Any: Cached value or default
-    """
-    return get_cache_manager().get(key, default, backend)
-
-
-def cache_set(key: str, value: Any, ttl: Optional[int] = None,
-             backend: CacheBackend = CacheBackend.MEMORY,
-             ttl_strategy: Optional[TTLStrategy] = None) -> None:
-    """
-    Set a value in the cache.
-
-    Args:
-        key: Cache key
-        value: Value to cache
-        ttl: Time to live in seconds (None for no expiration)
-        backend: Cache backend to use
-        ttl_strategy: TTL strategy to use (None for default)
-    """
-    return get_cache_manager().set(key, value, ttl, backend, ttl_strategy)
-
-
-def cache_delete(key: str, backend: CacheBackend = CacheBackend.MEMORY) -> bool:
-    """
-    Delete a value from the cache.
-
-    Args:
-        key: Cache key
-        backend: Cache backend to use
-
-    Returns:
-        bool: True if deleted, False if not found
-    """
-    return get_cache_manager().delete(key, backend)
-
-
-def cache_clear(backend: Optional[CacheBackend] = None) -> None:
-    """
-    Clear the cache.
-
-    Args:
-        backend: Cache backend to clear (None for all)
-    """
-    return get_cache_manager().clear(backend)
-
-
-def get_cache_stats() -> Dict[str, int]:
-    """
-    Get cache statistics.
-
-    Returns:
-        Dict[str, int]: Cache statistics
-    """
-    return get_cache_manager().get_stats()
-
-
-def reset_cache_stats() -> None:
-    """
-    Reset cache statistics.
-    """
-    return get_cache_manager().reset_stats()
-
-
-def preload_cache(min_access_count: int = 5, max_items: int = 100) -> int:
-    """
-    Preload frequently accessed items into memory cache.
-
-    Args:
-        min_access_count: Minimum access count to consider an item frequently accessed
-        max_items: Maximum number of items to preload
-
-    Returns:
-        int: Number of items preloaded
-    """
-    return get_cache_manager().preload_frequently_accessed(min_access_count, max_items)
-
-
-def watch_file(file_path: Union[str, Path], key_prefix: str = "") -> None:
-    """
-    Watch a file for changes and invalidate related cache entries when it changes.
-
-    Args:
-        file_path: Path to the file to watch
-        key_prefix: Prefix for cache keys to invalidate
-    """
-    return get_cache_manager().watch_file(file_path, key_prefix)
-
-
-def stop_file_watcher() -> None:
-    """
-    Stop the file watcher thread.
-    """
-    return get_cache_manager().stop_file_watcher()
-
-
-# Decorator for caching function results
-def cached(ttl: Optional[int] = None, key_prefix: str = "",
-          backend: CacheBackend = CacheBackend.MEMORY,
-          ttl_strategy: Optional[TTLStrategy] = None):
-    """
-    Decorator for caching function results.
-
-    Args:
-        ttl: Time to live in seconds (None for no expiration)
-        key_prefix: Prefix for cache keys
-        backend: Cache backend to use
-
-    Returns:
-        Callable: Decorated function
-    """
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            # Create a cache key from the function name and arguments
-            key_parts = [key_prefix or func.__name__]
-
-            # Add positional arguments
-            for arg in args:
-                key_parts.append(str(arg))
-
-            # Add keyword arguments (sorted for consistency)
-            for k in sorted(kwargs.keys()):
-                key_parts.append(f"{k}={kwargs[k]}")
-
-            cache_key = ":".join(key_parts)
-
-            # Try to get from cache
-            cached_value = cache_get(cache_key, backend=backend)
-            if cached_value is not None:
-                return cached_value
-
-            # Call the function
-            result = func(*args, **kwargs)
-
-            # Cache the result
-            cache_set(cache_key, result, ttl, backend, ttl_strategy)
-
-            return result
-        return wrapper
-    return decorator
+if __name__ == "__main__":
+    test_cache()

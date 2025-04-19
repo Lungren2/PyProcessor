@@ -39,7 +39,7 @@ class ConfigSchema:
         Returns:
             Dict[str, Any]: Configuration schema
         """
-        from pyprocessor.utils.path_manager import get_default_media_root
+        from pyprocessor.utils.file_system.path_manager import get_default_media_root
         import multiprocessing
 
         # Calculate default parallel jobs
@@ -370,6 +370,52 @@ class ConfigSchema:
                                 "default": False,
                                 "description": "Whether to apply changes to the server",
                                 "env_var": "PYPROCESSOR_LINUX_APPLY_CHANGES",
+                            },
+                        },
+                    },
+                },
+            },
+            "security": {
+                "type": ConfigValueType.OBJECT,
+                "description": "Security settings",
+                "properties": {
+                    "encryption": {
+                        "type": ConfigValueType.OBJECT,
+                        "description": "Content encryption settings",
+                        "properties": {
+                            "enabled": {
+                                "type": ConfigValueType.BOOLEAN,
+                                "default": False,
+                                "description": "Whether content encryption is enabled",
+                                "env_var": "PYPROCESSOR_ENCRYPTION_ENABLED",
+                            },
+                            "encrypt_output": {
+                                "type": ConfigValueType.BOOLEAN,
+                                "default": False,
+                                "description": "Whether to encrypt output files by default",
+                                "env_var": "PYPROCESSOR_ENCRYPT_OUTPUT",
+                            },
+                            "keys_dir": {
+                                "type": ConfigValueType.PATH,
+                                "default": str(media_root / "security" / "keys"),
+                                "description": "Directory for storing encryption keys",
+                                "env_var": "PYPROCESSOR_KEYS_DIR",
+                            },
+                            "key_rotation_interval_days": {
+                                "type": ConfigValueType.INTEGER,
+                                "default": 90,
+                                "description": "Number of days before rotating encryption keys",
+                                "min": 1,
+                                "max": 365,
+                                "env_var": "PYPROCESSOR_KEY_ROTATION_INTERVAL_DAYS",
+                            },
+                            "pbkdf2_iterations": {
+                                "type": ConfigValueType.INTEGER,
+                                "default": 100000,
+                                "description": "Number of iterations for PBKDF2 key derivation",
+                                "min": 10000,
+                                "max": 1000000,
+                                "env_var": "PYPROCESSOR_PBKDF2_ITERATIONS",
                             },
                         },
                     },

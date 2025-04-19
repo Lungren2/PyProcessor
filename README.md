@@ -14,6 +14,7 @@ A cross-platform Python application for media processing and HLS encoding based 
 - **Detailed Logging**: Comprehensive logging system
 - **Server Optimization**: Tools for IIS (Windows), Nginx (Linux/macOS), and other systems
 - **HTTP/3 Support**: Modern protocol support with Alt-Svc headers for auto-upgrading
+- **Content Encryption**: AES-256 encryption for protecting sensitive media files
 
 ## Requirements
 
@@ -165,6 +166,11 @@ Available command-line options:
 --output-config      Output path for server configuration (for Nginx)
 --server-name        Server name for configuration (for Nginx)
 --apply-changes      Apply changes directly (for Linux)
+
+# Security Options
+--enable-encryption  Enable content encryption
+--encrypt-output     Encrypt output files
+--encryption-key     Encryption key ID to use
 ```
 
 ## Configuration
@@ -196,6 +202,10 @@ The application uses a configuration system that supports:
   - HTTP/3 support with Alt-Svc headers for auto-upgrading
   - Server-specific configuration options
   - Network and performance optimizations
+- **Security**:
+  - Content encryption with AES-256
+  - Key management and rotation
+  - Password-based encryption
 
 ### Configuration Files
 
@@ -228,6 +238,7 @@ For detailed information about development, please refer to the documentation in
 - [API Reference](docs/api/API_REFERENCE.md) - Reference for the PyProcessor API
 - [Path Handling](docs/developer/PATH_HANDLING.md) - How paths and environment variables are handled
 - [Application Context](docs/developer/APPLICATION_CONTEXT.md) - How application state and lifecycle are managed
+- [Content Encryption](docs/security/CONTENT_ENCRYPTION.md) - How content encryption works
 
 ### Development Setup
 
@@ -277,6 +288,7 @@ When a task is completed, simply remove its corresponding file from the `docs/to
 
 - ✅ Implement intelligent batch processing with dynamic sizing based on system resources
 - ✅ Create a resource monitoring and allocation system for optimal hardware utilization
+- ✅ Implement AES-256 content encryption for protecting sensitive media files
 
 ### In Progress
 
