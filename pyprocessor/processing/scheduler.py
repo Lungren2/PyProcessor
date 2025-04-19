@@ -13,6 +13,7 @@ import sys
 from tqdm import tqdm
 
 from pyprocessor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
+from pyprocessor.utils.scheduler_manager import get_scheduler_manager, schedule_task, wait_for_task
 
 # Global queues that will be shared between processes
 progress_queue = None
@@ -463,76 +464,87 @@ class ProcessingScheduler:
             )
             output_files_thread.start()
 
-            # Process files in parallel using ProcessPoolExecutor
-            with ProcessPoolExecutor(
-                max_workers=self.config.max_parallel_jobs
-            ) as executor:
-                # Submit all tasks
-                futures = []
-                for i, file in enumerate(valid_files):
-                    # Pass serializable parameters to the worker function
-                    future = executor.submit(
-                        process_video_task,
-                        str(file),  # Convert Path to string for pickling
-                        str(self.config.output_folder),
-                        self.config.ffmpeg_params,
-                        i,  # Task ID for progress tracking
+            # Get the scheduler manager
+            scheduler = get_scheduler_manager()
+
+            # Define task callback function
+            def task_callback(task_id, success, result):
+                if not success:
+                    self.logger.error(f"Task {task_id} failed: {result}")
+                    return
+
+                filename, success, duration, error_msg = result
+
+                # Update progress counter
+                with self.lock:
+                    self.processed_count += 1
+                    current = self.processed_count
+
+                # Call progress callback if set - this is for overall progress
+                # File-level progress is handled by the progress_queue thread
+                if self.progress_callback:
+                    self.progress_callback(
+                        filename, 100, current, self.total_files
                     )
-                    futures.append(future)
 
-                # Process results as they complete
-                successful_count = 0
-                failed_count = 0
+                # Update overall progress bar
+                if hasattr(self, 'progress_bars') and 'overall' in self.progress_bars:
+                    self.progress_bars['overall'].update(1)
+                    self.progress_bars['file'].reset()
+                    self.progress_bars['file'].set_description(f"Completed: {filename}")
 
-                for future in futures:
-                    # Check for abort
-                    if self.abort_requested:
-                        executor.shutdown(wait=False)
-                        self.logger.warning("Processing aborted by user")
-                        self.is_running = False
-                        return False
+                if success:
+                    self.logger.info(
+                        f"Completed processing: {filename} ({duration:.2f}s)"
+                    )
+                else:
+                    if error_msg:
+                        self.logger.error(
+                            f"Error processing {filename}: {error_msg}"
+                        )
+                    else:
+                        self.logger.error(f"Failed to process: {filename}")
 
-                    try:
-                        filename, success, duration, error_msg = future.result()
+            # Schedule tasks for all files
+            task_ids = []
+            for i, file in enumerate(valid_files):
+                # Schedule the task
+                task_id = schedule_task(
+                    process_video_task,
+                    str(file),  # Convert Path to string for pickling
+                    str(self.config.output_folder),
+                    self.config.ffmpeg_params,
+                    i,  # Task ID for progress tracking
+                    callback=task_callback,
+                    priority=i  # Lower index = higher priority
+                )
+                task_ids.append(task_id)
 
-                        # Update progress counter
-                        with self.lock:
-                            self.processed_count += 1
-                            current = self.processed_count
+            # Wait for all tasks to complete or abort
+            successful_count = 0
+            failed_count = 0
 
-                        # Call progress callback if set - this is for overall progress
-                        # File-level progress is handled by the progress_queue thread
-                        if self.progress_callback:
-                            self.progress_callback(
-                                filename, 100, current, self.total_files
-                            )
+            for task_id in task_ids:
+                # Check for abort
+                if self.abort_requested:
+                    # Cancel remaining tasks
+                    for tid in task_ids:
+                        scheduler.cancel_task(tid)
+                    self.logger.warning("Processing aborted by user")
+                    self.is_running = False
+                    return False
 
-                        # Update overall progress bar
-                        if hasattr(self, 'progress_bars') and 'overall' in self.progress_bars:
-                            self.progress_bars['overall'].update(1)
-                            self.progress_bars['file'].reset()
-                            self.progress_bars['file'].set_description(f"Completed: {filename}")
+                # Wait for the task to complete
+                result = wait_for_task(task_id)
 
-                        if success:
-                            self.logger.info(
-                                f"Completed processing: {filename} ({duration:.2f}s)"
-                            )
-                            successful_count += 1
-                        else:
-                            if error_msg:
-                                self.logger.error(
-                                    f"Error processing {filename}: {error_msg}"
-                                )
-                            else:
-                                self.logger.error(f"Failed to process: {filename}")
-                            failed_count += 1
-
-                    except Exception as e:
-                        self.logger.error(f"Error in processing task: {str(e)}")
+                if result is not None:
+                    filename, success, duration, error_msg = result
+                    if success:
+                        successful_count += 1
+                    else:
                         failed_count += 1
 
             # Clean up the queues
-            # global progress_queue, output_files_queue
             progress_queue = None
             output_files_queue = None
 

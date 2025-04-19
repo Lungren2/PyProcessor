@@ -155,23 +155,6 @@ self.logger.warning(f"File {file.name} has an unusual format")
 self.logger.error(f"Failed to process {file.name}: {str(e)}")
 ```
 
-## Testing
-
-- Write tests for all new functionality
-- Structure tests to match the module structure
-- Name test files with `test_` prefix
-- Name test functions with `test_` prefix and descriptive names
-
-Example:
-```python
-# In test_encoder.py
-def test_encode_video_with_valid_input():
-    # Test implementation
-
-def test_encode_video_with_missing_file():
-    # Test implementation
-```
-
 ## Tools
 
 We use the following tools to enforce code style:

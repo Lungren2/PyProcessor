@@ -1,9 +1,7 @@
-import re
-import subprocess
-import time
 from pathlib import Path
 
-from pyprocessor.utils.ffmpeg_locator import get_ffmpeg_path, get_ffprobe_path
+# Import the FFmpegManager
+from pyprocessor.utils.media.ffmpeg_manager import FFmpegManager
 
 
 class FFmpegEncoder:
@@ -12,52 +10,16 @@ class FFmpegEncoder:
     def __init__(self, config, logger):
         self.config = config
         self.logger = logger
-        self.process = None
+        self.ffmpeg = FFmpegManager(logger)
         self.encoding_progress = 0
 
     def check_ffmpeg(self):
         """Check if FFmpeg is installed and available"""
-        try:
-            ffmpeg_path = get_ffmpeg_path()
-            result = subprocess.run(
-                [ffmpeg_path, "-version"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=5,
-            )
-            if "ffmpeg version" in result.stdout:
-                self.logger.info(f"Found FFmpeg: {result.stdout.split(chr(10))[0]}")
-                return True
-            return False
-        except (subprocess.SubprocessError, FileNotFoundError) as e:
-            self.logger.error(f"FFmpeg check failed: {str(e)}")
-            return False
+        return self.ffmpeg.check_ffmpeg()
 
     def has_audio(self, file_path):
         """Check if the video file has audio streams"""
-        try:
-            ffprobe_path = get_ffprobe_path()
-            result = subprocess.run(
-                [
-                    ffprobe_path,
-                    "-i",
-                    str(file_path),
-                    "-show_streams",
-                    "-select_streams",
-                    "a",
-                    "-loglevel",
-                    "error",
-                ],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=10,
-            )
-            return bool(result.stdout.strip())
-        except subprocess.SubprocessError as e:
-            self.logger.error(f"Error checking audio streams: {str(e)}")
-            return False
+        return self.ffmpeg.has_audio(file_path)
 
     def build_command(self, input_file, output_folder):
         """Build FFmpeg command for HLS encoding with audio option"""
@@ -77,9 +39,8 @@ class FFmpegEncoder:
         filter_complex = "[0:v]split=4[v1][v2][v3][v4];[v1]scale=1920:1080[v1out];[v2]scale=1280:720[v2out];[v3]scale=854:480[v3out];[v4]scale=640:360[v4out]"
 
         # Build FFmpeg command
-        ffmpeg_path = get_ffmpeg_path()
         cmd = [
-            ffmpeg_path,
+            self.ffmpeg.get_ffmpeg_path(),
             "-hide_banner",
             "-loglevel",
             "info",
@@ -192,51 +153,16 @@ class FFmpegEncoder:
 
             # Build command
             cmd = self.build_command(input_file, output_folder)
-            self.logger.debug(f"Executing: {' '.join(cmd)}")
 
-            # Execute FFmpeg
-            self.process = subprocess.Popen(
+            # Execute FFmpeg command using the FFmpegManager
+            success = self.ffmpeg.execute_command(
                 cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                universal_newlines=True,
-                bufsize=1,  # Line buffered
+                input_file=input_file.name,
+                output_folder=output_folder,
+                progress_callback=progress_callback
             )
 
-            # Process stderr in real-time to extract progress
-            duration_regex = re.compile(r"Duration: (\d{2}):(\d{2}):(\d{2})\.(\d{2})")
-            time_regex = re.compile(r"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})")
-            duration_seconds = 0
-
-            # Read and process stderr line by line
-            for line in self.process.stderr:
-                # Extract total duration
-                duration_match = duration_regex.search(line)
-                if duration_match:
-                    h, m, s, ms = map(int, duration_match.groups())
-                    duration_seconds = h * 3600 + m * 60 + s + ms / 100
-                    continue
-
-                # Extract current time
-                time_match = time_regex.search(line)
-                if time_match and duration_seconds > 0 and progress_callback:
-                    h, m, s, ms = map(int, time_match.groups())
-                    current_seconds = h * 3600 + m * 60 + s + ms / 100
-                    progress = min(int((current_seconds / duration_seconds) * 100), 100)
-                    progress_callback(input_file.name, progress)
-
-            # Wait for process to complete
-            self.process.wait()
-
-            # Check for errors
-            if self.process.returncode != 0:
-                error_message = ""
-                for line in self.process.stderr:
-                    error_message += line
-                self.logger.error(
-                    f"FFmpeg error encoding {input_file.name}: {error_message}"
-                )
+            if not success:
                 return False
 
             # Check if output files were created
@@ -247,10 +173,6 @@ class FFmpegEncoder:
                 )
                 return False
 
-            # Ensure we report 100% at the end
-            if progress_callback:
-                progress_callback(input_file.name, 100)
-
             self.logger.info(f"Successfully encoded {input_file.name}")
             return True
 
@@ -260,27 +182,4 @@ class FFmpegEncoder:
 
     def terminate(self):
         """Terminate any active FFmpeg process"""
-        if self.process and self.process.poll() is None:
-            try:
-                self.logger.info("Terminating active FFmpeg process")
-                self.process.terminate()
-
-                # Wait up to 5 seconds for graceful termination
-                for _ in range(50):
-                    if self.process.poll() is not None:
-                        break
-                    time.sleep(0.1)
-
-                # Force kill if still running
-                if self.process.poll() is None:
-                    self.logger.warning(
-                        "FFmpeg process did not terminate gracefully, force killing"
-                    )
-                    self.process.kill()
-                    self.process.wait()
-
-                return True
-            except Exception as e:
-                self.logger.error(f"Error terminating FFmpeg process: {str(e)}")
-                return False
-        return False
+        return self.ffmpeg.terminate()

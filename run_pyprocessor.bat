@@ -1,3 +1,0 @@
-@echo off
-echo Starting PyProcessor...
-start "" "%~dp0dist\PyProcessor\PyProcessor.exe"

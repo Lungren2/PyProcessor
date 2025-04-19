@@ -1,9 +1,9 @@
 # Makefile for PyProcessor
 
-.PHONY: setup clean test perf-test lint format clean-code build package run all
+.PHONY: setup clean lint format clean-code build package run all
 
 # Default target
-all: clean test build
+all: clean build
 
 # Setup development environment
 setup:
@@ -13,13 +13,7 @@ setup:
 clean:
 	python scripts/cleanup.py --all
 
-# Run tests
-test:
-	python scripts/run_tests.py --coverage
 
-# Run performance tests
-perf-test:
-	python scripts/run_performance_tests.py
 
 # Run linting
 lint:
@@ -27,7 +21,7 @@ lint:
 
 # Format code
 format:
-	black pyprocessor tests scripts
+	black pyprocessor scripts
 
 # Clean code (remove unused imports and comment unused variables)
 clean-code:

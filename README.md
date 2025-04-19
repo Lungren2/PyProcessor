@@ -1,24 +1,30 @@
 # PyProcessor
 
-A Python application for video processing and HLS encoding based on FFmpeg. This command-line tool supports processing video files with various encoding options, utilizing parallel processing for improved performance.
+A cross-platform Python application for media processing and HLS encoding based on FFmpeg. This tool supports processing video files with various encoding options, utilizing parallel processing for improved performance, and works seamlessly on Windows, macOS, and Linux.
 
 ## Features
 
-- Command-line interface for automation and scripting
-- Fast parallel processing of multiple video files
-- Support for multiple encoders (libx265, h264_nvenc, libx264)
-- HLS packaging with multiple quality levels
-- Automatic file organization and renaming
-- Configuration profiles for different encoding scenarios
-- Detailed logging system
-
-- Server optimization for IIS, Nginx, and Linux systems with HTTP/3 support
+- **Cross-Platform Compatibility**: Works on Windows, macOS, and Linux
+- **Command-line Interface**: For automation and scripting
+- **Fast Parallel Processing**: Process multiple video files simultaneously
+- **Multiple Encoder Support**: libx265, h264_nvenc, libx264, and more
+- **HLS Packaging**: Create adaptive streaming packages with multiple quality levels
+- **Automatic Organization**: File renaming and folder organization
+- **Configuration Profiles**: Save and reuse encoding settings
+- **Detailed Logging**: Comprehensive logging system
+- **Server Optimization**: Tools for IIS (Windows), Nginx (Linux/macOS), and other systems
+- **HTTP/3 Support**: Modern protocol support with Alt-Svc headers for auto-upgrading
 
 ## Requirements
 
 - Python 3.6 or higher
 - FFmpeg installed and available in PATH
-- tqdm for progress display
+- Platform-specific dependencies (automatically installed)
+  - Windows: pywin32, winshell
+  - macOS: pyobjc-core, pyobjc-framework-Cocoa
+  - Linux: python-xlib, dbus-python
+- Base dependencies (automatically installed)
+  - tqdm for progress display
 
 ## Installation
 
@@ -26,21 +32,62 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 
 ```bash
 git clone https://github.com/Lungren2/PyProcessor.git
-cd pyprocessor
+cd PyProcessor
+
+# Install with base dependencies
 pip install -e .
+
+# Or install with development dependencies
+pip install -e ".[dev]"
+
+# Or install with FFmpeg Python bindings
+pip install -e ".[ffmpeg]"
+
+# Or install with all extras
+pip install -e ".[dev,ffmpeg]"
 ```
 
 This will install the package in development mode, making the `pyprocessor` command available in your environment.
 
-### Standalone Installer
+### Using the Dependency Management Script
 
-A standalone installer is available that includes all dependencies, including FFmpeg. To build the installer:
+For more control over dependencies, you can use the dependency management script:
 
 ```bash
-python scripts/build_package.py
+# Check for missing dependencies
+python scripts/manage_dependencies.py --check
+
+# Install dependencies for your platform
+python scripts/manage_dependencies.py --install
+
+# Install dependencies with extras
+python scripts/manage_dependencies.py --install --extras dev
+
+# Update dependencies
+python scripts/manage_dependencies.py --update
 ```
 
-This will create a `PyProcessorInstaller.exe` file that can be distributed to users. See [Packaging](docs/PACKAGING.md) for more details.
+### Standalone Packages
+
+Standalone packages are available for all supported platforms. To build the package for your platform:
+
+```bash
+python scripts/build.py
+```
+
+This will create an executable in the `dist` directory. To create an installer package:
+
+```bash
+python scripts/package.py
+```
+
+This will create platform-specific packages in the `packages` directory:
+
+- Windows: NSIS installer (.exe)
+- macOS: Application bundle (.app) and disk image (.dmg)
+- Linux: Debian package (.deb) and RPM package (.rpm)
+
+See [Packaging](docs/PACKAGING.md) for more details.
 
 ## Project Architecture
 
@@ -53,14 +100,12 @@ PyProcessor/
 │   ├── developer/             # Developer documentation
 │   └── api/                   # API documentation
 ├── scripts/                   # Utility scripts
-│   ├── build_package.py       # Build script
+│   ├── build.py               # Cross-platform build script
+│   ├── package.py             # Cross-platform packaging script
+│   ├── setup.py               # Cross-platform setup script
+│   ├── install.py             # Cross-platform installation script
 │   ├── cleanup.py             # Cleanup script
-│   ├── dev_setup.py           # Development environment setup
-│   ├── download_ffmpeg.py     # FFmpeg downloader
-│   └── run_tests.py           # Test runner
-├── tests/                     # Test suite
-│   ├── unit/                  # Unit tests
-│   └── integration/           # Integration tests
+│   └── download_ffmpeg.py     # Cross-platform FFmpeg downloader
 ├── pyprocessor/           # Main package
 │   ├── processing/            # Processing logic
 │   ├── utils/                 # Utility functions
@@ -73,10 +118,10 @@ PyProcessor/
 ├── LICENSE                    # License file
 ├── Makefile                   # Makefile for common tasks
 ├── README.md                  # Main README
-├── dev_tools.bat              # Windows development tools
+├── MANIFEST.in                # Package manifest
 ├── requirements.txt           # Dependencies
 ├── setup.py                   # Package setup
-└── run_pyprocessor.bat        # Launcher script
+└── run_pyprocessor.py         # Cross-platform launcher script
 ```
 
 ## Usage
@@ -179,6 +224,7 @@ For detailed information about development, please refer to the documentation in
 - [Packaging](docs/developer/PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
 - [NSIS Packaging](docs/developer/NSIS_PACKAGING.md) - Detailed guide for creating an installer with NSIS
 - [Server Optimization](docs/developer/SERVER_OPTIMIZATION.md) - Prerequisites and details for server optimization
+- [Dependencies](docs/developer/DEPENDENCIES.md) - Managing dependencies across platforms
 - [API Reference](docs/api/API_REFERENCE.md) - Reference for the PyProcessor API
 - [Path Handling](docs/developer/PATH_HANDLING.md) - How paths and environment variables are handled
 - [Application Context](docs/developer/APPLICATION_CONTEXT.md) - How application state and lifecycle are managed
@@ -201,39 +247,24 @@ This script will:
 4. Set up pre-commit hooks
 5. Create necessary directories
 
-#### Using the Makefile (Linux/macOS) or Batch File (Windows)
+#### Using Cross-Platform Scripts
 
-On Linux/macOS:
+On any platform (Windows, macOS, Linux):
+
+```bash
+python scripts/setup.py       # Set up development environment
+python scripts/cleanup.py     # Clean up temporary files
+python scripts/build.py       # Build executable
+python run_pyprocessor.py     # Run the application
+```
+
+#### Using the Makefile (Linux/macOS)
 
 ```bash
 make setup  # Set up development environment
 make clean  # Clean up temporary files
-make test   # Run tests
 make build  # Build executable
 make run    # Run the application
-```
-
-On Windows:
-
-```batch
-dev_tools.bat setup   # Set up development environment
-dev_tools.bat clean   # Clean up temporary files
-dev_tools.bat test    # Run tests
-dev_tools.bat build   # Build executable
-dev_tools.bat run     # Run the application
-```
-
-### Running Tests
-
-```bash
-python scripts/run_tests.py --coverage
-```
-
-Or for specific test types:
-
-```bash
-python scripts/run_tests.py --unit      # Run only unit tests
-python scripts/run_tests.py --integration # Run only integration tests
 ```
 
 ## Troubleshooting

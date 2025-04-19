@@ -49,4 +49,4 @@ jobs:
 
       - name: Check security issues with bandit
         run: |
-          bandit -r pyprocessor -x tests
+          bandit -r pyprocessor
