@@ -1,12 +1,12 @@
-# [PyProcessor](https://pyprocessor.netlify.app/) &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Lungren2/PyProcessor/blob/main/LICENSE) [![(Runtime) Build and Test](https://github.com/Lungren2/PyProcessor/actions/workflows/build.yml/badge.svg)](https://github.com/Lungren2/PyProcessor/actions/workflows/build.yml) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Lungren2/PyProcessor/blob/main/docs/developer/CONTRIBUTING.md)
+# [PyProcessor](https://pyprocessor.netlify.app/) &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Lungren2/PyProcessor/blob/main/LICENSE) [![Build & Release](https://github.com/Lungren2/PyProcessor/actions/workflows/build.yml/badge.svg)](https://github.com/Lungren2/PyProcessor/actions/workflows/build.yml) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Lungren2/PyProcessor/blob/main/docs/developer/CONTRIBUTING.md)
 
-A cross-platform Python application for media processing and HLS encoding based on FFmpeg. PyProcessor supports processing video files with various encoding options, utilizing parallel processing for improved performance, and works seamlessly on Windows, macOS, and Linux.
+A cross-platform Python library and CLI tool for media processing and HLS encoding based on FFmpeg. PyProcessor supports processing video files with various encoding options, utilizing parallel processing for improved performance, and works seamlessly on Windows, macOS, and Linux.
 
 ## Overview
 
 PyProcessor is designed to be a powerful yet flexible media processing engine that can handle everything from simple video encoding to complex adaptive streaming package creation. It features intelligent resource management, batch processing capabilities, and a plugin system for extensibility.
 
-The application is built with a focus on:
+The library is built with a focus on:
 
 - **Performance**: Optimized for speed with parallel processing and GPU acceleration
 - **Flexibility**: Configurable for various use cases through profiles and command-line options
@@ -121,13 +121,10 @@ PyProcessor/
 │   ├── developer/             # Developer documentation
 │   └── api/                   # API documentation
 ├── scripts/                   # Utility scripts
-│   ├── build.py               # Cross-platform build script
-│   ├── package.py             # Cross-platform packaging script
-│   ├── setup.py               # Cross-platform setup script
-│   ├── install.py             # Cross-platform installation script
-│   ├── cleanup.py             # Cleanup script
-│   └── download_ffmpeg.py     # Cross-platform FFmpeg downloader
-├── pyprocessor/           # Main package
+│   ├── build_tools.py         # Build and packaging tools
+│   ├── dev_tools.py           # Development tools
+│   └── manage_dependencies.py # Dependency management
+├── pyprocessor/               # Main package
 │   ├── processing/            # Processing logic
 │   ├── utils/                 # Utility functions
 │   ├── profiles/              # Profile storage
@@ -411,14 +408,22 @@ PyProcessor includes comprehensive documentation for both users and developers.
 
 ## Development
 
+### GitHub Workflows
+
+PyProcessor uses GitHub Actions for continuous integration and deployment:
+
+- **Quality & Testing**: Runs code quality checks (linting, formatting, type checking) on Python files
+- **Build & Release**: Builds the application and creates releases for tagged versions
+- **Update Dependencies**: Automatically updates dependencies weekly
+
 ### Development Setup
 
 We provide several utility scripts to make development easier:
 
-#### Using the Development Setup Script
+#### Using the Development Tools Script
 
 ```bash
-python scripts/dev_setup.py
+python scripts/dev_tools.py setup [--no-venv] [--no-ffmpeg] [--no-hooks]
 ```
 
 This script will:
@@ -429,15 +434,20 @@ This script will:
 4. Set up pre-commit hooks
 5. Create necessary directories
 
-#### Using Cross-Platform Scripts
-
-On any platform (Windows, macOS, Linux):
+#### Other Development Commands
 
 ```bash
-python scripts/setup.py       # Set up development environment
-python scripts/cleanup.py     # Clean up temporary files
-python scripts/build.py       # Build executable
-python run_pyprocessor.py     # Run the application
+python scripts/dev_tools.py clean [--all] [--ffmpeg] [--logs]  # Clean up temporary files
+python scripts/dev_tools.py lint [--check]                      # Run linting tools
+python scripts/dev_tools.py deps [--check] [--install] [--update] [--extras EXTRAS]  # Manage dependencies
+```
+
+#### Building and Packaging
+
+```bash
+python scripts/build_tools.py ffmpeg                # Download FFmpeg binaries
+python scripts/build_tools.py build [--skip-ffmpeg]  # Build executable
+python scripts/build_tools.py package [--skip-build] # Package executable
 ```
 
 #### Using the Makefile (Linux/macOS)

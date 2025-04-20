@@ -59,7 +59,7 @@ The project aims to provide a user-friendly, cross-platform solution for video e
 
 The project follows a modular architecture with clear separation of concerns:
 
-- **GUI Module**: Handles user interface components
+- **CLI Module**: Handles command-line interface
 - **Processing Module**: Contains core processing logic
 - **Utils Module**: Provides utility functions and configuration management
 

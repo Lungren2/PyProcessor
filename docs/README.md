@@ -21,7 +21,7 @@ Documentation for developers contributing to the project:
 - [Code Style Guide](developer/CODE_STYLE.md) - Coding standards and style guidelines
 - [Logging System](developer/LOGGING.md) - Details about the logging system
 - [FFmpeg Integration](developer/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
-- [Theme Support](developer/THEME_SUPPORT.md) - Information about dark/light theme support
+
 - [Packaging](developer/PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
 - [NSIS Packaging](developer/NSIS_PACKAGING.md) - Detailed guide for creating an installer with NSIS
 - [Server Optimization](developer/SERVER_OPTIMIZATION.md) - Prerequisites and details for server optimization

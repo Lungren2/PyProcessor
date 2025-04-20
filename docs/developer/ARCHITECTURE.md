@@ -1,18 +1,17 @@
-# Video Processor Architecture
+# PyProcessor Architecture
 
-This document provides a detailed overview of the Video Processor application architecture, explaining the key components and their interactions.
+This document provides a detailed overview of the PyProcessor architecture, explaining the key components and their interactions.
 
 ## Overview
 
-The Video Processor application follows a modular architecture with clear separation of concerns. The application is divided into several key components:
+PyProcessor follows a modular architecture with clear separation of concerns. The library is divided into several key components:
 
-1. **GUI Module**: User interface components
-2. **Processing Module**: Core video processing logic
-3. **Utils Module**: Configuration and logging utilities
+1. **Processing Module**: Core video processing logic
+2. **Utils Module**: Configuration, logging, and utility functions
 
 ## Component Diagram
 
-```
+```ascii
 ┌─────────────────────────────────────────────────────────────┐
 │                      Main Application                       │
 └───────────────────────────┬─────────────────────────────────┘
@@ -20,46 +19,42 @@ The Video Processor application follows a modular architecture with clear separa
             ┌───────────────┼───────────────┐
             │               │               │
 ┌───────────▼───────┐ ┌─────▼──────┐ ┌──────▼─────┐
-│     GUI Module    │ │ Processing │ │    Utils   │
+│      CLI Module   │ │ Processing │ │    Utils   │
 │                   │ │   Module   │ │   Module   │
-└───────────┬───────┘ └─────┬──────┘ └──────┬─────┘
-            │               │               │
-  ┌─────────┴───────┐ ┌─────┴──────┐ ┌──────┴─────┐
-  │  Main Window    │ │  Encoder   │ │   Config   │
-  │  Config Dialog  │ │FileManager │ │   Logger   │
-  │  Progress Widget│ │ Scheduler  │ │            │
-  │  Log Viewer     │ │            │ │            │
-  └─────────────────┘ └────────────┘ └────────────┘
+└───────────────────┘ └─────┬──────┘ └──────┬─────┘
+                            │               │
+                      ┌─────┴──────┐ ┌──────┴─────┐
+                      │  Encoder   │ │   Config   │
+                      │FileManager │ │   Logger   │
+                      │ Scheduler  │ │            │
+                      │            │ │            │
+                      └────────────┘ └────────────┘
 ```
 
 ## Key Components
 
-### 1. GUI Module (`pyprocessor/gui/`)
+### 1. CLI Module (`pyprocessor/cli/`)
 
-The GUI module provides the graphical user interface for the application.
+The CLI module provides the command-line interface for the application.
 
-#### Components:
+#### Components
 
-- **Main Window** (`main_window.py`): The primary application window that integrates all GUI components and provides the main user interface.
+- **Command Parser**: Parses command-line arguments and options
+- **Progress Reporter**: Reports processing progress to the console
+- **Interactive Mode**: Provides an interactive command-line interface
 
-- **Configuration Dialog** (`config_dialog.py`): Dialog for configuring encoding and processing options.
+#### Responsibilities
 
-- **Progress Widget** (`progress_widget.py`): Widget for displaying processing progress, including file-specific and overall progress.
-
-- **Log Viewer** (`log_viewer.py`): Dialog for viewing application logs with filtering and refresh options.
-
-#### Responsibilities:
-
-- Provide user interface for configuring and controlling the application
+- Parse command-line arguments
 - Display processing progress and status
-- Allow viewing of logs and configuration settings
+- Provide interactive command-line interface
 - Handle user interactions and trigger appropriate actions
 
 ### 2. Processing Module (`pyprocessor/processing/`)
 
 The processing module contains the core logic for video processing.
 
-#### Components:
+#### Components
 
 - **Encoder** (`encoder.py`): Wrapper for FFmpeg that handles video encoding operations.
 
@@ -67,7 +62,7 @@ The processing module contains the core logic for video processing.
 
 - **Scheduler** (`scheduler.py`): Orchestrates parallel processing of video files.
 
-#### Responsibilities:
+#### Processing Responsibilities
 
 - Execute FFmpeg commands for video encoding
 - Manage file operations and organization
@@ -78,13 +73,13 @@ The processing module contains the core logic for video processing.
 
 The utils module provides utility functions and services used throughout the application.
 
-#### Components:
+#### Utility Components
 
 - **Config** (`config.py`): Manages application configuration, including loading, saving, and validating settings.
 
 - **Logger** (`logging.py`): Provides logging functionality with different levels and output options.
 
-#### Responsibilities:
+#### Utility Responsibilities
 
 - Manage application configuration
 - Provide logging services
@@ -93,7 +88,7 @@ The utils module provides utility functions and services used throughout the app
 ## Data Flow
 
 1. **Configuration Flow**:
-   - User configures settings via GUI or command line
+   - User configures settings via command line or configuration files
    - Configuration is validated and saved
    - Components access configuration as needed
 
@@ -102,23 +97,23 @@ The utils module provides utility functions and services used throughout the app
    - Scheduler identifies files to process
    - File Manager handles file operations
    - Encoder processes files in parallel
-   - Progress is reported back to GUI or CLI
+   - Progress is reported back to CLI
    - Results are logged
 
 3. **Logging Flow**:
    - Components log events and errors
    - Logs are written to files
-   - Log Viewer displays logs to user
+   - Logs can be accessed for review
 
 ## Threading Model
 
 The application uses a combination of threading approaches:
 
-- **GUI Thread**: Handles user interface operations
+- **Main Thread**: Handles command-line interface and overall control
 - **Processing Thread**: Manages the overall processing workflow
 - **Process Pool**: Executes encoding tasks in parallel
 
-This separation ensures the GUI remains responsive during processing operations.
+This separation ensures the application remains responsive during processing operations.
 
 ## Configuration Management
 
@@ -146,7 +141,7 @@ The application implements comprehensive error handling:
 
 - **Component-level Error Handling**: Each component handles its specific errors
 - **Centralized Logging**: All errors are logged with appropriate context
-- **User Feedback**: Errors are reported to the user through the GUI or CLI
+- **User Feedback**: Errors are reported to the user through the CLI
 - **Graceful Degradation**: The application attempts to continue operation when possible
 
 ## Extension Points
@@ -155,7 +150,7 @@ The architecture is designed to be extensible in several ways:
 
 1. **Additional Encoders**: Support for new encoding options can be added to the Encoder class
 2. **New File Operations**: The File Manager can be extended with new file handling capabilities
-3. **UI Customization**: The GUI components can be modified or extended
+3. **CLI Extensions**: The command-line interface can be extended with new commands
 4. **Configuration Options**: New configuration options can be added to the Config class
 
 ## Future Considerations
@@ -165,4 +160,4 @@ Areas for potential architectural enhancement:
 1. **Plugin System**: A formal plugin architecture for extending functionality
 2. **Remote Processing**: Support for distributing processing across multiple machines
 3. **Advanced Queue Management**: More sophisticated job queuing and prioritization
-4. **Web Interface**: Alternative web-based user interface
+4. **API Interface**: REST API for remote control and integration

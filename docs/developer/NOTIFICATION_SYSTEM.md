@@ -236,9 +236,9 @@ add_notification(
 )
 ```
 
-## Integration with UI
+## Integration with CLI
 
-To integrate the notification system with a UI, you can register callbacks to update the UI when notifications are added:
+To integrate the notification system with the CLI, you can register callbacks to display notifications in the console:
 
 ```python
 from pyprocessor.utils.notification_manager import (
@@ -247,15 +247,21 @@ from pyprocessor.utils.notification_manager import (
     Notification
 )
 
-class NotificationUI:
+class ConsoleNotifier:
     def __init__(self):
         # Register callback for in-app notifications
-        register_callback(self.update_ui, NotificationChannel.IN_APP)
-        
-    def update_ui(self, notification: Notification):
-        # Update the UI with the new notification
-        # This will depend on your UI framework
-        pass
+        register_callback(self.display_notification, NotificationChannel.IN_APP)
+
+    def display_notification(self, notification: Notification):
+        # Display the notification in the console
+        prefix = {
+            NotificationType.INFO: "[INFO]",
+            NotificationType.SUCCESS: "[SUCCESS]",
+            NotificationType.WARNING: "[WARNING]",
+            NotificationType.ERROR: "[ERROR]"
+        }.get(notification.type, "[INFO]")
+
+        print(f"{prefix} {notification.message}")
 ```
 
 ## Best Practices
@@ -271,9 +277,9 @@ class NotificationUI:
 9. **Use Async Delivery**: Use async delivery for notifications to avoid blocking the main thread.
 10. **Shutdown Properly**: Call `shutdown_notifications()` when shutting down the application to clean up resources.
 
-## Example: Notification Center
+## Example: Command Line Notification Center
 
-Here's an example of implementing a simple notification center using the notification system:
+Here's an example of implementing a simple command-line notification center:
 
 ```python
 from pyprocessor.utils.notification_manager import (
@@ -290,29 +296,29 @@ class NotificationCenter:
     def __init__(self):
         # Register callback for new notifications
         register_callback(self.on_new_notification, NotificationChannel.IN_APP)
-        
+
     def on_new_notification(self, notification: Notification):
         # Handle new notification
         print(f"New notification: {notification.message}")
-        
+
     def get_unread_count(self):
         # Get count of unread notifications
         return len(get_all_notifications())
-        
+
     def get_notifications(self, include_read=False):
         # Get all notifications
         return get_all_notifications(include_read=include_read)
-        
+
     def mark_all_as_read(self):
         # Mark all notifications as read
         for notification in get_all_notifications():
             mark_as_read(notification.id)
-            
+
     def dismiss_all(self):
         # Dismiss all notifications
         for notification in get_all_notifications(include_read=True):
             dismiss(notification.id)
-            
+
     def clear_old_notifications(self, hours=24):
         # Clear notifications older than the specified hours
         clear_all(older_than=hours * 3600)
