@@ -34,7 +34,9 @@ print(f"✓ Created log file: {log_file}")
 print("\nCreating a simple profile file...")
 profile_file = profiles_dir / "simple_profile.json"
 with open(profile_file, "w") as f:
-    f.write('{\n  "name": "Simple Profile",\n  "description": "A simple profile created by the simple example script.",\n  "created": "2023-01-01"\n}\n')
+    f.write(
+        '{\n  "name": "Simple Profile",\n  "description": "A simple profile created by the simple example script.",\n  "created": "2023-01-01"\n}\n'
+    )
 print(f"✓ Created profile file: {profile_file}")
 
 print("\nSimple example completed successfully!")

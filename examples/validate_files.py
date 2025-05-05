@@ -16,7 +16,7 @@ from pyprocessor.utils.core.validation_manager import (
     validate_path,
     validate_string,
     validate_regex,
-    ValidationResult
+    ValidationResult,
 )
 
 

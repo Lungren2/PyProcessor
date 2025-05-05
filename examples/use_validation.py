@@ -25,7 +25,7 @@ from pyprocessor.utils.core.validation_manager import (
     validate_object,
     register_rule,
     apply_rule,
-    ValidationResult
+    ValidationResult,
 )
 
 
@@ -55,7 +55,7 @@ def main():
         min_length=3,
         max_length=10,
         pattern=r"^[a-zA-Z]+$",
-        required=True
+        required=True,
     )
     print_validation_result(result, "name")
 
@@ -66,48 +66,30 @@ def main():
         min_length=3,
         max_length=10,
         pattern=r"^[a-zA-Z]+$",
-        required=True
+        required=True,
     )
     print_validation_result(result, "name")
 
     # Number validation
     print("\n2. Number Validation")
     result = validate_number(
-        42,
-        field="age",
-        min_value=18,
-        max_value=100,
-        integer_only=True,
-        required=True
+        42, field="age", min_value=18, max_value=100, integer_only=True, required=True
     )
     print_validation_result(result, "age")
 
     # Invalid number
     result = validate_number(
-        15,
-        field="age",
-        min_value=18,
-        max_value=100,
-        integer_only=True,
-        required=True
+        15, field="age", min_value=18, max_value=100, integer_only=True, required=True
     )
     print_validation_result(result, "age")
 
     # Boolean validation
     print("\n3. Boolean Validation")
-    result = validate_boolean(
-        True,
-        field="active",
-        required=True
-    )
+    result = validate_boolean(True, field="active", required=True)
     print_validation_result(result, "active")
 
     # Invalid boolean
-    result = validate_boolean(
-        "not a boolean",
-        field="active",
-        required=True
-    )
+    result = validate_boolean("not a boolean", field="active", required=True)
     print_validation_result(result, "active")
 
     # Path validation
@@ -122,7 +104,7 @@ def main():
         field="config_file",
         must_exist=True,
         must_be_file=True,
-        required=True
+        required=True,
     )
     print_validation_result(result, "config_file")
 
@@ -132,7 +114,7 @@ def main():
         field="config_file",
         must_exist=True,
         must_be_file=True,
-        required=True
+        required=True,
     )
     print_validation_result(result, "config_file")
 
@@ -147,7 +129,7 @@ def main():
         min_length=1,
         max_length=5,
         item_validator=lambda item, field: validate_string(item, field, min_length=3),
-        required=True
+        required=True,
     )
     print_validation_result(result, "fruits")
 
@@ -158,7 +140,7 @@ def main():
         min_length=1,
         max_length=5,
         item_validator=lambda item, field: validate_string(item, field, min_length=3),
-        required=True
+        required=True,
     )
     print_validation_result(result, "fruits")
 
@@ -171,11 +153,11 @@ def main():
         optional_keys=["email"],
         key_validator=lambda key, field: validate_string(key, field),
         value_validator=lambda value, field: (
-            validate_string(value, field) if field.endswith("name") else
-            validate_number(value, field) if field.endswith("age") else
-            None
+            validate_string(value, field)
+            if field.endswith("name")
+            else validate_number(value, field) if field.endswith("age") else None
         ),
-        required=True
+        required=True,
     )
     print_validation_result(result, "user")
 
@@ -187,46 +169,30 @@ def main():
         optional_keys=["email"],
         key_validator=lambda key, field: validate_string(key, field),
         value_validator=lambda value, field: (
-            validate_string(value, field) if field.endswith("name") else
-            validate_number(value, field) if field.endswith("age") else
-            None
+            validate_string(value, field)
+            if field.endswith("name")
+            else validate_number(value, field) if field.endswith("age") else None
         ),
-        required=True
+        required=True,
     )
     print_validation_result(result, "user")
 
     # Email validation
     print("\n7. Email Validation")
-    result = validate_email(
-        "user@example.com",
-        field="email",
-        required=True
-    )
+    result = validate_email("user@example.com", field="email", required=True)
     print_validation_result(result, "email")
 
     # Invalid email
-    result = validate_email(
-        "not_an_email",
-        field="email",
-        required=True
-    )
+    result = validate_email("not_an_email", field="email", required=True)
     print_validation_result(result, "email")
 
     # URL validation
     print("\n8. URL Validation")
-    result = validate_url(
-        "https://example.com",
-        field="website",
-        required=True
-    )
+    result = validate_url("https://example.com", field="website", required=True)
     print_validation_result(result, "website")
 
     # Invalid URL
-    result = validate_url(
-        "not_a_url",
-        field="website",
-        required=True
-    )
+    result = validate_url("not_a_url", field="website", required=True)
     print_validation_result(result, "website")
 
     # Enum validation
@@ -236,7 +202,7 @@ def main():
         field="fruit",
         allowed_values=["apple", "banana", "cherry"],
         case_sensitive=False,
-        required=True
+        required=True,
     )
     print_validation_result(result, "fruit")
 
@@ -246,25 +212,17 @@ def main():
         field="fruit",
         allowed_values=["apple", "banana", "cherry"],
         case_sensitive=False,
-        required=True
+        required=True,
     )
     print_validation_result(result, "fruit")
 
     # Regex validation
     print("\n10. Regex Validation")
-    result = validate_regex(
-        r"^[a-zA-Z0-9]+$",
-        field="pattern",
-        required=True
-    )
+    result = validate_regex(r"^[a-zA-Z0-9]+$", field="pattern", required=True)
     print_validation_result(result, "pattern")
 
     # Invalid regex
-    result = validate_regex(
-        r"^[a-zA-Z0-9+$",
-        field="pattern",
-        required=True
-    )
+    result = validate_regex(r"^[a-zA-Z0-9+$", field="pattern", required=True)
     print_validation_result(result, "pattern")
 
     # Custom validation rule
@@ -304,33 +262,22 @@ def main():
 
     # Define a schema
     user_schema = {
-        "name": {
-            "type": "string",
-            "min_length": 3,
-            "max_length": 50,
-            "required": True
-        },
+        "name": {"type": "string", "min_length": 3, "max_length": 50, "required": True},
         "age": {
             "type": "number",
             "min_value": 18,
             "integer_only": True,
-            "required": True
+            "required": True,
         },
-        "email": {
-            "type": "email",
-            "required": False
-        },
-        "active": {
-            "type": "boolean",
-            "required": False
-        },
+        "email": {"type": "email", "required": False},
+        "active": {"type": "boolean", "required": False},
         "roles": {
             "type": "list",
             "min_length": 1,
             "item_validator": lambda item, field: validate_enum(
                 item, field, allowed_values=["admin", "user", "guest"]
             ),
-            "required": False
+            "required": False,
         },
         "settings": {
             "type": "object",
@@ -338,15 +285,12 @@ def main():
                 "theme": {
                     "type": "enum",
                     "allowed_values": ["light", "dark"],
-                    "required": False
+                    "required": False,
                 },
-                "notifications": {
-                    "type": "boolean",
-                    "required": False
-                }
+                "notifications": {"type": "boolean", "required": False},
             },
-            "required": False
-        }
+            "required": False,
+        },
     }
 
     # Valid user
@@ -356,10 +300,7 @@ def main():
         "email": "john@example.com",
         "active": True,
         "roles": ["admin", "user"],
-        "settings": {
-            "theme": "dark",
-            "notifications": True
-        }
+        "settings": {"theme": "dark", "notifications": True},
     }
 
     result = validate_object(user, user_schema, field="user")
@@ -372,10 +313,7 @@ def main():
         "email": "not_an_email",
         "active": "not_a_boolean",
         "roles": ["admin", "invalid_role"],
-        "settings": {
-            "theme": "invalid_theme",
-            "notifications": "not_a_boolean"
-        }
+        "settings": {"theme": "invalid_theme", "notifications": "not_a_boolean"},
     }
 
     result = validate_object(invalid_user, user_schema, field="user")

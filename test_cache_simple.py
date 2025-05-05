@@ -13,9 +13,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union, Callable
 
+
 # Define the necessary classes for testing
 class CacheBackend(Enum):
     """Cache backend types."""
+
     MEMORY = "memory"
     DISK = "disk"
     MULTI = "multi"  # Multi-level cache (memory + disk)
@@ -23,6 +25,7 @@ class CacheBackend(Enum):
 
 class CachePolicy(Enum):
     """Cache eviction policy types."""
+
     LRU = "lru"  # Least Recently Used
     MRU = "mru"  # Most Recently Used
     FIFO = "fifo"  # First In First Out
@@ -31,6 +34,7 @@ class CachePolicy(Enum):
 
 class TTLStrategy(Enum):
     """TTL strategy types."""
+
     FIXED = "fixed"  # Fixed TTL from creation time
     SLIDING = "sliding"  # TTL resets on each access
 
@@ -38,8 +42,13 @@ class TTLStrategy(Enum):
 class CacheEntry:
     """A cache entry with metadata."""
 
-    def __init__(self, key: str, value: Any, ttl: Optional[int] = None,
-                 ttl_strategy: TTLStrategy = TTLStrategy.FIXED):
+    def __init__(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[int] = None,
+        ttl_strategy: TTLStrategy = TTLStrategy.FIXED,
+    ):
         """
         Initialize a cache entry.
 
@@ -63,6 +72,7 @@ class CacheEntry:
         try:
             # Try to get the size using sys.getsizeof
             import sys
+
             return sys.getsizeof(value)
         except (ImportError, TypeError):
             # Fallback to a rough estimate based on pickle size
@@ -119,9 +129,13 @@ class CacheEntry:
 class SimpleCacheManager:
     """A simplified version of the CacheManager for testing."""
 
-    def __init__(self, max_memory_size: int = 100, max_disk_size: int = 1024 * 1024,
-                 eviction_policy: CachePolicy = CachePolicy.LRU,
-                 default_ttl_strategy: TTLStrategy = TTLStrategy.FIXED):
+    def __init__(
+        self,
+        max_memory_size: int = 100,
+        max_disk_size: int = 1024 * 1024,
+        eviction_policy: CachePolicy = CachePolicy.LRU,
+        default_ttl_strategy: TTLStrategy = TTLStrategy.FIXED,
+    ):
         """Initialize the cache manager."""
         # Initialize memory cache
         self._memory_cache: Dict[str, CacheEntry] = {}
@@ -180,7 +194,9 @@ class SimpleCacheManager:
         """Deserialize a value from disk storage."""
         return pickle.loads(data)
 
-    def get(self, key: str, default: Any = None, backend: CacheBackend = CacheBackend.MEMORY) -> Any:
+    def get(
+        self, key: str, default: Any = None, backend: CacheBackend = CacheBackend.MEMORY
+    ) -> Any:
         """Get a value from the cache."""
         # Track access frequency for preloading
         self._access_frequency[key] = self._access_frequency.get(key, 0) + 1
@@ -218,7 +234,9 @@ class SimpleCacheManager:
 
                     # Check if expired
                     if metadata.get("ttl") is not None:
-                        if (time.time() - metadata.get("created_at", 0)) > metadata["ttl"]:
+                        if (time.time() - metadata.get("created_at", 0)) > metadata[
+                            "ttl"
+                        ]:
                             self.delete(key, backend)
                             self._stats["disk_misses"] += 1
                             return default
@@ -263,9 +281,14 @@ class SimpleCacheManager:
 
         return default
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None,
-            backend: CacheBackend = CacheBackend.MEMORY,
-            ttl_strategy: Optional[TTLStrategy] = None) -> None:
+    def set(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[int] = None,
+        backend: CacheBackend = CacheBackend.MEMORY,
+        ttl_strategy: Optional[TTLStrategy] = None,
+    ) -> None:
         """Set a value in the cache."""
         # Use default TTL strategy if not specified
         if ttl_strategy is None:
@@ -273,7 +296,10 @@ class SimpleCacheManager:
 
         if backend == CacheBackend.MEMORY:
             # Check if we need to evict
-            if len(self._memory_cache) >= self.max_memory_size and key not in self._memory_cache:
+            if (
+                len(self._memory_cache) >= self.max_memory_size
+                and key not in self._memory_cache
+            ):
                 self._evict_memory_cache()
 
             # Set in memory cache
@@ -295,7 +321,7 @@ class SimpleCacheManager:
                     "last_accessed": time.time(),
                     "ttl": ttl,
                     "ttl_strategy": ttl_strategy.value if ttl_strategy else None,
-                    "access_count": 0
+                    "access_count": 0,
                 }
 
                 # Serialize data
@@ -368,13 +394,21 @@ class SimpleCacheManager:
 
     def clear(self, backend: Optional[CacheBackend] = None) -> None:
         """Clear the cache."""
-        if backend is None or backend == CacheBackend.MEMORY or backend == CacheBackend.MULTI:
+        if (
+            backend is None
+            or backend == CacheBackend.MEMORY
+            or backend == CacheBackend.MULTI
+        ):
             # Clear memory cache
             self._memory_cache.clear()
             self.current_memory_size = 0
             print("Memory cache cleared")
 
-        if backend is None or backend == CacheBackend.DISK or backend == CacheBackend.MULTI:
+        if (
+            backend is None
+            or backend == CacheBackend.DISK
+            or backend == CacheBackend.MULTI
+        ):
             # Clear disk cache
             try:
                 for cache_file in self.cache_dir.glob("*.cache"):
@@ -447,22 +481,26 @@ class SimpleCacheManager:
                         metadata_bytes = f.read(metadata_size)
                         metadata = json.loads(metadata_bytes.decode())
 
-                    file_stats.append({
-                        "path": cache_file,
-                        "size": cache_file.stat().st_size,
-                        "last_accessed": metadata.get("last_accessed", 0),
-                        "created_at": metadata.get("created_at", 0),
-                        "access_count": metadata.get("access_count", 0)
-                    })
+                    file_stats.append(
+                        {
+                            "path": cache_file,
+                            "size": cache_file.stat().st_size,
+                            "last_accessed": metadata.get("last_accessed", 0),
+                            "created_at": metadata.get("created_at", 0),
+                            "access_count": metadata.get("access_count", 0),
+                        }
+                    )
                 except Exception:
                     # If we can't read metadata, assume old
-                    file_stats.append({
-                        "path": cache_file,
-                        "size": cache_file.stat().st_size,
-                        "last_accessed": 0,
-                        "created_at": 0,
-                        "access_count": 0
-                    })
+                    file_stats.append(
+                        {
+                            "path": cache_file,
+                            "size": cache_file.stat().st_size,
+                            "last_accessed": 0,
+                            "created_at": 0,
+                            "access_count": 0,
+                        }
+                    )
 
             # Sort based on eviction policy
             if self.eviction_policy == CachePolicy.LRU:
@@ -503,11 +541,17 @@ class SimpleCacheManager:
         except Exception as e:
             print(f"Error checking disk cache size: {str(e)}")
 
-    def preload_frequently_accessed(self, min_access_count: int = 5, max_items: int = 100) -> int:
+    def preload_frequently_accessed(
+        self, min_access_count: int = 5, max_items: int = 100
+    ) -> int:
         """Preload frequently accessed items into memory cache."""
         # Get frequently accessed items
-        frequent_items = [(k, v) for k, v in self._access_frequency.items() if v >= min_access_count]
-        frequent_items.sort(key=lambda x: x[1], reverse=True)  # Sort by access count (highest first)
+        frequent_items = [
+            (k, v) for k, v in self._access_frequency.items() if v >= min_access_count
+        ]
+        frequent_items.sort(
+            key=lambda x: x[1], reverse=True
+        )  # Sort by access count (highest first)
         frequent_items = frequent_items[:max_items]  # Limit to max_items
 
         # Preload items
@@ -537,118 +581,136 @@ def test_cache():
     """Test the enhanced caching system."""
     print("Testing Enhanced Caching System")
     print("==============================")
-    
+
     # Create a cache manager instance
     cache_manager = SimpleCacheManager(
         max_memory_size=100,
         max_disk_size=1024 * 1024,  # 1MB
         eviction_policy=CachePolicy.LRU,
-        default_ttl_strategy=TTLStrategy.FIXED
+        default_ttl_strategy=TTLStrategy.FIXED,
     )
-    
+
     # Test memory caching
     print("\n1. Memory Caching")
     cache_manager.set("test_key", "test_value", backend=CacheBackend.MEMORY)
     value = cache_manager.get("test_key", backend=CacheBackend.MEMORY)
     print(f"Memory cache test: {'PASS' if value == 'test_value' else 'FAIL'}")
-    
+
     # Test disk caching
     print("\n2. Disk Caching")
     cache_manager.set("test_key_disk", "test_value_disk", backend=CacheBackend.DISK)
     value = cache_manager.get("test_key_disk", backend=CacheBackend.DISK)
     print(f"Disk cache test: {'PASS' if value == 'test_value_disk' else 'FAIL'}")
-    
+
     # Test multi-level caching
     print("\n3. Multi-level Caching")
     cache_manager.set("test_key_multi", "test_value_multi", backend=CacheBackend.MULTI)
-    
+
     # Clear memory cache to test fallback
     cache_manager._memory_cache.clear()
-    
+
     # Should get from disk and promote to memory
     value = cache_manager.get("test_key_multi", backend=CacheBackend.MULTI)
-    print(f"Multi-level cache test: {'PASS' if value == 'test_value_multi' else 'FAIL'}")
-    
+    print(
+        f"Multi-level cache test: {'PASS' if value == 'test_value_multi' else 'FAIL'}"
+    )
+
     # Should now be in memory
     in_memory = "test_key_multi" in cache_manager._memory_cache
     print(f"Promotion to memory test: {'PASS' if in_memory else 'FAIL'}")
-    
+
     # Test TTL
     print("\n4. TTL Test")
-    cache_manager.set("test_key_ttl", "test_value_ttl", ttl=2, backend=CacheBackend.MEMORY)
+    cache_manager.set(
+        "test_key_ttl", "test_value_ttl", ttl=2, backend=CacheBackend.MEMORY
+    )
     value1 = cache_manager.get("test_key_ttl", backend=CacheBackend.MEMORY)
     print(f"Initial TTL test: {'PASS' if value1 == 'test_value_ttl' else 'FAIL'}")
-    
+
     print("Waiting for TTL expiration...")
     time.sleep(3)
-    
+
     value2 = cache_manager.get("test_key_ttl", backend=CacheBackend.MEMORY)
     print(f"After TTL test: {'PASS' if value2 is None else 'FAIL'}")
-    
+
     # Test sliding TTL
     print("\n5. Sliding TTL Test")
-    cache_manager.set("test_key_sliding", "test_value_sliding", ttl=3, 
-                     ttl_strategy=TTLStrategy.SLIDING, backend=CacheBackend.MEMORY)
-    
+    cache_manager.set(
+        "test_key_sliding",
+        "test_value_sliding",
+        ttl=3,
+        ttl_strategy=TTLStrategy.SLIDING,
+        backend=CacheBackend.MEMORY,
+    )
+
     # Access to reset the TTL
     for i in range(2):
         print(f"Access {i+1}...")
         value = cache_manager.get("test_key_sliding", backend=CacheBackend.MEMORY)
         print(f"Value: {value}")
         time.sleep(2)  # Wait 2 seconds (TTL is 3 seconds)
-    
+
     # Should still be valid because of sliding TTL
     value = cache_manager.get("test_key_sliding", backend=CacheBackend.MEMORY)
     print(f"Sliding TTL test: {'PASS' if value == 'test_value_sliding' else 'FAIL'}")
-    
+
     # Test eviction policy
     print("\n6. Eviction Policy Test")
     # Fill the cache to trigger eviction
     for i in range(110):  # Cache size is 100
-        cache_manager.set(f"eviction_test_{i}", f"value_{i}", backend=CacheBackend.MEMORY)
-    
+        cache_manager.set(
+            f"eviction_test_{i}", f"value_{i}", backend=CacheBackend.MEMORY
+        )
+
     # Check if eviction happened
     cache_size = len(cache_manager._memory_cache)
     print(f"Cache size after filling: {cache_size}")
     print(f"Eviction test: {'PASS' if cache_size <= 100 else 'FAIL'}")
-    
+
     # Test preloading
     print("\n7. Preloading Test")
     # Cache items to disk
     for i in range(10):
         cache_manager.set(f"preload_test_{i}", f"value_{i}", backend=CacheBackend.DISK)
-    
+
     # Access some items multiple times
     for _ in range(5):
         for i in [2, 5, 8]:
             cache_manager._access_frequency[f"preload_test_{i}"] = 5
-    
+
     # Clear memory cache
     cache_manager._memory_cache.clear()
-    
+
     # Preload
-    preloaded = cache_manager.preload_frequently_accessed(min_access_count=5, max_items=3)
+    preloaded = cache_manager.preload_frequently_accessed(
+        min_access_count=5, max_items=3
+    )
     print(f"Preloaded {preloaded} items")
-    
+
     # Check which items were preloaded
-    preloaded_keys = [key for key in cache_manager._memory_cache.keys() if key.startswith("preload_test_")]
+    preloaded_keys = [
+        key
+        for key in cache_manager._memory_cache.keys()
+        if key.startswith("preload_test_")
+    ]
     print(f"Preloaded keys: {preloaded_keys}")
     print(f"Preloading test: {'PASS' if len(preloaded_keys) == 3 else 'FAIL'}")
-    
+
     # Print statistics
     stats = cache_manager.get_stats()
     print("\nCache Statistics:")
     for key, value in stats.items():
         print(f"{key}: {value}")
-    
+
     # Clean up
     cache_manager.clear()
     try:
         os.rmdir("./cache")
     except:
         pass
-    
+
     print("\nAll tests completed")
+
 
 if __name__ == "__main__":
     test_cache()

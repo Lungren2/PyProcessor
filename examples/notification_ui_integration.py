@@ -26,7 +26,7 @@ from pyprocessor.utils.core.notification_manager import (
     NotificationType,
     NotificationPriority,
     NotificationChannel,
-    Notification
+    Notification,
 )
 
 
@@ -167,7 +167,7 @@ def generate_notifications():
         "Welcome to PyProcessor",
         notification_type=NotificationType.INFO,
         title="Welcome",
-        data={"version": "1.0.0"}
+        data={"version": "1.0.0"},
     )
 
     # Wait a bit
@@ -178,7 +178,7 @@ def generate_notifications():
         "Your file has been processed successfully",
         notification_type=NotificationType.SUCCESS,
         title="Processing Complete",
-        data={"file": "video.mp4", "duration": "00:05:30"}
+        data={"file": "video.mp4", "duration": "00:05:30"},
     )
 
     # Wait a bit
@@ -189,7 +189,7 @@ def generate_notifications():
         "Your disk space is running low",
         notification_type=NotificationType.WARNING,
         title="Low Disk Space",
-        data={"free_space": "1.2 GB", "threshold": "2.0 GB"}
+        data={"free_space": "1.2 GB", "threshold": "2.0 GB"},
     )
 
     # Wait a bit
@@ -200,7 +200,7 @@ def generate_notifications():
         "Failed to process file due to invalid format",
         notification_type=NotificationType.ERROR,
         title="Processing Error",
-        data={"file": "invalid.xyz", "error": "Unsupported format"}
+        data={"file": "invalid.xyz", "error": "Unsupported format"},
     )
 
     # Wait a bit
@@ -215,8 +215,8 @@ def generate_notifications():
         actions=[
             {"id": "update", "label": "Update Now"},
             {"id": "later", "label": "Remind Me Later"},
-            {"id": "ignore", "label": "Ignore"}
-        ]
+            {"id": "ignore", "label": "Ignore"},
+        ],
     )
 
 

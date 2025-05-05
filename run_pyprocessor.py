@@ -19,31 +19,32 @@ def find_executable():
     if os.path.exists("pyprocessor"):
         print("Running PyProcessor from source...")
         return [sys.executable, "-m", "pyprocessor"]
-    
+
     # Check if running from installed package
     try:
         import pyprocessor
+
         print(f"Running PyProcessor package version {pyprocessor.__version__}...")
         return [sys.executable, "-m", "pyprocessor"]
     except ImportError:
         pass
-    
+
     # Check for executable in dist directory
     system = platform.system().lower()
     exe_ext = ".exe" if system == "windows" else ""
-    
+
     executable_path = Path("dist/PyProcessor/PyProcessor" + exe_ext)
     if executable_path.exists():
         print(f"Running PyProcessor executable from {executable_path}...")
         return [str(executable_path)]
-    
+
     # Check for macOS app bundle
     if system == "darwin":
         app_path = Path("dist/PyProcessor.app")
         if app_path.exists():
             print(f"Running PyProcessor app bundle from {app_path}...")
             return ["open", str(app_path)]
-    
+
     print("Error: Could not find PyProcessor executable.")
     print("Please make sure PyProcessor is installed or built correctly.")
     sys.exit(1)
@@ -53,11 +54,11 @@ def main():
     """Main function to launch PyProcessor."""
     # Find the executable
     cmd = find_executable()
-    
+
     # Pass any command line arguments
     if len(sys.argv) > 1:
         cmd.extend(sys.argv[1:])
-    
+
     # Launch PyProcessor
     try:
         print(f"Launching PyProcessor: {' '.join(cmd)}")

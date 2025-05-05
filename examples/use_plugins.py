@@ -41,7 +41,9 @@ def main():
     plugin_metadata = get_all_plugin_metadata()
     print("Plugin metadata:")
     for name, metadata in plugin_metadata.items():
-        print(f"  {name}: {metadata['description']} (v{metadata['version']}) by {metadata['author']}")
+        print(
+            f"  {name}: {metadata['description']} (v{metadata['version']}) by {metadata['author']}"
+        )
 
     # Load and use the FFmpeg encoder plugin
     print("\nLoading FFmpeg encoder plugin...")
@@ -55,8 +57,12 @@ def main():
 
         # Get plugin information
         print(f"Supported formats: {ffmpeg_plugin.get_supported_formats()}")
-        print(f"Supported codecs: {json.dumps(ffmpeg_plugin.get_supported_codecs(), indent=2)}")
-        print(f"Default options: {json.dumps(ffmpeg_plugin.get_default_options(), indent=2)}")
+        print(
+            f"Supported codecs: {json.dumps(ffmpeg_plugin.get_supported_codecs(), indent=2)}"
+        )
+        print(
+            f"Default options: {json.dumps(ffmpeg_plugin.get_default_options(), indent=2)}"
+        )
 
         # Use the plugin
         input_file = "examples/data/sample.mp4"
@@ -72,12 +78,16 @@ def main():
         else:
             # Encode the file
             print(f"Encoding {input_file} to {output_file}...")
-            success = ffmpeg_plugin.encode(input_file, output_file, {
-                "video_codec": "libx264",
-                "audio_codec": "aac",
-                "preset": "fast",
-                "crf": 23,
-            })
+            success = ffmpeg_plugin.encode(
+                input_file,
+                output_file,
+                {
+                    "video_codec": "libx264",
+                    "audio_codec": "aac",
+                    "preset": "fast",
+                    "crf": 23,
+                },
+            )
 
             if success:
                 print("Encoding completed successfully")
@@ -98,7 +108,9 @@ def main():
 
         # Get plugin information
         print(f"Supported formats: {analyzer_plugin.get_supported_formats()}")
-        print(f"Default options: {json.dumps(analyzer_plugin.get_default_options(), indent=2)}")
+        print(
+            f"Default options: {json.dumps(analyzer_plugin.get_default_options(), indent=2)}"
+        )
 
         # Use the plugin
         input_file = "examples/data/sample.mp4"
@@ -110,12 +122,15 @@ def main():
         else:
             # Analyze the file
             print(f"Analyzing {input_file}...")
-            results = analyzer_plugin.analyze(input_file, {
-                "include_timestamps": True,
-                "include_permissions": True,
-                "save_results": True,
-                "output_file": "examples/data/analysis.json",
-            })
+            results = analyzer_plugin.analyze(
+                input_file,
+                {
+                    "include_timestamps": True,
+                    "include_permissions": True,
+                    "save_results": True,
+                    "output_file": "examples/data/analysis.json",
+                },
+            )
 
             print("Analysis results:")
             print(json.dumps(results, indent=2))

@@ -970,7 +970,9 @@ class EncryptionManager:
                 if not chunk:  # Last chunk
                     # Process the remaining buffer with finalization
                     decrypted_chunk = decryptor.update(buffer) + decryptor.finalize()
-                    unpadded_chunk = unpadder.update(decrypted_chunk) + unpadder.finalize()
+                    unpadded_chunk = (
+                        unpadder.update(decrypted_chunk) + unpadder.finalize()
+                    )
                     output_stream.write(unpadded_chunk)
                     break
                 elif not buffer:  # First chunk

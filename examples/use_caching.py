@@ -25,7 +25,7 @@ from pyprocessor.utils.core.cache_manager import (
     stop_file_watcher,
     CacheBackend,
     CachePolicy,
-    TTLStrategy
+    TTLStrategy,
 )
 
 

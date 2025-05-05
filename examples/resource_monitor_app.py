@@ -29,13 +29,13 @@ from pyprocessor.utils.process.resource_manager import (
     shutdown_resource_manager,
     ResourceType,
     ResourceState,
-    ResourceUsage
+    ResourceUsage,
 )
 from pyprocessor.utils.core.notification_manager import (
     add_notification,
     NotificationType,
     NotificationPriority,
-    NotificationChannel
+    NotificationChannel,
 )
 
 
@@ -93,11 +93,13 @@ class ResourceMonitorApp:
                 "utilization": resource_usage.utilization,
                 "available": resource_usage.available,
                 "total": resource_usage.total,
-            }
+            },
         )
 
         # Log the warning
-        print(f"WARNING: {resource_usage.resource_type.value} usage at {resource_usage.utilization:.2%}")
+        print(
+            f"WARNING: {resource_usage.resource_type.value} usage at {resource_usage.utilization:.2%}"
+        )
 
         # Take action based on resource type
         if resource_usage.resource_type == ResourceType.MEMORY:
@@ -122,11 +124,13 @@ class ResourceMonitorApp:
                 "utilization": resource_usage.utilization,
                 "available": resource_usage.available,
                 "total": resource_usage.total,
-            }
+            },
         )
 
         # Log the critical state
-        print(f"CRITICAL: {resource_usage.resource_type.value} usage at {resource_usage.utilization:.2%}")
+        print(
+            f"CRITICAL: {resource_usage.resource_type.value} usage at {resource_usage.utilization:.2%}"
+        )
 
         # Take action based on resource type
         if resource_usage.resource_type == ResourceType.MEMORY:
@@ -144,6 +148,7 @@ class ResourceMonitorApp:
 
         # Simulate memory cleanup
         import gc
+
         gc.collect()
         print("Memory cleanup completed")
 
@@ -189,12 +194,16 @@ class ResourceMonitorApp:
     def _update_display(self):
         """Update the display with current resource usage."""
         # Clear the screen
-        os.system('cls' if os.name == 'nt' else 'clear')
+        os.system("cls" if os.name == "nt" else "clear")
 
         # Print header
         print("=== Resource Monitor ===")
-        print(f"System: {self.system_info.get('platform', 'Unknown')} {self.system_info.get('platform_release', '')}")
-        print(f"CPU: {self.system_info.get('processor', 'Unknown')} ({self.system_info.get('cpu_count', 0)} cores)")
+        print(
+            f"System: {self.system_info.get('platform', 'Unknown')} {self.system_info.get('platform_release', '')}"
+        )
+        print(
+            f"CPU: {self.system_info.get('processor', 'Unknown')} ({self.system_info.get('cpu_count', 0)} cores)"
+        )
         print(f"Memory: {self._format_bytes(self.system_info.get('memory_total', 0))}")
         print("========================")
 
@@ -206,15 +215,23 @@ class ResourceMonitorApp:
 
         if self.memory_history:
             memory_usage = self.memory_history[-1]
-            print(f"\nMemory Usage: {memory_usage.utilization:.2%} ({memory_usage.state.value})")
+            print(
+                f"\nMemory Usage: {memory_usage.utilization:.2%} ({memory_usage.state.value})"
+            )
             self._print_bar(memory_usage.utilization)
-            print(f"Available: {self._format_bytes(memory_usage.available)} / {self._format_bytes(memory_usage.total)}")
+            print(
+                f"Available: {self._format_bytes(memory_usage.available)} / {self._format_bytes(memory_usage.total)}"
+            )
 
         if self.disk_history:
             disk_usage = self.disk_history[-1]
-            print(f"\nDisk Usage: {disk_usage.utilization:.2%} ({disk_usage.state.value})")
+            print(
+                f"\nDisk Usage: {disk_usage.utilization:.2%} ({disk_usage.state.value})"
+            )
             self._print_bar(disk_usage.utilization)
-            print(f"Available: {self._format_bytes(disk_usage.available)} / {self._format_bytes(disk_usage.total)}")
+            print(
+                f"Available: {self._format_bytes(disk_usage.available)} / {self._format_bytes(disk_usage.total)}"
+            )
 
         # Print resource statistics
         stats = get_stats()
@@ -241,13 +258,13 @@ class ResourceMonitorApp:
 
         # Determine color based on value
         if value >= 0.9:
-            color = '\033[91m'  # Red
+            color = "\033[91m"  # Red
         elif value >= 0.7:
-            color = '\033[93m'  # Yellow
+            color = "\033[93m"  # Yellow
         else:
-            color = '\033[92m'  # Green
+            color = "\033[92m"  # Green
 
-        reset = '\033[0m'  # Reset color
+        reset = "\033[0m"  # Reset color
 
         # Print the bar
         print(f"{color}[{'#' * filled_width}{' ' * empty_width}]{reset}")

@@ -32,7 +32,7 @@ from pyprocessor.utils.process.resource_manager import (
     shutdown_resource_manager,
     ResourceType,
     ResourceState,
-    ResourceUsage
+    ResourceUsage,
 )
 
 
@@ -43,12 +43,21 @@ def print_resource_usage(resource_usage):
     print(f"Available: {format_bytes(resource_usage.available)}")
     print(f"Total: {format_bytes(resource_usage.total)}")
     print(f"State: {resource_usage.state.value}")
-    print(f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(resource_usage.timestamp))}")
+    print(
+        f"Timestamp: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(resource_usage.timestamp))}"
+    )
 
     if resource_usage.details:
         print("Details:")
         for key, value in resource_usage.details.items():
-            if key in ["used", "free", "cached", "buffers", "read_bytes", "write_bytes"]:
+            if key in [
+                "used",
+                "free",
+                "cached",
+                "buffers",
+                "read_bytes",
+                "write_bytes",
+            ]:
                 print(f"  {key}: {format_bytes(value) if value is not None else 'N/A'}")
             else:
                 print(f"  {key}: {value}")
@@ -79,12 +88,16 @@ def format_bytes(bytes_value):
 
 def warning_callback(resource_usage):
     """Callback function for warning resource state."""
-    print(f"WARNING: {resource_usage.resource_type.value} usage at {resource_usage.utilization:.2%}")
+    print(
+        f"WARNING: {resource_usage.resource_type.value} usage at {resource_usage.utilization:.2%}"
+    )
 
 
 def critical_callback(resource_usage):
     """Callback function for critical resource state."""
-    print(f"CRITICAL: {resource_usage.resource_type.value} usage at {resource_usage.utilization:.2%}")
+    print(
+        f"CRITICAL: {resource_usage.resource_type.value} usage at {resource_usage.utilization:.2%}"
+    )
 
 
 def simulate_cpu_load(duration=5):
@@ -116,7 +129,9 @@ def main():
     # Get system information
     print("\n1. System Information")
     system_info = get_system_info()
-    print(f"Platform: {system_info.get('platform', 'Unknown')} {system_info.get('platform_release', '')}")
+    print(
+        f"Platform: {system_info.get('platform', 'Unknown')} {system_info.get('platform_release', '')}"
+    )
     print(f"Version: {system_info.get('platform_version', 'Unknown')}")
     print(f"Architecture: {system_info.get('architecture', 'Unknown')}")
     print(f"Processor: {system_info.get('processor', 'Unknown')}")
@@ -125,7 +140,9 @@ def main():
     print(f"Total Memory: {format_bytes(system_info.get('memory_total', 0))}")
     print(f"Hostname: {system_info.get('hostname', 'Unknown')}")
     print(f"Python Version: {system_info.get('python_version', 'Unknown')}")
-    print(f"Boot Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(system_info.get('boot_time', 0)))}")
+    print(
+        f"Boot Time: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(system_info.get('boot_time', 0)))}"
+    )
 
     # Start resource monitoring
     print("\n2. Starting Resource Monitoring")
@@ -187,7 +204,9 @@ def main():
     cpu_history = get_usage_history(ResourceType.CPU, count=5)
     print(f"CPU History (last {len(cpu_history)} entries):")
     for i, usage in enumerate(cpu_history):
-        print(f"Entry {i+1}: {usage.utilization:.2%} at {time.strftime('%H:%M:%S', time.localtime(usage.timestamp))}")
+        print(
+            f"Entry {i+1}: {usage.utilization:.2%} at {time.strftime('%H:%M:%S', time.localtime(usage.timestamp))}"
+        )
 
     # Get resource statistics
     print("\n11. Resource Statistics")

@@ -9,33 +9,39 @@ install_requires = [
 # Platform-specific requirements
 if sys.platform == "win32":
     # Windows-specific dependencies
-    install_requires.extend([
-        "pywin32>=305",
-        "winshell>=0.6",
-    ])
+    install_requires.extend(
+        [
+            "pywin32>=305",
+            "winshell>=0.6",
+        ]
+    )
 elif sys.platform == "darwin":
     # macOS-specific dependencies
-    install_requires.extend([
-        "pyobjc-core>=9.2",
-        "pyobjc-framework-Cocoa>=9.2",
-    ])
+    install_requires.extend(
+        [
+            "pyobjc-core>=9.2",
+            "pyobjc-framework-Cocoa>=9.2",
+        ]
+    )
 elif sys.platform.startswith("linux"):
     # Linux-specific dependencies
-    install_requires.extend([
-        "python-xlib>=0.33",
-        "dbus-python>=1.3.2",
-    ])
+    install_requires.extend(
+        [
+            "python-xlib>=0.33",
+            "dbus-python>=1.3.2",
+        ]
+    )
 
 # Optional dependencies
 extras_require = {
-    'dev': [
-        'black>=23.7.0',
-        'flake8>=6.1.0',
-        'isort>=5.12.0',
-        'pyinstaller>=5.13.0',
+    "dev": [
+        "black>=23.7.0",
+        "flake8>=6.1.0",
+        "isort>=5.12.0",
+        "pyinstaller>=5.13.0",
     ],
-    'ffmpeg': [
-        'ffmpeg-python>=0.2.0',
+    "ffmpeg": [
+        "ffmpeg-python>=0.2.0",
     ],
 }
 

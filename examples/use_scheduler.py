@@ -93,8 +93,10 @@ def main():
     print("\n4. Scheduling tasks with dependencies")
     task4_id = schedule_task(add_numbers, 7, 8, callback=task_callback)
     task5_id = schedule_task(
-        process_result, wait_for_task(task4_id),
-        dependencies=[task4_id], callback=task_callback
+        process_result,
+        wait_for_task(task4_id),
+        dependencies=[task4_id],
+        callback=task_callback,
     )
     print(f"Scheduled tasks with dependencies: {task4_id} -> {task5_id}")
 
@@ -108,7 +110,9 @@ def main():
     task6_id = schedule_task(add_numbers, 1, 2, priority=1, callback=task_callback)
     task7_id = schedule_task(add_numbers, 3, 4, priority=10, callback=task_callback)
     task8_id = schedule_task(add_numbers, 5, 6, priority=5, callback=task_callback)
-    print(f"Scheduled tasks with priorities: {task6_id} (1), {task7_id} (10), {task8_id} (5)")
+    print(
+        f"Scheduled tasks with priorities: {task6_id} (1), {task7_id} (10), {task8_id} (5)"
+    )
 
     # Wait for all tasks to complete
     print("Waiting for tasks to complete...")

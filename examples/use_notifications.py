@@ -25,19 +25,27 @@ from pyprocessor.utils.core.notification_manager import (
     NotificationType,
     NotificationPriority,
     NotificationChannel,
-    Notification
+    Notification,
 )
 
 
 def print_notification(notification):
     """Print a notification."""
-    print(f"[{notification.notification_type.value.upper()}] {notification.title}: {notification.message}")
+    print(
+        f"[{notification.notification_type.value.upper()}] {notification.title}: {notification.message}"
+    )
     if notification.data:
         print(f"  Data: {notification.data}")
     if notification.actions:
-        print(f"  Actions: {', '.join(action['label'] for action in notification.actions)}")
-    print(f"  Created: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(notification.created_at))}")
-    print(f"  Status: {'Read' if notification.read else 'Unread'}, {'Dismissed' if notification.dismissed else 'Active'}")
+        print(
+            f"  Actions: {', '.join(action['label'] for action in notification.actions)}"
+        )
+    print(
+        f"  Created: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(notification.created_at))}"
+    )
+    print(
+        f"  Status: {'Read' if notification.read else 'Unread'}, {'Dismissed' if notification.dismissed else 'Active'}"
+    )
     print()
 
 
@@ -59,7 +67,7 @@ def main():
     print("\n2. Adding a simple notification")
     notification_id = add_notification(
         "This is a simple notification",
-        async_delivery=False  # For demonstration purposes
+        async_delivery=False,  # For demonstration purposes
     )
     print(f"Added notification with ID: {notification_id}")
 
@@ -73,25 +81,25 @@ def main():
     info_id = add_notification(
         "This is an informational message",
         notification_type=NotificationType.INFO,
-        async_delivery=False
+        async_delivery=False,
     )
 
     success_id = add_notification(
         "Operation completed successfully",
         notification_type=NotificationType.SUCCESS,
-        async_delivery=False
+        async_delivery=False,
     )
 
     warning_id = add_notification(
         "Disk space is running low",
         notification_type=NotificationType.WARNING,
-        async_delivery=False
+        async_delivery=False,
     )
 
     error_id = add_notification(
         "An error occurred during processing",
         notification_type=NotificationType.ERROR,
-        async_delivery=False
+        async_delivery=False,
     )
 
     # Get all notifications
@@ -107,25 +115,25 @@ def main():
     low_id = add_notification(
         "Low priority notification",
         priority=NotificationPriority.LOW,
-        async_delivery=False
+        async_delivery=False,
     )
 
     normal_id = add_notification(
         "Normal priority notification",
         priority=NotificationPriority.NORMAL,
-        async_delivery=False
+        async_delivery=False,
     )
 
     high_id = add_notification(
         "High priority notification",
         priority=NotificationPriority.HIGH,
-        async_delivery=False
+        async_delivery=False,
     )
 
     urgent_id = add_notification(
         "Urgent priority notification",
         priority=NotificationPriority.URGENT,
-        async_delivery=False
+        async_delivery=False,
     )
 
     # Get notifications sorted by priority
@@ -141,7 +149,7 @@ def main():
         "File processed successfully",
         notification_type=NotificationType.SUCCESS,
         data={"file_path": "/path/to/file.mp4", "duration": 120, "size": "1.2 GB"},
-        async_delivery=False
+        async_delivery=False,
     )
 
     # Get the notification with data
@@ -156,9 +164,9 @@ def main():
         actions=[
             {"id": "update", "label": "Update Now"},
             {"id": "later", "label": "Remind Me Later"},
-            {"id": "ignore", "label": "Ignore"}
+            {"id": "ignore", "label": "Ignore"},
         ],
-        async_delivery=False
+        async_delivery=False,
     )
 
     # Get the notification with actions
@@ -193,16 +201,16 @@ def main():
     # Get all notifications including read and dismissed
     print("\n12. Getting all notifications including read and dismissed")
     all_notifications = get_all_notifications(include_read=True, include_dismissed=True)
-    print(f"Found {len(all_notifications)} notifications (including read and dismissed):")
+    print(
+        f"Found {len(all_notifications)} notifications (including read and dismissed):"
+    )
     for notification in all_notifications:
         print_notification(notification)
 
     # Add a notification with expiration
     print("\n13. Adding a notification with expiration")
     expiring_id = add_notification(
-        "This notification will expire in 5 seconds",
-        expiration=5,
-        async_delivery=False
+        "This notification will expire in 5 seconds", expiration=5, async_delivery=False
     )
 
     # Get the notification before expiration
@@ -239,7 +247,7 @@ def main():
             notification_type=NotificationType.INFO,
             channel=NotificationChannel.SYSTEM,
             title="PyProcessor Example",
-            async_delivery=False
+            async_delivery=False,
         )
         print(f"Sent system notification with ID: {system_id}")
     except Exception as e:
@@ -252,8 +260,7 @@ def main():
     # Add a notification after unregistering callback
     print("\n17. Adding a notification after unregistering callback")
     final_id = add_notification(
-        "This notification should not trigger the callback",
-        async_delivery=False
+        "This notification should not trigger the callback", async_delivery=False
     )
     print(f"Added notification with ID: {final_id}")
 
