@@ -13,6 +13,6 @@ from pyprocessor.plugins.ffmpeg_encoder import FFmpegEncoderPlugin
 # Import plugin interfaces
 
 # List of built-in plugins
-BUILTIN_PLUGINS = [  # Unused variable  # Unused variable
+BUILTIN_PLUGINS = [  # Unused variable  # Unused variable  # Unused variable
     FFmpegEncoderPlugin,
 ]

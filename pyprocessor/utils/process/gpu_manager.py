@@ -26,8 +26,8 @@ class GPUVendor(Enum):
 
     UNKNOWN = "unknown"
     NVIDIA = "nvidia"
-    AMD = "amd"  # Unused variable  # Unused variable
-    INTEL = "intel"  # Unused variable  # Unused variable
+    AMD = "amd"  # Unused variable  # Unused variable  # Unused variable
+    INTEL = "intel"  # Unused variable  # Unused variable  # Unused variable
 
 
 class GPUCapability(Enum):
@@ -36,7 +36,7 @@ class GPUCapability(Enum):
     NONE = "none"
     H264 = "h264"
     HEVC = "hevc"
-    AV1 = "av1"  # Unused variable  # Unused variable
+    AV1 = "av1"  # Unused variable  # Unused variable  # Unused variable
 
 
 class GPUInfo:

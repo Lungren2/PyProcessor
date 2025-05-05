@@ -150,7 +150,9 @@ class ResourceCalculator:
         # Log GPU information if available
         if has_gpu:
             gpu_name = gpu_info.get("gpu_name", "Unknown")
-            gpu_count = gpu_info.get("gpu_count", 0)  # Unused variable  # Unused variable
+            gpu_count = gpu_info.get(  # Unused variable
+                "gpu_count", 0
+            )  # Unused variable  # Unused variable
             self.logger.info(
                 f"GPU: {gpu_name}, {gpu_memory_available_gb:.1f}GB available, "
                 f"utilization: {gpu_utilization:.2%}, encoder: {gpu_encoder_usage:.2%}"

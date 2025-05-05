@@ -22,7 +22,7 @@ class NotificationType(Enum):
     """Types of notifications."""
 
     INFO = "info"
-    SUCCESS = "success"  # Unused variable  # Unused variable
+    SUCCESS = "success"  # Unused variable  # Unused variable  # Unused variable
     WARNING = "warning"
     ERROR = "error"
 
@@ -30,10 +30,10 @@ class NotificationType(Enum):
 class NotificationPriority(Enum):
     """Priority levels for notifications."""
 
-    LOW = 0  # Unused variable  # Unused variable
+    LOW = 0  # Unused variable  # Unused variable  # Unused variable
     NORMAL = 1
-    HIGH = 2  # Unused variable  # Unused variable
-    URGENT = 3  # Unused variable  # Unused variable
+    HIGH = 2  # Unused variable  # Unused variable  # Unused variable
+    URGENT = 3  # Unused variable  # Unused variable  # Unused variable
 
 
 class NotificationChannel(Enum):
