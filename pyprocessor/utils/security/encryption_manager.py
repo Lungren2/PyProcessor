@@ -840,8 +840,69 @@ class EncryptionManager:
             - bool: True if encryption was successful, False otherwise
             - Dict[str, Any]: Encryption metadata
         """
-        # TODO: Implement stream encryption
-        return False, {}
+        try:
+            # Use default key if not specified
+            if key_id is None:
+                if self.default_key_id is None:
+                    self.logger.error("No default encryption key available")
+                    return False, {}
+                key_id = self.default_key_id
+
+            # Get the key
+            key = self.get_key(key_id)
+            if key is None:
+                self.logger.error(f"Encryption key not found: {key_id}")
+                return False, {}
+
+            # Generate a random IV (Initialization Vector)
+            iv = os.urandom(16)  # 16 bytes = 128 bits for AES
+
+            # Create AES cipher
+            cipher = Cipher(
+                algorithms.AES(key.key_data), modes.CBC(iv), backend=default_backend()
+            )
+
+            # Create encryptor
+            encryptor = cipher.encryptor()
+
+            # Create padder
+            padder = padding.PKCS7(algorithms.AES.block_size).padder()
+
+            # Create metadata
+            metadata = {
+                "key_id": key_id,
+                "algorithm": "AES-256-CBC",
+                "iv": base64.b64encode(iv).decode("utf-8"),
+                "created_at": time.time(),
+            }
+
+            # Process stream in chunks
+            while True:
+                chunk = input_stream.read(chunk_size)
+                if not chunk:
+                    break
+
+                # For the last chunk, we need to pad
+                if len(chunk) < chunk_size:
+                    padded_chunk = padder.update(chunk) + padder.finalize()
+                else:
+                    padded_chunk = padder.update(chunk)
+
+                # Encrypt and write chunk
+                encrypted_chunk = encryptor.update(padded_chunk)
+                output_stream.write(encrypted_chunk)
+
+            # Write final block if needed
+            final_block = encryptor.finalize()
+            if final_block:
+                output_stream.write(final_block)
+
+            self.logger.info("Stream encrypted successfully")
+            return True, metadata
+
+        except Exception as e:
+            self.logger.error(f"Error encrypting stream: {str(e)}")
+            return False, {}
 
     def decrypt_stream(
         self,
@@ -862,8 +923,75 @@ class EncryptionManager:
         Returns:
             bool: True if decryption was successful, False otherwise
         """
-        # TODO: Implement stream decryption
-        return False
+        try:
+            # Get required metadata
+            key_id = metadata.get("key_id")
+            algorithm = metadata.get("algorithm")
+            iv_base64 = metadata.get("iv")
+
+            # Validate metadata
+            if not all([key_id, algorithm, iv_base64]):
+                self.logger.error("Missing required metadata for decryption")
+                return False
+
+            # Check algorithm
+            if algorithm != "AES-256-CBC":
+                self.logger.error(f"Unsupported encryption algorithm: {algorithm}")
+                return False
+
+            # Get the key
+            key = self.get_key(key_id)
+            if key is None:
+                self.logger.error(f"Decryption key not found: {key_id}")
+                return False
+
+            # Decode IV
+            iv = base64.b64decode(iv_base64)
+
+            # Create AES cipher
+            cipher = Cipher(
+                algorithms.AES(key.key_data), modes.CBC(iv), backend=default_backend()
+            )
+
+            # Create decryptor
+            decryptor = cipher.decryptor()
+
+            # Create unpadder
+            unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
+
+            # Process stream in chunks
+            buffer = b""
+            while True:
+                chunk = input_stream.read(chunk_size)
+                if not chunk and not buffer:
+                    break
+
+                # Process the buffer and the new chunk
+                if not chunk:  # Last chunk
+                    # Process the remaining buffer with finalization
+                    decrypted_chunk = decryptor.update(buffer) + decryptor.finalize()
+                    unpadded_chunk = unpadder.update(decrypted_chunk) + unpadder.finalize()
+                    output_stream.write(unpadded_chunk)
+                    break
+                elif not buffer:  # First chunk
+                    buffer = chunk
+                else:  # Middle chunks
+                    # Process the buffer, keep the current chunk for next iteration
+                    decrypted_chunk = decryptor.update(buffer)
+                    try:
+                        unpadded_chunk = unpadder.update(decrypted_chunk)
+                        output_stream.write(unpadded_chunk)
+                    except Exception as e:
+                        self.logger.error(f"Error unpadding data: {str(e)}")
+                        return False
+                    buffer = chunk
+
+            self.logger.info("Stream decrypted successfully")
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Error decrypting stream: {str(e)}")
+            return False
 
     # Key exchange methods
     def export_key(self, key_id: str, passphrase: str) -> Tuple[bool, Optional[str]]:
