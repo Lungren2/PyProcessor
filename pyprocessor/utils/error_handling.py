@@ -11,23 +11,18 @@ This module extends the existing error_manager.py functionality with:
 - User-friendly error messages for CLI and API
 """
 
-import sys
+# import sys
 import os
 import time
-import json
+# import json
 import traceback
-import inspect
+# import inspect
 import functools
-from enum import Enum
-from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, TypeVar, Generic, Set
+# from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Type, Union, TypeVar
 
 # Import from existing error manager
-from pyprocessor.utils.logging.error_manager import (
-    PyProcessorError, ErrorCategory, ErrorSeverity, Result,
-    get_error_manager, handle_error, convert_exception,
-    ErrorContext, retry
-)
+from pyprocessor.utils.logging.error_manager import with_error_handling, PyProcessorError
 from pyprocessor.utils.logging.log_manager import get_logger
 
 # Type variables for generic functions
@@ -1239,3 +1234,4 @@ __all__ = [
     # User-friendly errors
     'UserFriendlyErrors', 'format_cli_error', 'format_api_error',
 ]
+
