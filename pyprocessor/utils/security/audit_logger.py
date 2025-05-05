@@ -5,17 +5,18 @@ This module provides audit logging functionality for security events.
 """
 
 import json
-import os
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional
 
-from pyprocessor.utils.logging.log_manager import get_logger
 from pyprocessor.utils.file_system.path_utils import (
-    normalize_path, ensure_dir_exists, get_user_data_dir
+    ensure_dir_exists,
+    get_user_data_dir,
+    normalize_path,
 )
+from pyprocessor.utils.logging.log_manager import get_logger
 
 
 class AuditLogger:
@@ -76,12 +77,22 @@ class AuditLogger:
         if config:
             if hasattr(config, "get"):
                 # Config is a dictionary-like object
-                self.enabled = config.get("security.audit_logging.enabled", self.enabled)
-                self.log_to_file = config.get("security.audit_logging.log_to_file", self.log_to_file)
-                self.log_to_console = config.get("security.audit_logging.log_to_console", self.log_to_console)
-                self.log_rotation_size = config.get("security.audit_logging.log_rotation_size", self.log_rotation_size)
-                self.log_retention_days = config.get("security.audit_logging.log_retention_days", self.log_retention_days)
-                
+                self.enabled = config.get(
+                    "security.audit_logging.enabled", self.enabled
+                )
+                self.log_to_file = config.get(
+                    "security.audit_logging.log_to_file", self.log_to_file
+                )
+                self.log_to_console = config.get(
+                    "security.audit_logging.log_to_console", self.log_to_console
+                )
+                self.log_rotation_size = config.get(
+                    "security.audit_logging.log_rotation_size", self.log_rotation_size
+                )
+                self.log_retention_days = config.get(
+                    "security.audit_logging.log_retention_days", self.log_retention_days
+                )
+
                 # Get data directory from config if available
                 data_dir = config.get("security.data_dir")
                 if data_dir:
@@ -105,10 +116,10 @@ class AuditLogger:
         # Generate log file name with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_file = self.audit_log_dir / f"audit_{timestamp}.log"
-        
+
         self.current_log_file = log_file
         self.current_log_size = 0
-        
+
         # Create log file with header
         with open(log_file, "w") as f:
             f.write(f"# PyProcessor Audit Log\n")
@@ -131,23 +142,23 @@ class AuditLogger:
         try:
             # Get all log files
             log_files = list(self.audit_log_dir.glob("audit_*.log"))
-            
+
             # Sort by modification time (oldest first)
             log_files.sort(key=lambda f: f.stat().st_mtime)
-            
+
             # Calculate cutoff time
             cutoff_time = time.time() - (self.log_retention_days * 24 * 60 * 60)
-            
+
             # Delete old log files
             deleted_count = 0
             for log_file in log_files:
                 if log_file.stat().st_mtime < cutoff_time:
                     log_file.unlink()
                     deleted_count += 1
-            
+
             if deleted_count > 0:
                 self.logger.info(f"Cleaned up {deleted_count} old audit log files")
-        
+
         except Exception as e:
             self.logger.error(f"Failed to clean up old audit logs: {e}")
 
@@ -166,7 +177,7 @@ class AuditLogger:
         event_data = {
             "timestamp": datetime.now().isoformat(),
             "event_type": event_type,
-            **kwargs
+            **kwargs,
         }
 
         # Convert to JSON
@@ -188,7 +199,7 @@ class AuditLogger:
 
                 # Update log size
                 self.current_log_size += len(event_json) + 1
-            
+
             except Exception as e:
                 self.logger.error(f"Failed to write to audit log: {e}")
 
@@ -232,11 +243,14 @@ class AuditLogger:
         """
         self._log_event(f"security.{event_type}", **kwargs)
 
-    def get_audit_logs(self, start_time: Optional[float] = None, 
-                      end_time: Optional[float] = None,
-                      event_types: Optional[List[str]] = None,
-                      username: Optional[str] = None,
-                      limit: int = 100) -> List[Dict[str, Any]]:
+    def get_audit_logs(
+        self,
+        start_time: Optional[float] = None,
+        end_time: Optional[float] = None,
+        event_types: Optional[List[str]] = None,
+        username: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
         """
         Get audit logs.
 
@@ -254,53 +268,58 @@ class AuditLogger:
             return []
 
         logs = []
-        
+
         try:
             # Get all log files
             log_files = list(self.audit_log_dir.glob("audit_*.log"))
-            
+
             # Sort by modification time (newest first)
             log_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
-            
+
             # Process log files
             for log_file in log_files:
                 if len(logs) >= limit:
                     break
-                
+
                 with open(log_file, "r") as f:
                     for line in f:
                         line = line.strip()
                         if not line or line.startswith("#"):
                             continue
-                        
+
                         try:
                             log_entry = json.loads(line)
-                            
+
                             # Parse timestamp
-                            timestamp = datetime.fromisoformat(log_entry["timestamp"]).timestamp()
-                            
+                            timestamp = datetime.fromisoformat(
+                                log_entry["timestamp"]
+                            ).timestamp()
+
                             # Apply filters
                             if start_time and timestamp < start_time:
                                 continue
                             if end_time and timestamp > end_time:
                                 continue
-                            if event_types and not any(log_entry["event_type"].startswith(et) for et in event_types):
+                            if event_types and not any(
+                                log_entry["event_type"].startswith(et)
+                                for et in event_types
+                            ):
                                 continue
                             if username and log_entry.get("username") != username:
                                 continue
-                            
+
                             logs.append(log_entry)
-                            
+
                             if len(logs) >= limit:
                                 break
-                        
+
                         except Exception:
                             # Skip invalid log entries
                             continue
-        
+
         except Exception as e:
             self.logger.error(f"Failed to get audit logs: {e}")
-        
+
         return logs
 
 

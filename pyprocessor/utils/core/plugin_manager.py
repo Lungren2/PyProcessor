@@ -8,23 +8,23 @@ This module provides a centralized way to manage plugins, including:
 - Plugin dependency resolution
 """
 
-import os
-import sys
 import importlib
 import inspect
 import pkgutil
-import logging
+import sys
 import threading
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Union, Callable, Type, Set, Tuple
+from typing import Any, Dict, List, Optional, Type, Union
 
+from pyprocessor.utils.logging.error_manager import (
+    PyProcessorError,
+    with_error_handling,
+)
 from pyprocessor.utils.logging.log_manager import get_logger
-from pyprocessor.utils.logging.error_manager import with_error_handling, PyProcessorError, ErrorSeverity
 
 
 class PluginError(PyProcessorError):
     """Error related to plugin management."""
-    pass
 
 
 class Plugin:
@@ -220,7 +220,9 @@ class PluginManager:
                     # Find all Plugin subclasses in the module
                     for item_name, item in inspect.getmembers(module, inspect.isclass):
                         if issubclass(item, Plugin) and item is not Plugin:
-                            self.logger.debug(f"Discovered plugin: {item.name} ({item.__module__}.{item.__name__})")
+                            self.logger.debug(
+                                f"Discovered plugin: {item.name} ({item.__module__}.{item.__name__})"
+                            )
                             discovered_plugins.append(item)
 
                             # Register the plugin class
@@ -264,7 +266,9 @@ class PluginManager:
                 if dependency not in self._plugins:
                     dependency_plugin = self.load_plugin(dependency)
                     if dependency_plugin is None:
-                        self.logger.error(f"Failed to load dependency {dependency} for plugin {plugin_name}")
+                        self.logger.error(
+                            f"Failed to load dependency {dependency} for plugin {plugin_name}"
+                        )
                         return None
 
             # Create plugin instance
@@ -489,7 +493,9 @@ class PluginManager:
 _plugin_manager = None
 
 
-def get_plugin_manager(plugin_dirs: Optional[List[Union[str, Path]]] = None) -> PluginManager:
+def get_plugin_manager(
+    plugin_dirs: Optional[List[Union[str, Path]]] = None,
+) -> PluginManager:
     """
     Get the singleton plugin manager instance.
 
@@ -506,6 +512,7 @@ def get_plugin_manager(plugin_dirs: Optional[List[Union[str, Path]]] = None) -> 
 
 
 # Module-level functions for convenience
+
 
 def discover_plugins() -> List[Type[Plugin]]:
     """

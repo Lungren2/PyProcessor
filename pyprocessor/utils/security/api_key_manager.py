@@ -4,29 +4,37 @@ API key management for PyProcessor.
 This module provides API key management functionality for programmatic access.
 """
 
+import hashlib
 import json
-import os
+import secrets
 import threading
 import time
 import uuid
-import secrets
-import hashlib
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from pyprocessor.utils.logging.log_manager import get_logger
 from pyprocessor.utils.file_system.path_utils import (
-    normalize_path, ensure_dir_exists, get_user_data_dir
+    ensure_dir_exists,
+    get_user_data_dir,
+    normalize_path,
 )
+from pyprocessor.utils.logging.log_manager import get_logger
 
 
 class ApiKey:
     """API key model for programmatic access."""
 
-    def __init__(self, id: str, key_hash: str, username: str, 
-                description: str = None, created_at: float = None,
-                expires_at: float = None, last_used: float = None,
-                revoked: bool = False):
+    def __init__(
+        self,
+        id: str,
+        key_hash: str,
+        username: str,
+        description: str = None,
+        created_at: float = None,
+        expires_at: float = None,
+        last_used: float = None,
+        revoked: bool = False,
+    ):
         """
         Initialize an API key.
 
@@ -64,11 +72,11 @@ class ApiKey:
             "created_at": self.created_at,
             "expires_at": self.expires_at,
             "last_used": self.last_used,
-            "revoked": self.revoked
+            "revoked": self.revoked,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ApiKey':
+    def from_dict(cls, data: Dict[str, Any]) -> "ApiKey":
         """
         Create API key from dictionary.
 
@@ -86,7 +94,7 @@ class ApiKey:
             created_at=data.get("created_at"),
             expires_at=data.get("expires_at"),
             last_used=data.get("last_used"),
-            revoked=data.get("revoked", False)
+            revoked=data.get("revoked", False),
         )
 
     def is_expired(self) -> bool:
@@ -168,9 +176,13 @@ class ApiKeyManager:
         if config:
             if hasattr(config, "get"):
                 # Config is a dictionary-like object
-                self.default_expiry = config.get("security.api_key_expiry", self.default_expiry)
-                self.cleanup_interval = config.get("security.api_key_cleanup_interval", self.cleanup_interval)
-                
+                self.default_expiry = config.get(
+                    "security.api_key_expiry", self.default_expiry
+                )
+                self.cleanup_interval = config.get(
+                    "security.api_key_cleanup_interval", self.cleanup_interval
+                )
+
                 # Get data directory from config if available
                 data_dir = config.get("security.data_dir")
                 if data_dir:
@@ -208,7 +220,9 @@ class ApiKeyManager:
                     key_id: ApiKey.from_dict(key_data)
                     for key_id, key_data in data.items()
                 }
-            self.logger.info(f"Loaded {len(self.api_keys)} API keys from {self.api_keys_file}")
+            self.logger.info(
+                f"Loaded {len(self.api_keys)} API keys from {self.api_keys_file}"
+            )
         except Exception as e:
             self.logger.error(f"Failed to load API keys: {e}")
 
@@ -216,12 +230,13 @@ class ApiKeyManager:
         """Save API keys to file."""
         try:
             data = {
-                key_id: api_key.to_dict()
-                for key_id, api_key in self.api_keys.items()
+                key_id: api_key.to_dict() for key_id, api_key in self.api_keys.items()
             }
             with open(self.api_keys_file, "w") as f:
                 json.dump(data, f, indent=2)
-            self.logger.info(f"Saved {len(self.api_keys)} API keys to {self.api_keys_file}")
+            self.logger.info(
+                f"Saved {len(self.api_keys)} API keys to {self.api_keys_file}"
+            )
         except Exception as e:
             self.logger.error(f"Failed to save API keys: {e}")
 
@@ -234,8 +249,7 @@ class ApiKeyManager:
 
         # Clean up expired API keys
         expired_keys = [
-            key_id for key_id, api_key in self.api_keys.items()
-            if api_key.is_expired()
+            key_id for key_id, api_key in self.api_keys.items() if api_key.is_expired()
         ]
 
         for key_id in expired_keys:
@@ -250,8 +264,9 @@ class ApiKeyManager:
         # Save API keys
         self._save_api_keys()
 
-    def create_api_key(self, username: str, description: str = None,
-                      expires_in: int = None) -> Tuple[bool, str, Dict[str, Any]]:
+    def create_api_key(
+        self, username: str, description: str = None, expires_in: int = None
+    ) -> Tuple[bool, str, Dict[str, Any]]:
         """
         Create a new API key.
 
@@ -288,7 +303,7 @@ class ApiKeyManager:
             key_hash=key_hash,
             username=username,
             description=description,
-            expires_at=expires_at
+            expires_at=expires_at,
         )
 
         # Add API key
@@ -378,7 +393,8 @@ class ApiKeyManager:
         """
         # Find all API keys for the user
         keys_to_revoke = [
-            key_id for key_id, api_key in self.api_keys.items()
+            key_id
+            for key_id, api_key in self.api_keys.items()
             if api_key.username == username and not api_key.revoked
         ]
 
@@ -389,7 +405,9 @@ class ApiKeyManager:
         # Save API keys if any were revoked
         if keys_to_revoke:
             self._save_api_keys()
-            self.logger.info(f"Revoked {len(keys_to_revoke)} API keys for user: {username}")
+            self.logger.info(
+                f"Revoked {len(keys_to_revoke)} API keys for user: {username}"
+            )
 
         return len(keys_to_revoke)
 
@@ -453,8 +471,9 @@ def get_api_key_manager() -> ApiKeyManager:
     return ApiKeyManager()
 
 
-def create_api_key(username: str, description: str = None,
-                  expires_in: int = None) -> Tuple[bool, str, Dict[str, Any]]:
+def create_api_key(
+    username: str, description: str = None, expires_in: int = None
+) -> Tuple[bool, str, Dict[str, Any]]:
     """
     Create a new API key.
 

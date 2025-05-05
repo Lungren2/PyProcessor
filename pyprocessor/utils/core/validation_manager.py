@@ -7,15 +7,17 @@ This module provides a centralized way to validate inputs, including:
 - Validation error handling
 """
 
-import os
 import re
-import sys
-from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Pattern, Tuple, Union, Callable
+from typing import Any, Callable, Dict, List, Optional, Union
 
+from pyprocessor.utils.error_manager import (
+    ErrorCategory,
+    ErrorSeverity,
+    PyProcessorError,
+    with_error_handling,
+)
 from pyprocessor.utils.log_manager import get_logger
-from pyprocessor.utils.error_manager import with_error_handling, PyProcessorError, ErrorSeverity, ErrorCategory
 
 
 class ValidationError(PyProcessorError):
@@ -35,7 +37,7 @@ class ValidationError(PyProcessorError):
             severity=kwargs.get("severity", ErrorSeverity.WARNING),
             category=ErrorCategory.VALIDATION,
             details={"field": field, **kwargs.get("details", {})},
-            **{k: v for k, v in kwargs.items() if k != "details"}
+            **{k: v for k, v in kwargs.items() if k != "details"},
         )
         self.field = field
 
@@ -43,7 +45,12 @@ class ValidationError(PyProcessorError):
 class ValidationResult:
     """Result of a validation operation."""
 
-    def __init__(self, valid: bool = True, errors: List[ValidationError] = None, warnings: List[ValidationError] = None):
+    def __init__(
+        self,
+        valid: bool = True,
+        errors: List[ValidationError] = None,
+        warnings: List[ValidationError] = None,
+    ):
         """
         Initialize the validation result.
 
@@ -65,7 +72,9 @@ class ValidationResult:
             field: Field that failed validation
             **kwargs: Additional error details
         """
-        self.errors.append(ValidationError(message, field, severity=ErrorSeverity.ERROR, **kwargs))
+        self.errors.append(
+            ValidationError(message, field, severity=ErrorSeverity.ERROR, **kwargs)
+        )
         self.valid = False
 
     def add_warning(self, message: str, field: str = None, **kwargs):
@@ -77,9 +86,11 @@ class ValidationResult:
             field: Field that has a warning
             **kwargs: Additional warning details
         """
-        self.warnings.append(ValidationError(message, field, severity=ErrorSeverity.WARNING, **kwargs))
+        self.warnings.append(
+            ValidationError(message, field, severity=ErrorSeverity.WARNING, **kwargs)
+        )
 
-    def merge(self, other: 'ValidationResult'):
+    def merge(self, other: "ValidationResult"):
         """
         Merge another validation result into this one.
 
@@ -117,7 +128,7 @@ class ValidationManager:
     def __init__(self):
         """Initialize the validation manager."""
         # Only initialize once
-        if getattr(self, '_initialized', False):
+        if getattr(self, "_initialized", False):
             return
 
         # Get logger
@@ -133,9 +144,15 @@ class ValidationManager:
     # Basic validation functions
 
     @with_error_handling
-    def validate_string(self, value: Any, field: str = None,
-                       min_length: int = None, max_length: int = None,
-                       pattern: str = None, required: bool = False) -> ValidationResult:
+    def validate_string(
+        self,
+        value: Any,
+        field: str = None,
+        min_length: int = None,
+        max_length: int = None,
+        pattern: str = None,
+        required: bool = False,
+    ) -> ValidationResult:
         """
         Validate a string value.
 
@@ -163,7 +180,9 @@ class ValidationManager:
 
         # Check type
         if not isinstance(value, str):
-            result.add_error(f"Value must be a string, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be a string, got {type(value).__name__}", field
+            )
             return result
 
         # Check min length
@@ -185,9 +204,15 @@ class ValidationManager:
         return result
 
     @with_error_handling
-    def validate_number(self, value: Any, field: str = None,
-                       min_value: Union[int, float] = None, max_value: Union[int, float] = None,
-                       integer_only: bool = False, required: bool = False) -> ValidationResult:
+    def validate_number(
+        self,
+        value: Any,
+        field: str = None,
+        min_value: Union[int, float] = None,
+        max_value: Union[int, float] = None,
+        integer_only: bool = False,
+        required: bool = False,
+    ) -> ValidationResult:
         """
         Validate a numeric value.
 
@@ -226,10 +251,14 @@ class ValidationManager:
 
         # Check type
         if integer_only and not isinstance(value, int):
-            result.add_error(f"Value must be an integer, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be an integer, got {type(value).__name__}", field
+            )
             return result
         elif not isinstance(value, (int, float)):
-            result.add_error(f"Value must be a number, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be a number, got {type(value).__name__}", field
+            )
             return result
 
         # Check min value
@@ -243,7 +272,9 @@ class ValidationManager:
         return result
 
     @with_error_handling
-    def validate_boolean(self, value: Any, field: str = None, required: bool = False) -> ValidationResult:
+    def validate_boolean(
+        self, value: Any, field: str = None, required: bool = False
+    ) -> ValidationResult:
         """
         Validate a boolean value.
 
@@ -279,14 +310,22 @@ class ValidationManager:
 
         # Check type
         if not isinstance(value, bool):
-            result.add_error(f"Value must be a boolean, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be a boolean, got {type(value).__name__}", field
+            )
 
         return result
 
     @with_error_handling
-    def validate_path(self, value: Any, field: str = None,
-                     must_exist: bool = False, must_be_file: bool = False,
-                     must_be_dir: bool = False, required: bool = False) -> ValidationResult:
+    def validate_path(
+        self,
+        value: Any,
+        field: str = None,
+        must_exist: bool = False,
+        must_be_file: bool = False,
+        must_be_dir: bool = False,
+        required: bool = False,
+    ) -> ValidationResult:
         """
         Validate a file path.
 
@@ -337,9 +376,15 @@ class ValidationManager:
         return result
 
     @with_error_handling
-    def validate_list(self, value: Any, field: str = None,
-                    min_length: int = None, max_length: int = None,
-                    item_validator: Callable = None, required: bool = False) -> ValidationResult:
+    def validate_list(
+        self,
+        value: Any,
+        field: str = None,
+        min_length: int = None,
+        max_length: int = None,
+        item_validator: Callable = None,
+        required: bool = False,
+    ) -> ValidationResult:
         """
         Validate a list value.
 
@@ -381,16 +426,24 @@ class ValidationManager:
         # Validate each item
         if item_validator is not None:
             for i, item in enumerate(value):
-                item_result = item_validator(item, f"{field}[{i}]" if field else f"[{i}]")
+                item_result = item_validator(
+                    item, f"{field}[{i}]" if field else f"[{i}]"
+                )
                 result.merge(item_result)
 
         return result
 
     @with_error_handling
-    def validate_dict(self, value: Any, field: str = None,
-                    required_keys: List[str] = None, optional_keys: List[str] = None,
-                    key_validator: Callable = None, value_validator: Callable = None,
-                    required: bool = False) -> ValidationResult:
+    def validate_dict(
+        self,
+        value: Any,
+        field: str = None,
+        required_keys: List[str] = None,
+        optional_keys: List[str] = None,
+        key_validator: Callable = None,
+        value_validator: Callable = None,
+        required: bool = False,
+    ) -> ValidationResult:
         """
         Validate a dictionary value.
 
@@ -419,7 +472,9 @@ class ValidationManager:
 
         # Check type
         if not isinstance(value, dict):
-            result.add_error(f"Value must be a dictionary, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be a dictionary, got {type(value).__name__}", field
+            )
             return result
 
         # Check required keys
@@ -450,7 +505,9 @@ class ValidationManager:
         return result
 
     @with_error_handling
-    def validate_email(self, value: Any, field: str = None, required: bool = False) -> ValidationResult:
+    def validate_email(
+        self, value: Any, field: str = None, required: bool = False
+    ) -> ValidationResult:
         """
         Validate an email address.
 
@@ -475,7 +532,9 @@ class ValidationManager:
 
         # Check type
         if not isinstance(value, str):
-            result.add_error(f"Value must be a string, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be a string, got {type(value).__name__}", field
+            )
             return result
 
         # Simple email pattern
@@ -486,7 +545,9 @@ class ValidationManager:
         return result
 
     @with_error_handling
-    def validate_url(self, value: Any, field: str = None, required: bool = False) -> ValidationResult:
+    def validate_url(
+        self, value: Any, field: str = None, required: bool = False
+    ) -> ValidationResult:
         """
         Validate a URL.
 
@@ -511,7 +572,9 @@ class ValidationManager:
 
         # Check type
         if not isinstance(value, str):
-            result.add_error(f"Value must be a string, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be a string, got {type(value).__name__}", field
+            )
             return result
 
         # Simple URL pattern
@@ -522,8 +585,14 @@ class ValidationManager:
         return result
 
     @with_error_handling
-    def validate_enum(self, value: Any, field: str = None, allowed_values: List[Any] = None,
-                    case_sensitive: bool = True, required: bool = False) -> ValidationResult:
+    def validate_enum(
+        self,
+        value: Any,
+        field: str = None,
+        allowed_values: List[Any] = None,
+        case_sensitive: bool = True,
+        required: bool = False,
+    ) -> ValidationResult:
         """
         Validate a value against an enumeration of allowed values.
 
@@ -552,15 +621,23 @@ class ValidationManager:
         if allowed_values is not None:
             if isinstance(value, str) and not case_sensitive:
                 if value.lower() not in [str(v).lower() for v in allowed_values]:
-                    result.add_error(f"Value must be one of: {', '.join(str(v) for v in allowed_values)}", field)
+                    result.add_error(
+                        f"Value must be one of: {', '.join(str(v) for v in allowed_values)}",
+                        field,
+                    )
             else:
                 if value not in allowed_values:
-                    result.add_error(f"Value must be one of: {', '.join(str(v) for v in allowed_values)}", field)
+                    result.add_error(
+                        f"Value must be one of: {', '.join(str(v) for v in allowed_values)}",
+                        field,
+                    )
 
         return result
 
     @with_error_handling
-    def validate_regex(self, value: Any, field: str = None, required: bool = False) -> ValidationResult:
+    def validate_regex(
+        self, value: Any, field: str = None, required: bool = False
+    ) -> ValidationResult:
         """
         Validate a regular expression pattern.
 
@@ -585,7 +662,9 @@ class ValidationManager:
 
         # Check type
         if not isinstance(value, str):
-            result.add_error(f"Value must be a string, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be a string, got {type(value).__name__}", field
+            )
             return result
 
         # Try to compile the regex
@@ -608,7 +687,9 @@ class ValidationManager:
             validator: Validation function
         """
         if not callable(validator):
-            raise ValueError(f"Validator must be callable, got {type(validator).__name__}")
+            raise ValueError(
+                f"Validator must be callable, got {type(validator).__name__}"
+            )
 
         self._custom_rules[name] = validator
         self.logger.debug(f"Registered custom validation rule: {name}")
@@ -644,7 +725,9 @@ class ValidationManager:
         return self._custom_rules.get(name)
 
     @with_error_handling
-    def apply_rule(self, name: str, value: Any, field: str = None, **kwargs) -> ValidationResult:
+    def apply_rule(
+        self, name: str, value: Any, field: str = None, **kwargs
+    ) -> ValidationResult:
         """
         Apply a custom validation rule.
 
@@ -668,7 +751,9 @@ class ValidationManager:
     # Object validation with schema
 
     @with_error_handling
-    def validate_object(self, value: Any, schema: Dict[str, Dict[str, Any]], field: str = None) -> ValidationResult:
+    def validate_object(
+        self, value: Any, schema: Dict[str, Dict[str, Any]], field: str = None
+    ) -> ValidationResult:
         """
         Validate an object against a schema.
 
@@ -684,13 +769,17 @@ class ValidationManager:
 
         # Check if value is None
         if value is None:
-            if any(field_schema.get("required", False) for field_schema in schema.values()):
+            if any(
+                field_schema.get("required", False) for field_schema in schema.values()
+            ):
                 result.add_error(f"Object is required", field)
             return result
 
         # Check type
         if not isinstance(value, dict):
-            result.add_error(f"Value must be an object, got {type(value).__name__}", field)
+            result.add_error(
+                f"Value must be an object, got {type(value).__name__}", field
+            )
             return result
 
         # Validate each field
@@ -717,7 +806,7 @@ class ValidationManager:
                     min_length=field_schema.get("min_length"),
                     max_length=field_schema.get("max_length"),
                     pattern=field_schema.get("pattern"),
-                    required=field_required
+                    required=field_required,
                 )
             elif field_type == "number":
                 field_result = self.validate_number(
@@ -726,13 +815,11 @@ class ValidationManager:
                     min_value=field_schema.get("min_value"),
                     max_value=field_schema.get("max_value"),
                     integer_only=field_schema.get("integer_only", False),
-                    required=field_required
+                    required=field_required,
                 )
             elif field_type == "boolean":
                 field_result = self.validate_boolean(
-                    field_value,
-                    field_path,
-                    required=field_required
+                    field_value, field_path, required=field_required
                 )
             elif field_type == "path":
                 field_result = self.validate_path(
@@ -741,7 +828,7 @@ class ValidationManager:
                     must_exist=field_schema.get("must_exist", False),
                     must_be_file=field_schema.get("must_be_file", False),
                     must_be_dir=field_schema.get("must_be_dir", False),
-                    required=field_required
+                    required=field_required,
                 )
             elif field_type == "list":
                 field_result = self.validate_list(
@@ -750,7 +837,7 @@ class ValidationManager:
                     min_length=field_schema.get("min_length"),
                     max_length=field_schema.get("max_length"),
                     item_validator=field_schema.get("item_validator"),
-                    required=field_required
+                    required=field_required,
                 )
             elif field_type == "dict":
                 field_result = self.validate_dict(
@@ -760,19 +847,15 @@ class ValidationManager:
                     optional_keys=field_schema.get("optional_keys"),
                     key_validator=field_schema.get("key_validator"),
                     value_validator=field_schema.get("value_validator"),
-                    required=field_required
+                    required=field_required,
                 )
             elif field_type == "email":
                 field_result = self.validate_email(
-                    field_value,
-                    field_path,
-                    required=field_required
+                    field_value, field_path, required=field_required
                 )
             elif field_type == "url":
                 field_result = self.validate_url(
-                    field_value,
-                    field_path,
-                    required=field_required
+                    field_value, field_path, required=field_required
                 )
             elif field_type == "enum":
                 field_result = self.validate_enum(
@@ -780,19 +863,15 @@ class ValidationManager:
                     field_path,
                     allowed_values=field_schema.get("allowed_values"),
                     case_sensitive=field_schema.get("case_sensitive", True),
-                    required=field_required
+                    required=field_required,
                 )
             elif field_type == "regex":
                 field_result = self.validate_regex(
-                    field_value,
-                    field_path,
-                    required=field_required
+                    field_value, field_path, required=field_required
                 )
             elif field_type == "object":
                 field_result = self.validate_object(
-                    field_value,
-                    field_schema.get("schema", {}),
-                    field_path
+                    field_value, field_schema.get("schema", {}), field_path
                 )
             elif field_type == "custom":
                 rule_name = field_schema.get("rule")
@@ -801,7 +880,7 @@ class ValidationManager:
                         rule_name,
                         field_value,
                         field_path,
-                        **field_schema.get("params", {})
+                        **field_schema.get("params", {}),
                     )
                 else:
                     field_result = ValidationResult()
@@ -834,9 +913,15 @@ def get_validation_manager() -> ValidationManager:
 
 # Module-level functions for convenience
 
-def validate_string(value: Any, field: str = None,
-                   min_length: int = None, max_length: int = None,
-                   pattern: str = None, required: bool = False) -> ValidationResult:
+
+def validate_string(
+    value: Any,
+    field: str = None,
+    min_length: int = None,
+    max_length: int = None,
+    pattern: str = None,
+    required: bool = False,
+) -> ValidationResult:
     """
     Validate a string value.
 
@@ -856,9 +941,14 @@ def validate_string(value: Any, field: str = None,
     )
 
 
-def validate_number(value: Any, field: str = None,
-                   min_value: Union[int, float] = None, max_value: Union[int, float] = None,
-                   integer_only: bool = False, required: bool = False) -> ValidationResult:
+def validate_number(
+    value: Any,
+    field: str = None,
+    min_value: Union[int, float] = None,
+    max_value: Union[int, float] = None,
+    integer_only: bool = False,
+    required: bool = False,
+) -> ValidationResult:
     """
     Validate a numeric value.
 
@@ -878,7 +968,9 @@ def validate_number(value: Any, field: str = None,
     )
 
 
-def validate_boolean(value: Any, field: str = None, required: bool = False) -> ValidationResult:
+def validate_boolean(
+    value: Any, field: str = None, required: bool = False
+) -> ValidationResult:
     """
     Validate a boolean value.
 
@@ -893,9 +985,14 @@ def validate_boolean(value: Any, field: str = None, required: bool = False) -> V
     return get_validation_manager().validate_boolean(value, field, required)
 
 
-def validate_path(value: Any, field: str = None,
-                 must_exist: bool = False, must_be_file: bool = False,
-                 must_be_dir: bool = False, required: bool = False) -> ValidationResult:
+def validate_path(
+    value: Any,
+    field: str = None,
+    must_exist: bool = False,
+    must_be_file: bool = False,
+    must_be_dir: bool = False,
+    required: bool = False,
+) -> ValidationResult:
     """
     Validate a file path.
 
@@ -915,9 +1012,14 @@ def validate_path(value: Any, field: str = None,
     )
 
 
-def validate_list(value: Any, field: str = None,
-                min_length: int = None, max_length: int = None,
-                item_validator: Callable = None, required: bool = False) -> ValidationResult:
+def validate_list(
+    value: Any,
+    field: str = None,
+    min_length: int = None,
+    max_length: int = None,
+    item_validator: Callable = None,
+    required: bool = False,
+) -> ValidationResult:
     """
     Validate a list value.
 
@@ -937,10 +1039,15 @@ def validate_list(value: Any, field: str = None,
     )
 
 
-def validate_dict(value: Any, field: str = None,
-                required_keys: List[str] = None, optional_keys: List[str] = None,
-                key_validator: Callable = None, value_validator: Callable = None,
-                required: bool = False) -> ValidationResult:
+def validate_dict(
+    value: Any,
+    field: str = None,
+    required_keys: List[str] = None,
+    optional_keys: List[str] = None,
+    key_validator: Callable = None,
+    value_validator: Callable = None,
+    required: bool = False,
+) -> ValidationResult:
     """
     Validate a dictionary value.
 
@@ -957,11 +1064,19 @@ def validate_dict(value: Any, field: str = None,
         ValidationResult: Result of the validation
     """
     return get_validation_manager().validate_dict(
-        value, field, required_keys, optional_keys, key_validator, value_validator, required
+        value,
+        field,
+        required_keys,
+        optional_keys,
+        key_validator,
+        value_validator,
+        required,
     )
 
 
-def validate_email(value: Any, field: str = None, required: bool = False) -> ValidationResult:
+def validate_email(
+    value: Any, field: str = None, required: bool = False
+) -> ValidationResult:
     """
     Validate an email address.
 
@@ -976,7 +1091,9 @@ def validate_email(value: Any, field: str = None, required: bool = False) -> Val
     return get_validation_manager().validate_email(value, field, required)
 
 
-def validate_url(value: Any, field: str = None, required: bool = False) -> ValidationResult:
+def validate_url(
+    value: Any, field: str = None, required: bool = False
+) -> ValidationResult:
     """
     Validate a URL.
 
@@ -991,8 +1108,13 @@ def validate_url(value: Any, field: str = None, required: bool = False) -> Valid
     return get_validation_manager().validate_url(value, field, required)
 
 
-def validate_enum(value: Any, field: str = None, allowed_values: List[Any] = None,
-                case_sensitive: bool = True, required: bool = False) -> ValidationResult:
+def validate_enum(
+    value: Any,
+    field: str = None,
+    allowed_values: List[Any] = None,
+    case_sensitive: bool = True,
+    required: bool = False,
+) -> ValidationResult:
     """
     Validate a value against an enumeration of allowed values.
 
@@ -1011,7 +1133,9 @@ def validate_enum(value: Any, field: str = None, allowed_values: List[Any] = Non
     )
 
 
-def validate_regex(value: Any, field: str = None, required: bool = False) -> ValidationResult:
+def validate_regex(
+    value: Any, field: str = None, required: bool = False
+) -> ValidationResult:
     """
     Validate a regular expression pattern.
 
@@ -1026,7 +1150,9 @@ def validate_regex(value: Any, field: str = None, required: bool = False) -> Val
     return get_validation_manager().validate_regex(value, field, required)
 
 
-def validate_object(value: Any, schema: Dict[str, Dict[str, Any]], field: str = None) -> ValidationResult:
+def validate_object(
+    value: Any, schema: Dict[str, Dict[str, Any]], field: str = None
+) -> ValidationResult:
     """
     Validate an object against a schema.
 

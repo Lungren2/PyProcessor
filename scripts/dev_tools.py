@@ -38,12 +38,12 @@ Options:
         --extras      Install extra dependencies (dev, ffmpeg, all)
 """
 
-import os
-import sys
-import subprocess
 import argparse
+import os
 import platform
 import shutil
+import subprocess
+import sys
 import venv
 from pathlib import Path
 
@@ -65,6 +65,7 @@ except ImportError:
 #
 # Setup Environment Functions
 #
+
 
 def create_virtual_environment():
     """Create a virtual environment for development."""
@@ -315,19 +316,25 @@ def create_directories():
 
 def setup_environment(args):
     """Set up the development environment."""
-    print(f"Setting up PyProcessor development environment on {platform.system()} {platform.machine()}")
+    print(
+        f"Setting up PyProcessor development environment on {platform.system()} {platform.machine()}"
+    )
 
     # Create virtual environment
     pip_path = True
     if not args.no_venv:
         pip_path = create_virtual_environment()
         if not pip_path:
-            print("Failed to create virtual environment. Continuing with other setup steps...")
+            print(
+                "Failed to create virtual environment. Continuing with other setup steps..."
+            )
 
     # Install dependencies
     if pip_path and pip_path is not True:
         if not install_dependencies(pip_path, args.platform):
-            print("Failed to install dependencies. Continuing with other setup steps...")
+            print(
+                "Failed to install dependencies. Continuing with other setup steps..."
+            )
 
     # Download FFmpeg
     if not args.no_ffmpeg:
@@ -337,7 +344,9 @@ def setup_environment(args):
     # Set up pre-commit hooks
     if not args.no_hooks and pip_path:
         if not setup_pre_commit_hooks():
-            print("Failed to set up pre-commit hooks. Continuing with other setup steps...")
+            print(
+                "Failed to set up pre-commit hooks. Continuing with other setup steps..."
+            )
 
     # Create necessary directories
     create_directories()
@@ -359,6 +368,7 @@ def setup_environment(args):
 #
 # Cleanup Functions
 #
+
 
 def remove_pycache():
     """Remove __pycache__ directories and .pyc files."""
@@ -387,7 +397,9 @@ def remove_pycache():
                 except Exception as e:
                     print(f"Error removing {pyc_path}: {e}")
 
-    print(f"✓ Removed {pycache_count} __pycache__ directories and {pyc_count} .pyc files")
+    print(
+        f"✓ Removed {pycache_count} __pycache__ directories and {pyc_count} .pyc files"
+    )
     return True
 
 
@@ -499,6 +511,7 @@ def cleanup(args):
 # Linting Functions
 #
 
+
 def install_linting_tools():
     """Install linting tools if not already installed."""
     print("Checking for linting tools...")
@@ -508,15 +521,21 @@ def install_linting_tools():
 
     for tool in tools:
         try:
-            subprocess.run([sys.executable, "-m", tool, "--version"],
-                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            subprocess.run(
+                [sys.executable, "-m", tool, "--version"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
         except (subprocess.CalledProcessError, FileNotFoundError):
             missing_tools.append(tool)
 
     if missing_tools:
         print(f"Installing missing linting tools: {', '.join(missing_tools)}")
         try:
-            subprocess.run([sys.executable, "-m", "pip", "install"] + missing_tools, check=True)
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install"] + missing_tools, check=True
+            )
             print("✓ Installed linting tools")
             return True
         except subprocess.CalledProcessError as e:
@@ -732,6 +751,7 @@ def lint_code(args):
 # Dependency Management Functions
 #
 
+
 def check_dependencies(extras=None):
     """Check for missing dependencies."""
     print("Checking for missing dependencies...")
@@ -770,7 +790,9 @@ def update_dependencies(extras=None):
 
     try:
         # Update regular dependencies
-        subprocess.run([pip_path, "install", "--upgrade", "-r", requirements_file], check=True)
+        subprocess.run(
+            [pip_path, "install", "--upgrade", "-r", requirements_file], check=True
+        )
         print(f"✓ Updated project dependencies from {requirements_file}")
 
         # Update development dependencies if requested
@@ -785,12 +807,16 @@ def update_dependencies(extras=None):
                 "vulture",
                 "isort",
             ]
-            subprocess.run([pip_path, "install", "--upgrade"] + dev_dependencies, check=True)
+            subprocess.run(
+                [pip_path, "install", "--upgrade"] + dev_dependencies, check=True
+            )
             print("✓ Updated development dependencies")
 
         # Update FFmpeg dependencies if requested
         if extras == "ffmpeg" or extras == "all":
-            subprocess.run([pip_path, "install", "--upgrade", "ffmpeg-python"], check=True)
+            subprocess.run(
+                [pip_path, "install", "--upgrade", "ffmpeg-python"], check=True
+            )
             print("✓ Updated FFmpeg dependencies")
 
         return True
@@ -825,41 +851,68 @@ def manage_dependencies(args):
 # Main Function
 #
 
+
 def main():
     """Main function to parse arguments and run the appropriate command."""
     parser = argparse.ArgumentParser(description="PyProcessor Development Tools")
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # Setup command
-    setup_parser = subparsers.add_parser("setup", help="Set up the development environment")
-    setup_parser.add_argument("--no-venv", action="store_true", help="Skip virtual environment creation")
-    setup_parser.add_argument("--no-ffmpeg", action="store_true", help="Skip FFmpeg download")
-    setup_parser.add_argument("--no-hooks", action="store_true", help="Skip pre-commit hooks setup")
+    setup_parser = subparsers.add_parser(
+        "setup", help="Set up the development environment"
+    )
+    setup_parser.add_argument(
+        "--no-venv", action="store_true", help="Skip virtual environment creation"
+    )
+    setup_parser.add_argument(
+        "--no-ffmpeg", action="store_true", help="Skip FFmpeg download"
+    )
+    setup_parser.add_argument(
+        "--no-hooks", action="store_true", help="Skip pre-commit hooks setup"
+    )
     setup_parser.add_argument(
         "--platform",
         choices=["windows", "macos", "linux", "all"],
-        help="Target platform for dependencies"
+        help="Target platform for dependencies",
     )
 
     # Clean command
-    clean_parser = subparsers.add_parser("clean", help="Clean up temporary files and build artifacts")
-    clean_parser.add_argument("--all", action="store_true", help="Remove all temporary files and build artifacts")
-    clean_parser.add_argument("--ffmpeg", action="store_true", help="Remove FFmpeg temporary files")
+    clean_parser = subparsers.add_parser(
+        "clean", help="Clean up temporary files and build artifacts"
+    )
+    clean_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Remove all temporary files and build artifacts",
+    )
+    clean_parser.add_argument(
+        "--ffmpeg", action="store_true", help="Remove FFmpeg temporary files"
+    )
     clean_parser.add_argument("--logs", action="store_true", help="Clean up log files")
 
     # Lint command
     lint_parser = subparsers.add_parser("lint", help="Run linting tools")
-    lint_parser.add_argument("--check", action="store_true", help="Check code style without making changes")
+    lint_parser.add_argument(
+        "--check", action="store_true", help="Check code style without making changes"
+    )
 
     # Dependencies command
     deps_parser = subparsers.add_parser("deps", help="Manage dependencies")
-    deps_parser.add_argument("--check", action="store_true", help="Check for missing dependencies")
-    deps_parser.add_argument("--install", action="store_true", help="Install missing dependencies")
-    deps_parser.add_argument("--update", action="store_true", help="Update dependencies to the latest versions")
+    deps_parser.add_argument(
+        "--check", action="store_true", help="Check for missing dependencies"
+    )
+    deps_parser.add_argument(
+        "--install", action="store_true", help="Install missing dependencies"
+    )
+    deps_parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Update dependencies to the latest versions",
+    )
     deps_parser.add_argument(
         "--extras",
         choices=["dev", "ffmpeg", "all"],
-        help="Extra dependencies to install or update"
+        help="Extra dependencies to install or update",
     )
 
     args = parser.parse_args()
@@ -882,5 +935,6 @@ def main():
 
 if __name__ == "__main__":
     import re  # Import here for comment_unused_variables function
+
     success = main()
     sys.exit(0 if success else 1)

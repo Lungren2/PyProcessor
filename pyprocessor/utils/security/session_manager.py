@@ -5,26 +5,34 @@ This module provides session management functionality for user authentication.
 """
 
 import json
-import os
 import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from pyprocessor.utils.logging.log_manager import get_logger
 from pyprocessor.utils.file_system.path_utils import (
-    normalize_path, ensure_dir_exists, get_user_data_dir
+    ensure_dir_exists,
+    get_user_data_dir,
+    normalize_path,
 )
+from pyprocessor.utils.logging.log_manager import get_logger
 
 
 class Session:
     """Session model for user authentication."""
 
-    def __init__(self, token: str, username: str, user_data: Dict[str, Any],
-                created_at: float = None, expires_at: float = None,
-                last_activity: float = None, ip_address: str = None,
-                user_agent: str = None):
+    def __init__(
+        self,
+        token: str,
+        username: str,
+        user_data: Dict[str, Any],
+        created_at: float = None,
+        expires_at: float = None,
+        last_activity: float = None,
+        ip_address: str = None,
+        user_agent: str = None,
+    ):
         """
         Initialize a session.
 
@@ -62,11 +70,11 @@ class Session:
             "expires_at": self.expires_at,
             "last_activity": self.last_activity,
             "ip_address": self.ip_address,
-            "user_agent": self.user_agent
+            "user_agent": self.user_agent,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Session':
+    def from_dict(cls, data: Dict[str, Any]) -> "Session":
         """
         Create session from dictionary.
 
@@ -84,7 +92,7 @@ class Session:
             expires_at=data.get("expires_at"),
             last_activity=data.get("last_activity"),
             ip_address=data.get("ip_address"),
-            user_agent=data.get("user_agent")
+            user_agent=data.get("user_agent"),
         )
 
     def is_expired(self) -> bool:
@@ -157,9 +165,13 @@ class SessionManager:
         if config:
             if hasattr(config, "get"):
                 # Config is a dictionary-like object
-                self.session_expiry = config.get("security.session_expiry", self.session_expiry)
-                self.cleanup_interval = config.get("security.session_cleanup_interval", self.cleanup_interval)
-                
+                self.session_expiry = config.get(
+                    "security.session_expiry", self.session_expiry
+                )
+                self.cleanup_interval = config.get(
+                    "security.session_cleanup_interval", self.cleanup_interval
+                )
+
                 # Get data directory from config if available
                 data_dir = config.get("security.data_dir")
                 if data_dir:
@@ -197,7 +209,9 @@ class SessionManager:
                     token: Session.from_dict(session_data)
                     for token, session_data in data.items()
                 }
-            self.logger.info(f"Loaded {len(self.sessions)} sessions from {self.sessions_file}")
+            self.logger.info(
+                f"Loaded {len(self.sessions)} sessions from {self.sessions_file}"
+            )
         except Exception as e:
             self.logger.error(f"Failed to load sessions: {e}")
 
@@ -205,12 +219,13 @@ class SessionManager:
         """Save sessions to file."""
         try:
             data = {
-                token: session.to_dict()
-                for token, session in self.sessions.items()
+                token: session.to_dict() for token, session in self.sessions.items()
             }
             with open(self.sessions_file, "w") as f:
                 json.dump(data, f, indent=2)
-            self.logger.info(f"Saved {len(self.sessions)} sessions to {self.sessions_file}")
+            self.logger.info(
+                f"Saved {len(self.sessions)} sessions to {self.sessions_file}"
+            )
         except Exception as e:
             self.logger.error(f"Failed to save sessions: {e}")
 
@@ -223,8 +238,7 @@ class SessionManager:
 
         # Clean up expired sessions
         expired_tokens = [
-            token for token, session in self.sessions.items()
-            if session.is_expired()
+            token for token, session in self.sessions.items() if session.is_expired()
         ]
 
         for token in expired_tokens:
@@ -239,9 +253,14 @@ class SessionManager:
         # Save sessions
         self._save_sessions()
 
-    def create_session(self, username: str, user_data: Dict[str, Any],
-                      expires_in: int = None, ip_address: str = None,
-                      user_agent: str = None) -> str:
+    def create_session(
+        self,
+        username: str,
+        user_data: Dict[str, Any],
+        expires_in: int = None,
+        ip_address: str = None,
+        user_agent: str = None,
+    ) -> str:
         """
         Create a new session.
 
@@ -272,7 +291,7 @@ class SessionManager:
             user_data=user_data,
             expires_at=expires_at,
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
 
         # Add session
@@ -353,7 +372,8 @@ class SessionManager:
         """
         # Find all sessions for the user
         tokens_to_remove = [
-            token for token, session in self.sessions.items()
+            token
+            for token, session in self.sessions.items()
             if session.username == username
         ]
 
@@ -364,7 +384,9 @@ class SessionManager:
         # Save sessions if any were removed
         if tokens_to_remove:
             self._save_sessions()
-            self.logger.info(f"Invalidated {len(tokens_to_remove)} sessions for user: {username}")
+            self.logger.info(
+                f"Invalidated {len(tokens_to_remove)} sessions for user: {username}"
+            )
 
         return len(tokens_to_remove)
 
@@ -429,9 +451,13 @@ def get_session_manager() -> SessionManager:
     return SessionManager()
 
 
-def create_session(username: str, user_data: Dict[str, Any],
-                  expires_in: int = None, ip_address: str = None,
-                  user_agent: str = None) -> str:
+def create_session(
+    username: str,
+    user_data: Dict[str, Any],
+    expires_in: int = None,
+    ip_address: str = None,
+    user_agent: str = None,
+) -> str:
     """
     Create a new session.
 

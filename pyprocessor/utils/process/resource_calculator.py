@@ -5,14 +5,18 @@ This module provides utilities for calculating optimal batch sizes
 based on system resources, file characteristics, and workload.
 """
 
-import os
 import math
-import psutil
 from pathlib import Path
-from typing import List, Dict, Any, Tuple, Optional
+from typing import Any, Dict, List
+
+import psutil
 
 from pyprocessor.utils.logging import get_logger
-from pyprocessor.utils.process.gpu_manager import get_gpus, get_all_gpu_usage, GPUCapability, has_encoding_capability
+from pyprocessor.utils.process.gpu_manager import (
+    GPUCapability,
+    get_all_gpu_usage,
+    get_gpus,
+)
 
 
 class ResourceCalculator:
@@ -34,8 +38,9 @@ class ResourceCalculator:
         self.config = config
         self.logger = logger or get_logger()
 
-    def calculate_optimal_batch_size(self, files: List[Path],
-                                    max_parallel_jobs: int = None) -> int:
+    def calculate_optimal_batch_size(
+        self, files: List[Path], max_parallel_jobs: int = None
+    ) -> int:
         """
         Calculate the optimal batch size based on system resources and file characteristics.
 
@@ -54,15 +59,15 @@ class ResourceCalculator:
         # Get CPU and memory information
         cpu_count = psutil.cpu_count(logical=True)
         memory_info = psutil.virtual_memory()
-        total_memory_gb = memory_info.total / (1024 ** 3)  # Convert to GB
-        available_memory_gb = memory_info.available / (1024 ** 3)  # Convert to GB
+        total_memory_gb = memory_info.total / (1024**3)  # Convert to GB
+        available_memory_gb = memory_info.available / (1024**3)  # Convert to GB
 
         # Get GPU information if available
         gpu_info = self._get_gpu_info()
-        has_gpu = gpu_info.get('has_gpu', False)
-        gpu_memory_available_gb = gpu_info.get('available_memory_gb', 0)
-        gpu_utilization = gpu_info.get('utilization', 0.0)
-        gpu_encoder_usage = gpu_info.get('encoder_usage', 0.0)
+        has_gpu = gpu_info.get("has_gpu", False)
+        gpu_memory_available_gb = gpu_info.get("available_memory_gb", 0)
+        gpu_utilization = gpu_info.get("utilization", 0.0)
+        gpu_encoder_usage = gpu_info.get("encoder_usage", 0.0)
 
         # Determine max parallel jobs if not provided
         if max_parallel_jobs is None:
@@ -80,21 +85,31 @@ class ResourceCalculator:
         memory_per_file_gb = avg_file_size_gb * 2
 
         # Calculate how many files we can process in parallel based on memory
-        max_files_by_memory = max(1, int(available_memory_gb / memory_per_file_gb * 0.8))  # Use 80% of available memory
+        max_files_by_memory = max(
+            1, int(available_memory_gb / memory_per_file_gb * 0.8)
+        )  # Use 80% of available memory
 
         # If using GPU encoding, consider GPU memory as well
-        if has_gpu and self.config and hasattr(self.config, "ffmpeg_params") and \
-           self.config.ffmpeg_params.get("video_encoder", "").endswith("_nvenc"):
+        if (
+            has_gpu
+            and self.config
+            and hasattr(self.config, "ffmpeg_params")
+            and self.config.ffmpeg_params.get("video_encoder", "").endswith("_nvenc")
+        ):
             # GPU encoding typically needs ~1.5x the file size in GPU memory
             gpu_memory_per_file_gb = avg_file_size_gb * 1.5
 
             # Calculate how many files we can process in parallel based on GPU memory
             # Use 70% of available GPU memory to leave room for other operations
-            max_files_by_gpu = max(1, int(gpu_memory_available_gb / gpu_memory_per_file_gb * 0.7))
+            max_files_by_gpu = max(
+                1, int(gpu_memory_available_gb / gpu_memory_per_file_gb * 0.7)
+            )
 
             # Log GPU constraints
-            self.logger.info(f"GPU constraints: {gpu_memory_available_gb:.1f}GB available, "
-                           f"{gpu_memory_per_file_gb:.2f}GB per file, max {max_files_by_gpu} files")
+            self.logger.info(
+                f"GPU constraints: {gpu_memory_available_gb:.1f}GB available, "
+                f"{gpu_memory_per_file_gb:.2f}GB per file, max {max_files_by_gpu} files"
+            )
 
             # Adjust max files based on GPU memory (more constrained resource)
             max_files_by_memory = min(max_files_by_memory, max_files_by_gpu)
@@ -103,8 +118,10 @@ class ResourceCalculator:
             if gpu_utilization > 0.8 or gpu_encoder_usage > 0.8:
                 # If GPU is already heavily utilized, reduce batch size further
                 max_files_by_memory = max(1, int(max_files_by_memory * 0.7))
-                self.logger.info(f"Reducing batch size due to high GPU utilization: {gpu_utilization:.2%} util, "
-                               f"{gpu_encoder_usage:.2%} encoder usage")
+                self.logger.info(
+                    f"Reducing batch size due to high GPU utilization: {gpu_utilization:.2%} util, "
+                    f"{gpu_encoder_usage:.2%} encoder usage"
+                )
 
         # Calculate optimal batch size
         if total_files <= max_parallel_jobs:
@@ -115,28 +132,40 @@ class ResourceCalculator:
         ideal_batch_size = math.ceil(total_files / max_parallel_jobs)
 
         # Adjust batch size based on memory constraints
-        memory_constrained_batch_size = max(1, int(max_files_by_memory / max_parallel_jobs))
+        memory_constrained_batch_size = max(
+            1, int(max_files_by_memory / max_parallel_jobs)
+        )
 
         # Take the minimum of ideal and memory-constrained batch sizes
         batch_size = min(ideal_batch_size, memory_constrained_batch_size)
 
         # Log the calculation
-        self.logger.info(f"Resource calculation: {total_files} files, {max_parallel_jobs} parallel jobs")
-        self.logger.info(f"System: {cpu_count} CPUs, {total_memory_gb:.1f}GB total memory, {available_memory_gb:.1f}GB available")
+        self.logger.info(
+            f"Resource calculation: {total_files} files, {max_parallel_jobs} parallel jobs"
+        )
+        self.logger.info(
+            f"System: {cpu_count} CPUs, {total_memory_gb:.1f}GB total memory, {available_memory_gb:.1f}GB available"
+        )
 
         # Log GPU information if available
         if has_gpu:
-            gpu_name = gpu_info.get('gpu_name', 'Unknown')
-            gpu_count = gpu_info.get('gpu_count', 0)
-            self.logger.info(f"GPU: {gpu_name}, {gpu_memory_available_gb:.1f}GB available, "
-                           f"utilization: {gpu_utilization:.2%}, encoder: {gpu_encoder_usage:.2%}")
-            if gpu_info.get('has_h264', False):
+            gpu_name = gpu_info.get("gpu_name", "Unknown")
+            gpu_count = gpu_info.get("gpu_count", 0)  # Unused variable  # Unused variable
+            self.logger.info(
+                f"GPU: {gpu_name}, {gpu_memory_available_gb:.1f}GB available, "
+                f"utilization: {gpu_utilization:.2%}, encoder: {gpu_encoder_usage:.2%}"
+            )
+            if gpu_info.get("has_h264", False):
                 self.logger.info("GPU supports H.264 hardware encoding")
-            if gpu_info.get('has_hevc', False):
+            if gpu_info.get("has_hevc", False):
                 self.logger.info("GPU supports HEVC hardware encoding")
 
-        self.logger.info(f"Files: {avg_file_size_gb:.2f}GB average size, {memory_per_file_gb:.2f}GB estimated memory per file")
-        self.logger.info(f"Calculated batch size: {batch_size} (ideal: {ideal_batch_size}, memory-constrained: {memory_constrained_batch_size})")
+        self.logger.info(
+            f"Files: {avg_file_size_gb:.2f}GB average size, {memory_per_file_gb:.2f}GB estimated memory per file"
+        )
+        self.logger.info(
+            f"Calculated batch size: {batch_size} (ideal: {ideal_batch_size}, memory-constrained: {memory_constrained_batch_size})"
+        )
 
         return batch_size
 
@@ -153,19 +182,23 @@ class ResourceCalculator:
 
             if not gpu_usages:
                 return {
-                    'has_gpu': False,
-                    'available_memory_gb': 0,
-                    'utilization': 0.0,
-                    'encoder_usage': 0.0,
-                    'decoder_usage': 0.0,
-                    'gpu_count': 0
+                    "has_gpu": False,
+                    "available_memory_gb": 0,
+                    "utilization": 0.0,
+                    "encoder_usage": 0.0,
+                    "decoder_usage": 0.0,
+                    "gpu_count": 0,
                 }
 
             # Use the GPU with most available memory for encoding
-            primary_gpu = max(gpu_usages, key=lambda x: (x.memory_total - x.memory_used))
+            primary_gpu = max(
+                gpu_usages, key=lambda x: (x.memory_total - x.memory_used)
+            )
 
             # Calculate available memory in GB
-            available_memory_gb = (primary_gpu.memory_total - primary_gpu.memory_used) / (1024 ** 3)
+            available_memory_gb = (
+                primary_gpu.memory_total - primary_gpu.memory_used
+            ) / (1024**3)
 
             # Check if GPU has encoding capability
             gpus = get_gpus()
@@ -173,27 +206,39 @@ class ResourceCalculator:
             has_hevc = any(GPUCapability.HEVC in gpu.capabilities for gpu in gpus)
 
             return {
-                'has_gpu': True,
-                'available_memory_gb': available_memory_gb,
-                'utilization': primary_gpu.utilization,
-                'encoder_usage': primary_gpu.encoder_usage if primary_gpu.encoder_usage is not None else 0.0,
-                'decoder_usage': primary_gpu.decoder_usage if primary_gpu.decoder_usage is not None else 0.0,
-                'gpu_count': len(gpu_usages),
-                'has_h264': has_h264,
-                'has_hevc': has_hevc,
-                'gpu_index': primary_gpu.index,
-                'gpu_name': gpus[primary_gpu.index].name if primary_gpu.index < len(gpus) else 'Unknown'
+                "has_gpu": True,
+                "available_memory_gb": available_memory_gb,
+                "utilization": primary_gpu.utilization,
+                "encoder_usage": (
+                    primary_gpu.encoder_usage
+                    if primary_gpu.encoder_usage is not None
+                    else 0.0
+                ),
+                "decoder_usage": (
+                    primary_gpu.decoder_usage
+                    if primary_gpu.decoder_usage is not None
+                    else 0.0
+                ),
+                "gpu_count": len(gpu_usages),
+                "has_h264": has_h264,
+                "has_hevc": has_hevc,
+                "gpu_index": primary_gpu.index,
+                "gpu_name": (
+                    gpus[primary_gpu.index].name
+                    if primary_gpu.index < len(gpus)
+                    else "Unknown"
+                ),
             }
 
         except Exception as e:
             self.logger.warning(f"Error getting GPU information: {str(e)}")
             return {
-                'has_gpu': False,
-                'available_memory_gb': 0,
-                'utilization': 0.0,
-                'encoder_usage': 0.0,
-                'decoder_usage': 0.0,
-                'gpu_count': 0
+                "has_gpu": False,
+                "available_memory_gb": 0,
+                "utilization": 0.0,
+                "encoder_usage": 0.0,
+                "decoder_usage": 0.0,
+                "gpu_count": 0,
             }
 
     def _estimate_average_file_size(self, files: List[Path]) -> float:
@@ -223,12 +268,14 @@ class ResourceCalculator:
             return 0.5
 
         avg_size_bytes = total_size / sample_size
-        avg_size_gb = avg_size_bytes / (1024 ** 3)  # Convert to GB
+        avg_size_gb = avg_size_bytes / (1024**3)  # Convert to GB
 
         # Ensure a minimum size to prevent division by zero
         return max(0.1, avg_size_gb)  # Minimum 100MB
 
-    def calculate_memory_usage_per_batch(self, batch_size: int, avg_file_size_gb: float) -> float:
+    def calculate_memory_usage_per_batch(
+        self, batch_size: int, avg_file_size_gb: float
+    ) -> float:
         """
         Calculate estimated memory usage for a batch.
 
@@ -250,8 +297,9 @@ class ResourceCalculator:
 
         return total_memory_gb
 
-    def adjust_batch_size_for_divisibility(self, total_files: int, batch_size: int,
-                                          max_parallel_jobs: int) -> int:
+    def adjust_batch_size_for_divisibility(
+        self, total_files: int, batch_size: int, max_parallel_jobs: int
+    ) -> int:
         """
         Adjust batch size to ensure even distribution across processes.
 

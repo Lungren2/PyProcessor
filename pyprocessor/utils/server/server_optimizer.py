@@ -12,17 +12,19 @@ Supported server types:
 - Generic Linux optimizations (Linux only)
 """
 
-import subprocess
 import platform
-import shutil
-from pathlib import Path
-import tempfile
 import shlex
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 
 from pyprocessor.utils.file_system.path_manager import (
-    normalize_path, ensure_dir_exists, get_base_dir, dir_exists
+    dir_exists,
+    ensure_dir_exists,
+    get_base_dir,
+    normalize_path,
 )
-
 from pyprocessor.utils.logging.log_manager import get_logger
 
 
@@ -229,13 +231,24 @@ class ServerOptimizer:
             # Configure SSL based on ssl_enabled parameter
             if not ssl_enabled:
                 # Remove SSL configuration
-                config_content = config_content.replace("listen 443 ssl http2;", "# listen 443 ssl http2;")
-                config_content = config_content.replace("listen [::]:443 ssl http2;", "# listen [::]:443 ssl http2;")
-                config_content = config_content.replace("ssl_certificate", "# ssl_certificate")
-                config_content = config_content.replace("ssl_certificate_key", "# ssl_certificate_key")
+                config_content = config_content.replace(
+                    "listen 443 ssl http2;", "# listen 443 ssl http2;"
+                )
+                config_content = config_content.replace(
+                    "listen [::]:443 ssl http2;", "# listen [::]:443 ssl http2;"
+                )
+                config_content = config_content.replace(
+                    "ssl_certificate", "# ssl_certificate"
+                )
+                config_content = config_content.replace(
+                    "ssl_certificate_key", "# ssl_certificate_key"
+                )
 
                 # Remove HTTP to HTTPS redirect
-                config_content = config_content.replace("return 301 https://$host$request_uri;", "# return 301 https://$host$request_uri;")
+                config_content = config_content.replace(
+                    "return 301 https://$host$request_uri;",
+                    "# return 301 https://$host$request_uri;",
+                )
 
             # Add HTTP/3 configuration if enabled
             if enable_http3:

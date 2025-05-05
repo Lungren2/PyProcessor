@@ -12,23 +12,23 @@ This module provides functionality for managing dependencies, including:
 - Platform-specific dependency handling
 """
 
-import os
-import sys
-import re
-import pkg_resources
-import platform
-import subprocess
 import importlib
 import importlib.util
-from typing import Dict, List, Tuple, Optional, Any, Set
+import os
+import platform
+import re
+import subprocess
+import sys
 from pathlib import Path
-from contextlib import suppress
-import warnings
+from typing import Any, Dict, List, Optional, Tuple
 
-from pyprocessor.utils.logging.log_manager import get_logger
+import pkg_resources
+
 from pyprocessor.utils.logging.error_manager import (
-    get_error_manager, with_error_handling, DependencyError, ErrorSeverity
+    get_error_manager,
+    with_error_handling,
 )
+from pyprocessor.utils.logging.log_manager import get_logger
 
 
 class DependencyManager:
@@ -101,20 +101,26 @@ class DependencyManager:
 
         # Platform-specific dependencies
         if self.is_windows:
-            self.dependencies.update({
-                "pywin32": {"min_version": "305", "required": True},
-                "winshell": {"min_version": "0.6", "required": True},
-            })
+            self.dependencies.update(
+                {
+                    "pywin32": {"min_version": "305", "required": True},
+                    "winshell": {"min_version": "0.6", "required": True},
+                }
+            )
         elif self.is_macos:
-            self.dependencies.update({
-                "pyobjc-core": {"min_version": "9.2", "required": True},
-                "pyobjc-framework-Cocoa": {"min_version": "9.2", "required": True},
-            })
+            self.dependencies.update(
+                {
+                    "pyobjc-core": {"min_version": "9.2", "required": True},
+                    "pyobjc-framework-Cocoa": {"min_version": "9.2", "required": True},
+                }
+            )
         elif self.is_linux:
-            self.dependencies.update({
-                "python-xlib": {"min_version": "0.33", "required": True},
-                "dbus-python": {"min_version": "1.3.2", "required": True},
-            })
+            self.dependencies.update(
+                {
+                    "python-xlib": {"min_version": "0.33", "required": True},
+                    "dbus-python": {"min_version": "1.3.2", "required": True},
+                }
+            )
 
         # Optional dependencies
         self.optional_dependencies = {
@@ -142,10 +148,14 @@ class DependencyManager:
                 # Check if package is installed
                 pkg_version = pkg_resources.get_distribution(package).version
                 min_version = info.get("min_version")
-                
+
                 # Check version if minimum version is specified
-                if min_version and pkg_resources.parse_version(pkg_version) < pkg_resources.parse_version(min_version):
-                    errors.append(f"Incompatible version of {package}: {pkg_version} (minimum required: {min_version})")
+                if min_version and pkg_resources.parse_version(
+                    pkg_version
+                ) < pkg_resources.parse_version(min_version):
+                    errors.append(
+                        f"Incompatible version of {package}: {pkg_version} (minimum required: {min_version})"
+                    )
                 else:
                     self.logger.debug(f"Found {package} {pkg_version}")
             except pkg_resources.DistributionNotFound:
@@ -159,16 +169,24 @@ class DependencyManager:
                 # Check if package is installed
                 pkg_version = pkg_resources.get_distribution(package).version
                 min_version = info.get("min_version")
-                
+
                 # Check version if minimum version is specified
-                if min_version and pkg_resources.parse_version(pkg_version) < pkg_resources.parse_version(min_version):
-                    warnings.append(f"Incompatible version of optional dependency {package}: {pkg_version} (minimum recommended: {min_version})")
+                if min_version and pkg_resources.parse_version(
+                    pkg_version
+                ) < pkg_resources.parse_version(min_version):
+                    warnings.append(
+                        f"Incompatible version of optional dependency {package}: {pkg_version} (minimum recommended: {min_version})"
+                    )
                 else:
-                    self.logger.debug(f"Found optional dependency {package} {pkg_version}")
+                    self.logger.debug(
+                        f"Found optional dependency {package} {pkg_version}"
+                    )
             except pkg_resources.DistributionNotFound:
                 warnings.append(f"Optional dependency {package} not found")
             except Exception as e:
-                warnings.append(f"Error checking optional dependency {package}: {str(e)}")
+                warnings.append(
+                    f"Error checking optional dependency {package}: {str(e)}"
+                )
 
         # Check FFmpeg
         ffmpeg_available, ffmpeg_version, ffmpeg_error = self.check_ffmpeg()
@@ -180,17 +198,27 @@ class DependencyManager:
             if version_match:
                 version = version_match.group(1)
                 self.ffmpeg_version = version
-                
+
                 # Check if version is below minimum required
-                if pkg_resources.parse_version(version) < pkg_resources.parse_version(self.ffmpeg_min_version):
-                    errors.append(f"Incompatible FFmpeg version: {version} (minimum required: {self.ffmpeg_min_version})")
+                if pkg_resources.parse_version(version) < pkg_resources.parse_version(
+                    self.ffmpeg_min_version
+                ):
+                    errors.append(
+                        f"Incompatible FFmpeg version: {version} (minimum required: {self.ffmpeg_min_version})"
+                    )
                 # Check if version is below recommended
-                elif pkg_resources.parse_version(version) < pkg_resources.parse_version(self.ffmpeg_recommended_version):
-                    warnings.append(f"FFmpeg version {version} is below recommended version {self.ffmpeg_recommended_version}")
+                elif pkg_resources.parse_version(version) < pkg_resources.parse_version(
+                    self.ffmpeg_recommended_version
+                ):
+                    warnings.append(
+                        f"FFmpeg version {version} is below recommended version {self.ffmpeg_recommended_version}"
+                    )
                 else:
                     self.logger.debug(f"Found FFmpeg {version}")
             else:
-                warnings.append(f"Could not determine FFmpeg version from: {ffmpeg_version}")
+                warnings.append(
+                    f"Could not determine FFmpeg version from: {ffmpeg_version}"
+                )
 
         return errors, warnings
 
@@ -205,9 +233,10 @@ class DependencyManager:
         try:
             # Try to get FFmpeg path from FFmpegManager
             from pyprocessor.utils.media.ffmpeg_manager import FFmpegManager
+
             ffmpeg_manager = FFmpegManager()
             ffmpeg_path = ffmpeg_manager.get_ffmpeg_path()
-            
+
             # Run FFmpeg version command
             result = subprocess.run(
                 [ffmpeg_path, "-version"],
@@ -216,17 +245,25 @@ class DependencyManager:
                 text=True,
                 timeout=5,
             )
-            
+
             if result.returncode != 0:
-                return False, None, f"FFmpeg check failed with return code {result.returncode}: {result.stderr}"
-            
+                return (
+                    False,
+                    None,
+                    f"FFmpeg check failed with return code {result.returncode}: {result.stderr}",
+                )
+
             if "ffmpeg version" in result.stdout:
-                version_line = result.stdout.split('\n')[0]
+                version_line = result.stdout.split("\n")[0]
                 self.ffmpeg_available = True
                 return True, version_line, None
-            
-            return False, None, "FFmpeg check failed: version string not found in output"
-        
+
+            return (
+                False,
+                None,
+                "FFmpeg check failed: version string not found in output",
+            )
+
         except Exception as e:
             return False, None, f"Error checking FFmpeg: {str(e)}"
 
@@ -262,12 +299,12 @@ class DependencyManager:
         """
         try:
             module = importlib.import_module(module_name)
-            
+
             # Try different version attributes
             for attr in ["__version__", "version", "VERSION"]:
                 if hasattr(module, attr):
                     return getattr(module, attr)
-            
+
             # Try to get version from pkg_resources
             return pkg_resources.get_distribution(module_name).version
         except (ImportError, pkg_resources.DistributionNotFound):
@@ -284,15 +321,15 @@ class DependencyManager:
             Dict[str, Tuple[str, str]]: Dictionary of package names and their current and latest versions
         """
         updates_available = {}
-        
+
         # Check all dependencies (required and optional)
         all_dependencies = {**self.dependencies, **self.optional_dependencies}
-        
+
         for package in all_dependencies:
             try:
                 # Get current version
                 current_version = pkg_resources.get_distribution(package).version
-                
+
                 # Check for latest version using pip
                 result = subprocess.run(
                     [sys.executable, "-m", "pip", "index", "versions", package],
@@ -301,19 +338,24 @@ class DependencyManager:
                     text=True,
                     timeout=10,
                 )
-                
+
                 if result.returncode == 0:
                     # Parse output to find latest version
                     match = re.search(r"Available versions: ([\d\.]+)", result.stdout)
                     if match:
                         latest_version = match.group(1)
-                        
+
                         # Compare versions
-                        if pkg_resources.parse_version(latest_version) > pkg_resources.parse_version(current_version):
-                            updates_available[package] = (current_version, latest_version)
+                        if pkg_resources.parse_version(
+                            latest_version
+                        ) > pkg_resources.parse_version(current_version):
+                            updates_available[package] = (
+                                current_version,
+                                latest_version,
+                            )
             except Exception as e:
                 self.logger.debug(f"Error checking for updates for {package}: {str(e)}")
-        
+
         return updates_available
 
     @with_error_handling
@@ -332,54 +374,60 @@ class DependencyManager:
             "ffmpeg-python": self._fallback_ffmpeg,
             "black": lambda: None,  # No fallback for black
             "flake8": lambda: None,  # No fallback for flake8
-            "isort": lambda: None,   # No fallback for isort
+            "isort": lambda: None,  # No fallback for isort
         }
-        
+
         # Get fallback function
         fallback_func = fallbacks.get(module_name)
         if fallback_func:
             return fallback_func()
-        
+
         return None
 
     def _fallback_ffmpeg(self):
         """
         Provide a fallback for ffmpeg-python.
-        
+
         Returns:
             Optional[Any]: Fallback module or None
         """
         # This is a simplified fallback that just provides basic functionality
         # In a real implementation, you would create a more complete fallback
-        
+
         class FFmpegFallback:
             """Minimal fallback for ffmpeg-python."""
-            
+
             def __init__(self):
                 self.logger = get_logger()
-                self.logger.warning("Using fallback FFmpeg implementation (limited functionality)")
-            
+                self.logger.warning(
+                    "Using fallback FFmpeg implementation (limited functionality)"
+                )
+
             def input(self, filename):
                 """Create an input stream."""
                 self.logger.debug(f"FFmpeg fallback: input({filename})")
                 return self
-            
+
             def output(self, filename, **kwargs):
                 """Create an output stream."""
                 self.logger.debug(f"FFmpeg fallback: output({filename}, {kwargs})")
                 return self
-            
+
             def run(self, **kwargs):
                 """Run the FFmpeg command."""
                 self.logger.debug(f"FFmpeg fallback: run({kwargs})")
                 # In a real fallback, you would implement this using subprocess
                 # to call FFmpeg directly
-                raise NotImplementedError("FFmpeg fallback does not support running commands")
-        
+                raise NotImplementedError(
+                    "FFmpeg fallback does not support running commands"
+                )
+
         return FFmpegFallback()
 
     @with_error_handling
-    def create_isolated_environment(self, name: str, dependencies: Dict[str, str]) -> str:
+    def create_isolated_environment(
+        self, name: str, dependencies: Dict[str, str]
+    ) -> str:
         """
         Create an isolated environment for a plugin.
 
@@ -393,20 +441,20 @@ class DependencyManager:
         # This is a simplified implementation
         # In a real implementation, you would create a virtual environment
         # and install the dependencies in it
-        
+
         # Create a directory for the isolated environment
         env_dir = Path(os.path.expanduser("~")) / ".pyprocessor" / "environments" / name
         env_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create a requirements file
         requirements_file = env_dir / "requirements.txt"
         with open(requirements_file, "w") as f:
             for package, version in dependencies.items():
                 f.write(f"{package}=={version}\n")
-        
+
         # Log the creation of the isolated environment
         self.logger.info(f"Created isolated environment for {name} at {env_dir}")
-        
+
         return str(env_dir)
 
 

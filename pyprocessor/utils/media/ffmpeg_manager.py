@@ -6,29 +6,37 @@ including locating executables, downloading binaries, checking availability,
 and executing FFmpeg commands.
 """
 
-import sys
 import os  # Keep os for chmod and other operations
 import platform
-import subprocess
-import zipfile
-import tarfile
-import urllib.request
 import re
+import subprocess
+import sys
+import tarfile
 import time
+import urllib.request
+import zipfile
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any, List, Union, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from pyprocessor.utils.file_system.path_manager import (
-    find_executable, get_base_dir, get_executable_extension,
-    normalize_path, file_exists
+from pyprocessor.utils.core.dependency_manager import (
+    check_ffmpeg as dependency_check_ffmpeg,
 )
 from pyprocessor.utils.file_system.file_manager import get_file_manager
-from pyprocessor.utils.logging.error_manager import (
-    with_error_handling,
-    EncodingError, ProcessError, FileSystemError, ValidationError,
-    ErrorSeverity
+from pyprocessor.utils.file_system.path_manager import (
+    file_exists,
+    find_executable,
+    get_base_dir,
+    get_executable_extension,
+    normalize_path,
 )
-from pyprocessor.utils.core.dependency_manager import check_ffmpeg as dependency_check_ffmpeg
+from pyprocessor.utils.logging.error_manager import (
+    EncodingError,
+    ErrorSeverity,
+    FileSystemError,
+    ProcessError,
+    ValidationError,
+    with_error_handling,
+)
 
 
 class FFmpegManager:
@@ -56,7 +64,7 @@ class FFmpegManager:
         self.file_manager = get_file_manager()
 
         # If logger is a function, create a wrapper
-        if callable(logger) and not hasattr(logger, 'info'):
+        if callable(logger) and not hasattr(logger, "info"):
             self.log_func = logger
         else:
             self.log_func = None
@@ -119,47 +127,62 @@ class FFmpegManager:
         base_dir = self.get_base_dir()
         if getattr(sys, "frozen", False):
             # When running as a bundled executable
-            paths_to_check.extend([
-                base_dir / "ffmpeg" / executable_name,
-                base_dir / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    base_dir / "ffmpeg" / executable_name,
+                    base_dir / executable_name,
+                ]
+            )
         else:
             # When running in development mode, check relative paths
-            paths_to_check.extend([
-                base_dir.parent / "ffmpeg_temp" / "bin" / executable_name,
-                base_dir / "ffmpeg_temp" / "bin" / executable_name,
-                base_dir.parent / "ffmpeg" / executable_name,
-                base_dir / "ffmpeg" / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    base_dir.parent / "ffmpeg_temp" / "bin" / executable_name,
+                    base_dir / "ffmpeg_temp" / "bin" / executable_name,
+                    base_dir.parent / "ffmpeg" / executable_name,
+                    base_dir / "ffmpeg" / executable_name,
+                ]
+            )
 
         # 2. Check platform-specific common installation locations
         system = platform.system().lower()
         if system == "windows":
             # Windows common locations
-            paths_to_check.extend([
-                normalize_path("${ProgramFiles}/FFmpeg/bin") / executable_name,
-                normalize_path("${ProgramFiles(x86)}/FFmpeg/bin") / executable_name,
-                normalize_path("${LOCALAPPDATA}/FFmpeg/bin") / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    normalize_path("${ProgramFiles}/FFmpeg/bin") / executable_name,
+                    normalize_path("${ProgramFiles(x86)}/FFmpeg/bin") / executable_name,
+                    normalize_path("${LOCALAPPDATA}/FFmpeg/bin") / executable_name,
+                ]
+            )
         elif system == "darwin":
             # macOS common locations
-            paths_to_check.extend([
-                normalize_path("/usr/local/bin") / executable_name,
-                normalize_path("/opt/homebrew/bin") / executable_name,
-                normalize_path("/opt/local/bin") / executable_name,
-                normalize_path("~/homebrew/bin") / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    normalize_path("/usr/local/bin") / executable_name,
+                    normalize_path("/opt/homebrew/bin") / executable_name,
+                    normalize_path("/opt/local/bin") / executable_name,
+                    normalize_path("~/homebrew/bin") / executable_name,
+                ]
+            )
         else:
             # Linux common locations
-            paths_to_check.extend([
-                normalize_path("/usr/bin") / executable_name,
-                normalize_path("/usr/local/bin") / executable_name,
-                normalize_path("/opt/ffmpeg/bin") / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    normalize_path("/usr/bin") / executable_name,
+                    normalize_path("/usr/local/bin") / executable_name,
+                    normalize_path("/opt/ffmpeg/bin") / executable_name,
+                ]
+            )
 
         # Check all paths
         for path in paths_to_check:
-            if self.file_manager.get_file_size(path) > 0 and path.exists() and path.is_file() and path.stat().st_mode & 0o111:
+            if (
+                self.file_manager.get_file_size(path) > 0
+                and path.exists()
+                and path.is_file()
+                and path.stat().st_mode & 0o111
+            ):
                 return str(path)
 
         # 3. Fall back to system PATH
@@ -194,47 +217,62 @@ class FFmpegManager:
         base_dir = self.get_base_dir()
         if getattr(sys, "frozen", False):
             # When running as a bundled executable
-            paths_to_check.extend([
-                base_dir / "ffmpeg" / executable_name,
-                base_dir / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    base_dir / "ffmpeg" / executable_name,
+                    base_dir / executable_name,
+                ]
+            )
         else:
             # When running in development mode, check relative paths
-            paths_to_check.extend([
-                base_dir.parent / "ffmpeg_temp" / "bin" / executable_name,
-                base_dir / "ffmpeg_temp" / "bin" / executable_name,
-                base_dir.parent / "ffmpeg" / executable_name,
-                base_dir / "ffmpeg" / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    base_dir.parent / "ffmpeg_temp" / "bin" / executable_name,
+                    base_dir / "ffmpeg_temp" / "bin" / executable_name,
+                    base_dir.parent / "ffmpeg" / executable_name,
+                    base_dir / "ffmpeg" / executable_name,
+                ]
+            )
 
         # 2. Check platform-specific common installation locations
         system = platform.system().lower()
         if system == "windows":
             # Windows common locations
-            paths_to_check.extend([
-                normalize_path("${ProgramFiles}/FFmpeg/bin") / executable_name,
-                normalize_path("${ProgramFiles(x86)}/FFmpeg/bin") / executable_name,
-                normalize_path("${LOCALAPPDATA}/FFmpeg/bin") / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    normalize_path("${ProgramFiles}/FFmpeg/bin") / executable_name,
+                    normalize_path("${ProgramFiles(x86)}/FFmpeg/bin") / executable_name,
+                    normalize_path("${LOCALAPPDATA}/FFmpeg/bin") / executable_name,
+                ]
+            )
         elif system == "darwin":
             # macOS common locations
-            paths_to_check.extend([
-                normalize_path("/usr/local/bin") / executable_name,
-                normalize_path("/opt/homebrew/bin") / executable_name,
-                normalize_path("/opt/local/bin") / executable_name,
-                normalize_path("~/homebrew/bin") / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    normalize_path("/usr/local/bin") / executable_name,
+                    normalize_path("/opt/homebrew/bin") / executable_name,
+                    normalize_path("/opt/local/bin") / executable_name,
+                    normalize_path("~/homebrew/bin") / executable_name,
+                ]
+            )
         else:
             # Linux common locations
-            paths_to_check.extend([
-                normalize_path("/usr/bin") / executable_name,
-                normalize_path("/usr/local/bin") / executable_name,
-                normalize_path("/opt/ffmpeg/bin") / executable_name,
-            ])
+            paths_to_check.extend(
+                [
+                    normalize_path("/usr/bin") / executable_name,
+                    normalize_path("/usr/local/bin") / executable_name,
+                    normalize_path("/opt/ffmpeg/bin") / executable_name,
+                ]
+            )
 
         # Check all paths
         for path in paths_to_check:
-            if self.file_manager.get_file_size(path) > 0 and path.exists() and path.is_file() and path.stat().st_mode & 0o111:
+            if (
+                self.file_manager.get_file_size(path) > 0
+                and path.exists()
+                and path.is_file()
+                and path.stat().st_mode & 0o111
+            ):
                 return str(path)
 
         # 3. Fall back to system PATH
@@ -282,8 +320,8 @@ class FFmpegManager:
                     details={
                         "ffmpeg_path": ffmpeg_path,
                         "stderr": result.stderr,
-                        "returncode": result.returncode
-                    }
+                        "returncode": result.returncode,
+                    },
                 )
 
             if "ffmpeg version" in result.stdout:
@@ -296,8 +334,8 @@ class FFmpegManager:
                 details={
                     "ffmpeg_path": ffmpeg_path,
                     "stdout": result.stdout,
-                    "stderr": result.stderr
-                }
+                    "stderr": result.stderr,
+                },
             )
 
         except (subprocess.SubprocessError, FileNotFoundError) as e:
@@ -305,7 +343,7 @@ class FFmpegManager:
                 f"FFmpeg check failed: {str(e)}",
                 severity=ErrorSeverity.ERROR,
                 original_exception=e,
-                details={"ffmpeg_path": ffmpeg_path}
+                details={"ffmpeg_path": ffmpeg_path},
             )
 
     def get_ffmpeg_version(self) -> Tuple[bool, Optional[str], Optional[str]]:
@@ -339,7 +377,7 @@ class FFmpegManager:
             raise FileSystemError(
                 f"File not found: {file_path_str}",
                 severity=ErrorSeverity.ERROR,
-                details={"file_path": file_path_str}
+                details={"file_path": file_path_str},
             )
 
         try:
@@ -368,8 +406,8 @@ class FFmpegManager:
                     details={
                         "file_path": file_path_str,
                         "stderr": result.stderr,
-                        "returncode": result.returncode
-                    }
+                        "returncode": result.returncode,
+                    },
                 )
 
             return bool(result.stdout.strip())
@@ -379,7 +417,7 @@ class FFmpegManager:
                 f"Error checking audio streams: {str(e)}",
                 severity=ErrorSeverity.ERROR,
                 original_exception=e,
-                details={"file_path": file_path_str}
+                details={"file_path": file_path_str},
             )
 
     @with_error_handling
@@ -404,7 +442,7 @@ class FFmpegManager:
             raise FileSystemError(
                 f"File not found: {file_path_str}",
                 severity=ErrorSeverity.ERROR,
-                details={"file_path": file_path_str}
+                details={"file_path": file_path_str},
             )
 
         try:
@@ -433,22 +471,20 @@ class FFmpegManager:
                     details={
                         "file_path": file_path_str,
                         "stderr": result.stderr,
-                        "returncode": result.returncode
-                    }
+                        "returncode": result.returncode,
+                    },
                 )
 
             try:
                 import json
+
                 return json.loads(result.stdout)
             except json.JSONDecodeError as e:
                 raise EncodingError(
                     f"Failed to parse FFprobe JSON output: {str(e)}",
                     severity=ErrorSeverity.ERROR,
                     original_exception=e,
-                    details={
-                        "file_path": file_path_str,
-                        "stdout": result.stdout
-                    }
+                    details={"file_path": file_path_str, "stdout": result.stdout},
                 )
 
         except subprocess.SubprocessError as e:
@@ -456,7 +492,7 @@ class FFmpegManager:
                 f"Error running FFprobe: {str(e)}",
                 severity=ErrorSeverity.ERROR,
                 original_exception=e,
-                details={"file_path": file_path_str}
+                details={"file_path": file_path_str},
             )
 
     def get_ffmpeg_download_url(self):
@@ -471,7 +507,10 @@ class FFmpegManager:
 
         if system == "windows":
             # Windows - use gyan.dev builds
-            return "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip", "zip"
+            return (
+                "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+                "zip",
+            )
 
         elif system == "darwin":  # macOS
             if "arm" in machine or machine == "arm64":
@@ -485,23 +524,43 @@ class FFmpegManager:
             # Linux - use static builds
             if "aarch64" in machine or "arm64" in machine:
                 # ARM64
-                return "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz", "tar.xz"
+                return (
+                    "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-arm64-static.tar.xz",
+                    "tar.xz",
+                )
             elif "armv7" in machine or "armhf" in machine:
                 # ARM 32-bit
-                return "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-armhf-static.tar.xz", "tar.xz"
+                return (
+                    "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-armhf-static.tar.xz",
+                    "tar.xz",
+                )
             elif "x86_64" in machine or "amd64" in machine:
                 # x86_64
-                return "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz", "tar.xz"
+                return (
+                    "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz",
+                    "tar.xz",
+                )
             else:
                 # i686/x86
-                return "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz", "tar.xz"
+                return (
+                    "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz",
+                    "tar.xz",
+                )
 
         # Default fallback
-        self.log("warning", f"No specific FFmpeg build for {system} {machine}, using generic build")
+        self.log(
+            "warning",
+            f"No specific FFmpeg build for {system} {machine}, using generic build",
+        )
         return "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip", "zip"
 
     @with_error_handling
-    def extract_archive(self, archive_path: Union[str, Path], extract_dir: Union[str, Path], archive_type: str) -> bool:
+    def extract_archive(
+        self,
+        archive_path: Union[str, Path],
+        extract_dir: Union[str, Path],
+        archive_type: str,
+    ) -> bool:
         """
         Extract the downloaded archive based on its type.
 
@@ -530,8 +589,8 @@ class FFmpegManager:
                 details={
                     "archive_path": archive_path_str,
                     "extract_dir": extract_dir_str,
-                    "archive_type": archive_type
-                }
+                    "archive_type": archive_type,
+                },
             )
 
         # Validate archive type
@@ -544,8 +603,8 @@ class FFmpegManager:
                     "archive_path": archive_path_str,
                     "extract_dir": extract_dir_str,
                     "archive_type": archive_type,
-                    "valid_types": valid_types
-                }
+                    "valid_types": valid_types,
+                },
             )
 
         try:
@@ -563,7 +622,10 @@ class FFmpegManager:
                 with tarfile.open(archive_path_str, "r:") as tar_ref:
                     tar_ref.extractall(extract_dir_str)
 
-            self.log("info", f"Successfully extracted {archive_type} archive to {extract_dir_str}")
+            self.log(
+                "info",
+                f"Successfully extracted {archive_type} archive to {extract_dir_str}",
+            )
             return True
 
         except (zipfile.BadZipFile, tarfile.ReadError) as e:
@@ -574,8 +636,8 @@ class FFmpegManager:
                 details={
                     "archive_path": archive_path_str,
                     "extract_dir": extract_dir_str,
-                    "archive_type": archive_type
-                }
+                    "archive_type": archive_type,
+                },
             )
         except (PermissionError, OSError) as e:
             raise FileSystemError(
@@ -585,8 +647,8 @@ class FFmpegManager:
                 details={
                     "archive_path": archive_path_str,
                     "extract_dir": extract_dir_str,
-                    "archive_type": archive_type
-                }
+                    "archive_type": archive_type,
+                },
             )
         except Exception as e:
             raise ProcessError(
@@ -596,8 +658,8 @@ class FFmpegManager:
                 details={
                     "archive_path": archive_path_str,
                     "extract_dir": extract_dir_str,
-                    "archive_type": archive_type
-                }
+                    "archive_type": archive_type,
+                },
             )
 
     def find_ffmpeg_executables(self, extract_dir):
@@ -643,7 +705,9 @@ class FFmpegManager:
             bool: True if copying was successful, False otherwise
         """
         if not ffmpeg_path or not ffprobe_path:
-            self.log("error", "Could not find FFmpeg executables in the extracted files")
+            self.log(
+                "error", "Could not find FFmpeg executables in the extracted files"
+            )
             return False
 
         try:
@@ -683,7 +747,10 @@ class FFmpegManager:
         Returns:
             bool: True if download was successful, False otherwise
         """
-        self.log("info", f"Downloading FFmpeg binaries for {platform.system()} ({platform.machine()})...")
+        self.log(
+            "info",
+            f"Downloading FFmpeg binaries for {platform.system()} ({platform.machine()})...",
+        )
 
         # Create directories if they don't exist
         temp_dir = self.file_manager.ensure_directory("ffmpeg_temp")
@@ -756,9 +823,13 @@ These binaries are included for convenience and are not modified in any way from
         return True
 
     @with_error_handling
-    def execute_command(self, cmd: List[str], input_file: Optional[Union[str, Path]] = None,
-                       output_folder: Optional[Union[str, Path]] = None,
-                       progress_callback: Optional[Callable[[Union[str, Path], int], None]] = None) -> bool:
+    def execute_command(
+        self,
+        cmd: List[str],
+        input_file: Optional[Union[str, Path]] = None,
+        output_folder: Optional[Union[str, Path]] = None,
+        progress_callback: Optional[Callable[[Union[str, Path], int], None]] = None,
+    ) -> bool:
         """
         Execute an FFmpeg command with progress monitoring.
 
@@ -816,7 +887,9 @@ These binaries are included for convenience and are not modified in any way from
                 # Check for progress information
                 time_match = time_regex.search(line)
                 if time_match and duration_seconds > 0:
-                    hours, minutes, seconds, centiseconds = map(int, time_match.groups())
+                    hours, minutes, seconds, centiseconds = map(
+                        int, time_match.groups()
+                    )
                     current_seconds = (
                         hours * 3600 + minutes * 60 + seconds + centiseconds / 100
                     )
@@ -835,17 +908,19 @@ These binaries are included for convenience and are not modified in any way from
 
             # Check for errors
             if self.process.returncode != 0:
-                error_message = "\n".join(error_lines[-10:])  # Last 10 lines of error output
+                error_message = "\n".join(
+                    error_lines[-10:]
+                )  # Last 10 lines of error output
                 raise EncodingError(
                     f"FFmpeg encoding failed with return code {self.process.returncode}",
                     severity=ErrorSeverity.ERROR,
                     details={
-                        "command": ' '.join(cmd),
+                        "command": " ".join(cmd),
                         "input_file": input_file_str,
                         "returncode": self.process.returncode,
                         "error_message": error_message,
-                        "full_error": "\n".join(error_lines)
-                    }
+                        "full_error": "\n".join(error_lines),
+                    },
                 )
 
             # Ensure we report 100% at the end
@@ -859,10 +934,7 @@ These binaries are included for convenience and are not modified in any way from
                 f"Error starting FFmpeg process: {str(e)}",
                 severity=ErrorSeverity.ERROR,
                 original_exception=e,
-                details={
-                    "command": ' '.join(cmd),
-                    "input_file": input_file_str
-                }
+                details={"command": " ".join(cmd), "input_file": input_file_str},
             )
         except Exception as e:
             # Handle other exceptions
@@ -875,10 +947,7 @@ These binaries are included for convenience and are not modified in any way from
                     f"Error during FFmpeg encoding: {str(e)}",
                     severity=ErrorSeverity.ERROR,
                     original_exception=e,
-                    details={
-                        "command": ' '.join(cmd),
-                        "input_file": input_file_str
-                    }
+                    details={"command": " ".join(cmd), "input_file": input_file_str},
                 )
 
     @with_error_handling
@@ -908,7 +977,10 @@ These binaries are included for convenience and are not modified in any way from
 
                 # Force kill if still running
                 if self.process.poll() is None:
-                    self.log("warning", "FFmpeg process did not terminate gracefully, force killing")
+                    self.log(
+                        "warning",
+                        "FFmpeg process did not terminate gracefully, force killing",
+                    )
                     self.process.kill()
                     self.process.wait()
                     self.log("info", "FFmpeg process force killed")
@@ -919,14 +991,14 @@ These binaries are included for convenience and are not modified in any way from
                     f"Error terminating FFmpeg subprocess: {str(e)}",
                     severity=ErrorSeverity.ERROR,
                     original_exception=e,
-                    details={"pid": self.process.pid if self.process else None}
+                    details={"pid": self.process.pid if self.process else None},
                 )
             except Exception as e:
                 raise ProcessError(
                     f"Error terminating FFmpeg process: {str(e)}",
                     severity=ErrorSeverity.ERROR,
                     original_exception=e,
-                    details={"pid": self.process.pid if self.process else None}
+                    details={"pid": self.process.pid if self.process else None},
                 )
 
         # No process was running

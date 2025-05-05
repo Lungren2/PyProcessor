@@ -7,7 +7,7 @@ warnings.warn(
     "The config module is deprecated and will be removed in a future version. "
     "Please use the config_manager module instead.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 
@@ -27,7 +27,7 @@ class Config(NewConfig):
             "The Config class is deprecated and will be removed in a future version. "
             "Please use the ConfigManager class from config_manager module instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
     # All methods are inherited from the new Config class

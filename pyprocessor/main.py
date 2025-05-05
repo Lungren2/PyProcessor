@@ -43,17 +43,15 @@ def parse_args():
     batch_group.add_argument(
         "--batch-mode",
         choices=["enabled", "disabled"],
-        help="Enable or disable batch processing mode"
+        help="Enable or disable batch processing mode",
     )
     batch_group.add_argument(
-        "--batch-size",
-        type=int,
-        help="Number of videos to process in a single batch"
+        "--batch-size", type=int, help="Number of videos to process in a single batch"
     )
     batch_group.add_argument(
         "--max-memory",
         type=int,
-        help="Maximum memory usage percentage before throttling batches"
+        help="Maximum memory usage percentage before throttling batches",
     )
 
     # Execution options

@@ -6,18 +6,18 @@ It ensures consistent path handling and resolution across all modules.
 """
 
 import os
-import re
-import sys
 import platform
+import re
 import shutil
+import sys
 import tempfile
-import uuid
-from pathlib import Path
 import threading
-from typing import Dict, List, Optional, Union, Callable, Tuple, Any
 from contextlib import contextmanager
+from pathlib import Path
+from typing import List, Optional, Union
 
 from pyprocessor.utils.logging.log_manager import get_logger
+
 
 # Avoid circular import with cache_manager
 # Define simple versions of the functions we need
@@ -25,16 +25,18 @@ def cache_get(key, default=None):
     """Simple cache get function to avoid circular imports."""
     return default
 
+
 def cache_set(key, value, ttl=None):
     """Simple cache set function to avoid circular imports."""
-    pass
+
 
 def cache_delete(key):
     """Simple cache delete function to avoid circular imports."""
-    pass
+
 
 class CacheBackend:
     """Simple enum to avoid circular imports."""
+
     MEMORY = "memory"
     DISK = "disk"
 
@@ -111,7 +113,7 @@ class PathManager:
 
         # First expand ${VAR} format (Unix/Linux/macOS style)
         if "${" in path_str:
-            env_vars = re.findall(r'\${([^}]+)}', path_str)
+            env_vars = re.findall(r"\${([^}]+)}", path_str)
             for var in env_vars:
                 if var in os.environ:
                     path_str = path_str.replace(f"${{{var}}}", os.environ[var])
@@ -235,7 +237,9 @@ class PathManager:
             data_dir = Path(base_dir) / app_name
         elif self.is_macos:
             # macOS: Use ~/Library/Application Support
-            data_dir = Path(os.path.expanduser(f"~/Library/Application Support/{app_name}"))
+            data_dir = Path(
+                os.path.expanduser(f"~/Library/Application Support/{app_name}")
+            )
         else:
             # Linux: Use ~/.local/share
             data_dir = Path(os.path.expanduser(f"~/.local/share/{app_name}"))
@@ -490,7 +494,9 @@ class PathManager:
         else:
             return path.stem
 
-    def list_files(self, directory: Union[str, Path], pattern: str = "*", recursive: bool = False) -> List[Path]:
+    def list_files(
+        self, directory: Union[str, Path], pattern: str = "*", recursive: bool = False
+    ) -> List[Path]:
         """
         List files in a directory matching a pattern.
 
@@ -537,7 +543,9 @@ class PathManager:
         path = self.normalize_path(path)
         return path.exists() and path.is_dir()
 
-    def copy_file(self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = True) -> Optional[Path]:
+    def copy_file(
+        self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = True
+    ) -> Optional[Path]:
         """
         Copy a file from source to destination.
 
@@ -559,7 +567,9 @@ class PathManager:
 
         # Check if destination exists
         if dst.exists() and not overwrite:
-            self.logger.warning(f"Destination file exists and overwrite is False: {dst}")
+            self.logger.warning(
+                f"Destination file exists and overwrite is False: {dst}"
+            )
             return None
 
         # Ensure destination directory exists
@@ -568,7 +578,9 @@ class PathManager:
         # Copy the file
         return Path(shutil.copy2(src, dst))
 
-    def move_file(self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = True) -> Optional[Path]:
+    def move_file(
+        self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = True
+    ) -> Optional[Path]:
         """
         Move a file from source to destination.
 
@@ -591,7 +603,9 @@ class PathManager:
         # Check if destination exists
         if dst.exists():
             if not overwrite:
-                self.logger.warning(f"Destination file exists and overwrite is False: {dst}")
+                self.logger.warning(
+                    f"Destination file exists and overwrite is False: {dst}"
+                )
                 return None
             else:
                 # Remove destination file
@@ -719,13 +733,15 @@ class PathManager:
             path_str = str(path)
 
             # Check for null bytes (potential security issue)
-            if '\0' in path_str:
+            if "\0" in path_str:
                 self.logger.warning(f"Path contains null bytes: {path}")
                 return False
 
             # Check for suspicious path traversal patterns
             if self._contains_path_traversal(path_str):
-                self.logger.warning(f"Path contains suspicious traversal patterns: {path}")
+                self.logger.warning(
+                    f"Path contains suspicious traversal patterns: {path}"
+                )
                 return False
 
             # Additional platform-specific checks
@@ -733,11 +749,32 @@ class PathManager:
                 # Check for reserved Windows device names
                 parts = path.parts
                 if parts and parts[0].upper() in (
-                    "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
-                    "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
-                    "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+                    "CON",
+                    "PRN",
+                    "AUX",
+                    "NUL",
+                    "COM1",
+                    "COM2",
+                    "COM3",
+                    "COM4",
+                    "COM5",
+                    "COM6",
+                    "COM7",
+                    "COM8",
+                    "COM9",
+                    "LPT1",
+                    "LPT2",
+                    "LPT3",
+                    "LPT4",
+                    "LPT5",
+                    "LPT6",
+                    "LPT7",
+                    "LPT8",
+                    "LPT9",
                 ):
-                    self.logger.warning(f"Path contains reserved Windows device name: {path}")
+                    self.logger.warning(
+                        f"Path contains reserved Windows device name: {path}"
+                    )
                     return False
 
             return True
@@ -757,8 +794,12 @@ class PathManager:
         """
         # Check for suspicious patterns that might indicate path traversal attacks
         suspicious_patterns = [
-            "../", "..\\", "/..", "\\..",  # Parent directory traversal
-            "/.\\.", "\\./."  # Current directory with obfuscation
+            "../",
+            "..\\",
+            "/..",
+            "\\..",  # Parent directory traversal
+            "/.\\.",
+            "\\./.",  # Current directory with obfuscation
         ]
 
         # Normalize path separators for consistent checking
@@ -808,8 +849,9 @@ class PathManager:
 
                 # Check if the normalized path starts with the normalized base path
                 # and that there's either an exact match or a directory separator after the base path
-                return (normalized_path == normalized_base or
-                        normalized_path.startswith(normalized_base + os.sep))
+                return normalized_path == normalized_base or normalized_path.startswith(
+                    normalized_base + os.sep
+                )
 
         except Exception as e:
             self.logger.error(f"Error checking if path is safe: {str(e)}")
@@ -850,11 +892,11 @@ class PathManager:
         # Replace invalid characters with underscores
         # This covers Windows, macOS, and Linux invalid characters
         invalid_chars = r'[<>:"/\\|?*\x00-\x1F]'
-        sanitized = re.sub(invalid_chars, '_', filename)
+        sanitized = re.sub(invalid_chars, "_", filename)
 
         # Remove leading/trailing whitespace and periods
         # (Windows doesn't allow filenames ending with periods)
-        sanitized = sanitized.strip('. ')
+        sanitized = sanitized.strip(". ")
 
         # Ensure the filename isn't empty after sanitization
         if not sanitized:
@@ -862,9 +904,28 @@ class PathManager:
 
         # Ensure the filename isn't a reserved name on Windows
         if self.is_windows and sanitized.upper() in (
-            "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4",
-            "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2",
-            "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+            "CON",
+            "PRN",
+            "AUX",
+            "NUL",
+            "COM1",
+            "COM2",
+            "COM3",
+            "COM4",
+            "COM5",
+            "COM6",
+            "COM7",
+            "COM8",
+            "COM9",
+            "LPT1",
+            "LPT2",
+            "LPT3",
+            "LPT4",
+            "LPT5",
+            "LPT6",
+            "LPT7",
+            "LPT8",
+            "LPT9",
         ):
             sanitized = f"_{sanitized}"
 
@@ -937,7 +998,9 @@ class PathManager:
             # If the path is not relative to the base, return the original path
             return path
 
-    def make_absolute(self, path: Union[str, Path], base: Optional[Union[str, Path]] = None) -> Path:
+    def make_absolute(
+        self, path: Union[str, Path], base: Optional[Union[str, Path]] = None
+    ) -> Path:
         """
         Make a path absolute.
 
@@ -977,13 +1040,17 @@ class PathManager:
             "path_manager:default_media_root",
             "path_manager:app_data_dir",
             "path_manager:profiles_dir",
-            "path_manager:logs_dir"
+            "path_manager:logs_dir",
         ]:
             cache_delete(key)
 
         self.logger.debug("Path cache cleared")
 
-    def get_temp_dir(self, prefix: str = "pyprocessor_", parent_dir: Optional[Union[str, Path]] = None) -> Path:
+    def get_temp_dir(
+        self,
+        prefix: str = "pyprocessor_",
+        parent_dir: Optional[Union[str, Path]] = None,
+    ) -> Path:
         """
         Get a temporary directory.
 
@@ -1004,7 +1071,12 @@ class PathManager:
         self.logger.debug(f"Created temporary directory: {temp_dir}")
         return temp_dir
 
-    def get_temp_file(self, suffix: str = "", prefix: str = "pyprocessor_", parent_dir: Optional[Union[str, Path]] = None) -> Path:
+    def get_temp_file(
+        self,
+        suffix: str = "",
+        prefix: str = "pyprocessor_",
+        parent_dir: Optional[Union[str, Path]] = None,
+    ) -> Path:
         """
         Get a temporary file.
 
@@ -1021,14 +1093,21 @@ class PathManager:
         else:
             parent_dir = self.normalize_path(parent_dir)
             self.ensure_dir_exists(parent_dir)
-            fd, temp_file = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=str(parent_dir))
+            fd, temp_file = tempfile.mkstemp(
+                suffix=suffix, prefix=prefix, dir=str(parent_dir)
+            )
 
         os.close(fd)  # Close the file descriptor
         self.logger.debug(f"Created temporary file: {temp_file}")
         return Path(temp_file)
 
     @contextmanager
-    def temp_dir_context(self, prefix: str = "pyprocessor_", parent_dir: Optional[Union[str, Path]] = None, cleanup: bool = True):
+    def temp_dir_context(
+        self,
+        prefix: str = "pyprocessor_",
+        parent_dir: Optional[Union[str, Path]] = None,
+        cleanup: bool = True,
+    ):
         """
         Context manager for a temporary directory.
 
@@ -1049,7 +1128,13 @@ class PathManager:
                 self.logger.debug(f"Removed temporary directory: {temp_dir}")
 
     @contextmanager
-    def temp_file_context(self, suffix: str = "", prefix: str = "pyprocessor_", parent_dir: Optional[Union[str, Path]] = None, cleanup: bool = True):
+    def temp_file_context(
+        self,
+        suffix: str = "",
+        prefix: str = "pyprocessor_",
+        parent_dir: Optional[Union[str, Path]] = None,
+        cleanup: bool = True,
+    ):
         """
         Context manager for a temporary file.
 
@@ -1441,7 +1526,9 @@ def temp_file_context(suffix="", prefix="pyprocessor_", parent_dir=None, cleanup
     Yields:
         Path object for the temporary file
     """
-    with get_path_manager().temp_file_context(suffix, prefix, parent_dir, cleanup) as temp_file:
+    with get_path_manager().temp_file_context(
+        suffix, prefix, parent_dir, cleanup
+    ) as temp_file:
         yield temp_file
 
 

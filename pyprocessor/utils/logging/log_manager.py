@@ -5,27 +5,25 @@ This module provides a singleton logger instance that can be used throughout the
 It ensures consistent logging behavior and format across all modules.
 """
 
+import getpass
+import gzip
+import hashlib
+import inspect
+import json
 import logging
 import logging.handlers
-import sys
-import os
-import getpass
 import platform
-import inspect
-import threading
-import json
-import time
 import re
-import gzip
 import shutil
-import uuid
-import hashlib
 import statistics
+import sys
+import threading
+import uuid
+from collections import defaultdict
 from datetime import datetime, timedelta
-from pathlib import Path
 from functools import wraps
-from typing import Dict, Any, Optional, Union, List, Callable, Tuple, Iterator, Pattern
-from collections import defaultdict, Counter
+from pathlib import Path
+
 
 # Avoid circular import with path_manager
 # Define simple versions of the functions we need
@@ -35,6 +33,7 @@ def ensure_dir_exists(path):
     path.mkdir(parents=True, exist_ok=True)
     return path
 
+
 def get_logs_dir():
     """Get the logs directory."""
     # Simple implementation to avoid circular imports
@@ -42,11 +41,13 @@ def get_logs_dir():
     logs_dir = base_dir / "logs"
     return logs_dir
 
+
 # Thread-local storage for context information
 _thread_local = threading.local()
 
 # Global logger instance
 _logger_instance = None
+
 
 # Helper functions for external use
 def get_logger(level=logging.INFO):
@@ -56,44 +57,50 @@ def get_logger(level=logging.INFO):
         _logger_instance = LogManager(level=level)
     return _logger_instance
 
+
 def set_context(**kwargs):
     """Set context information for the current thread."""
     logger = get_logger()
     logger.set_context(**kwargs)
+
 
 def get_context(key, default=None):
     """Get context information for the current thread."""
     logger = get_logger()
     return logger.get_context(key, default)
 
+
 def clear_context():
     """Clear all context information for the current thread."""
     logger = get_logger()
     logger.clear_context()
+
 
 def analyze_logs(log_file=None, pattern=None, start_time=None, end_time=None):
     """Analyze logs for patterns and trends."""
     # This is a placeholder for now
     return {"analyzed": True}
 
+
 def get_metrics():
     """Get logging metrics."""
     logger = get_logger()
-    if hasattr(logger, 'metrics'):
+    if hasattr(logger, "metrics"):
         return logger.metrics
     return {}
+
 
 def reset_metrics():
     """Reset logging metrics."""
     logger = get_logger()
-    if hasattr(logger, 'metrics'):
+    if hasattr(logger, "metrics"):
         logger.metrics = {
             "log_counts": defaultdict(int),
             "error_counts": defaultdict(int),
             "performance": defaultdict(list),
             "requests": defaultdict(int),
             "start_time": datetime.now(),
-            "last_reset": datetime.now()
+            "last_reset": datetime.now(),
         }
     return True
 
@@ -120,9 +127,23 @@ class LogManager:
                 cls._instance._initialized = False
             return cls._instance
 
-    def __init__(self, log_dir=None, max_logs=10, max_size_mb=10, max_days=30, level=logging.INFO, app_name="pyprocessor",
-                 compress_logs=True, encrypt_sensitive=False, log_format=None, console_format=None, file_format=None,
-                 additional_handlers=None, log_metrics=True, correlation_id_header="X-Correlation-ID"):
+    def __init__(
+        self,
+        log_dir=None,
+        max_logs=10,
+        max_size_mb=10,
+        max_days=30,
+        level=logging.INFO,
+        app_name="pyprocessor",
+        compress_logs=True,
+        encrypt_sensitive=False,
+        log_format=None,
+        console_format=None,
+        file_format=None,
+        additional_handlers=None,
+        log_metrics=True,
+        correlation_id_header="X-Correlation-ID",
+    ):
         """
         Initialize the logging manager.
 
@@ -164,7 +185,7 @@ class LogManager:
                 "performance": defaultdict(list),  # Performance metrics
                 "requests": defaultdict(int),  # Request counts
                 "start_time": datetime.now(),  # Start time for metrics
-                "last_reset": datetime.now()  # Last time metrics were reset
+                "last_reset": datetime.now(),  # Last time metrics were reset
             }
 
         # Initialize correlation ID for the main thread
@@ -239,7 +260,7 @@ class LogManager:
         self.file_handler = logging.handlers.RotatingFileHandler(
             self.log_file,
             maxBytes=self.max_size_mb * 1024 * 1024,  # Convert MB to bytes
-            backupCount=5  # Keep 5 backup files
+            backupCount=5,  # Keep 5 backup files
         )
         self.file_handler.setLevel(level)
 
@@ -249,17 +270,21 @@ class LogManager:
 
         # Create formatters
         if self.custom_file_format:
-            detailed_formatter = logging.Formatter(self.custom_file_format, "%Y-%m-%d %H:%M:%S")
+            detailed_formatter = logging.Formatter(
+                self.custom_file_format, "%Y-%m-%d %H:%M:%S"
+            )
         else:
             detailed_formatter = logging.Formatter(
                 "[%(asctime)s][%(levelname)s][%(module)s.%(funcName)s:%(lineno)d][%(threadName)s] %(message)s",
-                "%Y-%m-%d %H:%M:%S"
+                "%Y-%m-%d %H:%M:%S",
             )
 
         if self.custom_console_format:
             simple_formatter = logging.Formatter(self.custom_console_format)
         else:
-            simple_formatter = logging.Formatter("[%(levelname)s][%(module)s] %(message)s")
+            simple_formatter = logging.Formatter(
+                "[%(levelname)s][%(module)s] %(message)s"
+            )
 
         # Set formatters
         self.file_handler.setFormatter(detailed_formatter)
@@ -273,7 +298,9 @@ class LogManager:
         for handler in self.additional_handlers:
             if isinstance(handler, logging.Handler):
                 if self.custom_log_format:
-                    handler.setFormatter(logging.Formatter(self.custom_log_format, "%Y-%m-%d %H:%M:%S"))
+                    handler.setFormatter(
+                        logging.Formatter(self.custom_log_format, "%Y-%m-%d %H:%M:%S")
+                    )
                 else:
                     handler.setFormatter(detailed_formatter)
                 self.logger.addHandler(handler)
@@ -323,7 +350,9 @@ class LogManager:
                         continue
 
                     # Check if file is too large
-                    if file_size_mb > self.max_size_mb * 2:  # Double the max size as a safety margin
+                    if (
+                        file_size_mb > self.max_size_mb * 2
+                    ):  # Double the max size as a safety margin
                         if not is_compressed and self.compress_logs:
                             files_to_compress.append(log_file)
                         else:
@@ -331,18 +360,27 @@ class LogManager:
                         continue
 
                     # Check if file should be compressed
-                    if not is_compressed and self.compress_logs and file_age > timedelta(days=1):
+                    if (
+                        not is_compressed
+                        and self.compress_logs
+                        and file_age > timedelta(days=1)
+                    ):
                         files_to_compress.append(log_file)
                 except Exception as e:
                     self.logger.error(f"Error checking log file {log_file}: {str(e)}")
 
             # Sort remaining files by modification time (oldest first)
-            remaining_files = [f for f in all_files if f not in [fd[0] for fd in files_to_delete] and f not in files_to_compress]
+            remaining_files = [
+                f
+                for f in all_files
+                if f not in [fd[0] for fd in files_to_delete]
+                and f not in files_to_compress
+            ]
             remaining_files.sort(key=lambda x: x.stat().st_mtime)
 
             # If we have more logs than allowed, mark the oldest ones for deletion or compression
             if len(remaining_files) > self.max_logs:
-                for old_log in remaining_files[:-self.max_logs]:
+                for old_log in remaining_files[: -self.max_logs]:
                     is_compressed = old_log.suffix == ".gz"
                     if not is_compressed and self.compress_logs:
                         files_to_compress.append(old_log)
@@ -381,7 +419,7 @@ class LogManager:
         caller_frame = inspect.getouterframes(current_frame)[3]
 
         # Extract information
-        module = caller_frame.frame.f_globals.get('__name__', 'unknown')
+        module = caller_frame.frame.f_globals.get("__name__", "unknown")
         function = caller_frame.function
         lineno = caller_frame.lineno
 
@@ -462,7 +500,7 @@ class LogManager:
                 logging.INFO: "info",
                 logging.WARNING: "warning",
                 logging.ERROR: "error",
-                logging.CRITICAL: "critical"
+                logging.CRITICAL: "critical",
             }
             level_name = level_map.get(level, "unknown")
             self.metrics["log_counts"][level_name] += 1
@@ -487,7 +525,9 @@ class LogManager:
                 self.metrics["requests"][path] += 1
 
         # If encrypt_sensitive is enabled, encrypt sensitive data
-        if self.encrypt_sensitive and any(k in kwargs for k in ["password", "token", "secret", "key", "credential"]):
+        if self.encrypt_sensitive and any(
+            k in kwargs for k in ["password", "token", "secret", "key", "credential"]
+        ):
             for sensitive_key in ["password", "token", "secret", "key", "credential"]:
                 if sensitive_key in kwargs:
                     # Hash the sensitive value
@@ -601,8 +641,16 @@ class LogManager:
 
     # Log Filtering Methods
 
-    def filter_logs(self, log_file=None, level=None, start_time=None, end_time=None,
-                    pattern=None, correlation_id=None, limit=None):
+    def filter_logs(
+        self,
+        log_file=None,
+        level=None,
+        start_time=None,
+        end_time=None,
+        pattern=None,
+        correlation_id=None,
+        limit=None,
+    ):
         """
         Filter logs based on various criteria.
 
@@ -684,10 +732,14 @@ class LogManager:
                     # Try to parse the log entry
                     try:
                         # Extract timestamp
-                        timestamp_match = re.search(r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]", line)
+                        timestamp_match = re.search(
+                            r"\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]", line
+                        )
                         if timestamp_match:
                             timestamp_str = timestamp_match.group(1)
-                            timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
+                            timestamp = datetime.strptime(
+                                timestamp_str, "%Y-%m-%d %H:%M:%S"
+                            )
                         else:
                             # If no timestamp found, skip time filtering
                             timestamp = None
@@ -700,7 +752,9 @@ class LogManager:
                                 continue
 
                         # Extract log level
-                        level_match = re.search(r"\[(DEBUG|INFO|WARNING|ERROR|CRITICAL)\]", line)
+                        level_match = re.search(
+                            r"\[(DEBUG|INFO|WARNING|ERROR|CRITICAL)\]", line
+                        )
                         if level_match:
                             log_level_str = level_match.group(1)
                             log_level_map = {
@@ -725,7 +779,10 @@ class LogManager:
 
                         # Filter by correlation ID if provided
                         if correlation_id is not None:
-                            if f'"correlation_id": "{correlation_id}"' not in line and f"'correlation_id': '{correlation_id}'" not in line:
+                            if (
+                                f'"correlation_id": "{correlation_id}"' not in line
+                                and f"'correlation_id': '{correlation_id}'" not in line
+                            ):
                                 continue
 
                         # Add the log entry to results
@@ -742,7 +799,15 @@ class LogManager:
 
         return results
 
-    def search_logs(self, query, log_files=None, case_sensitive=False, whole_word=False, regex=False, limit=None):
+    def search_logs(
+        self,
+        query,
+        log_files=None,
+        case_sensitive=False,
+        whole_word=False,
+        regex=False,
+        limit=None,
+    ):
         """
         Search logs for a specific query.
 
@@ -782,7 +847,9 @@ class LogManager:
         # Search all log files
         results = []
         for log_file in log_files:
-            file_results = self.filter_logs(log_file=log_file, pattern=pattern, limit=limit)
+            file_results = self.filter_logs(
+                log_file=log_file, pattern=pattern, limit=limit
+            )
             results.extend(file_results)
 
             # Check limit
@@ -794,7 +861,9 @@ class LogManager:
 
     # Log Aggregation Methods
 
-    def aggregate_logs(self, log_files=None, group_by="level", time_window=None, count_only=False):
+    def aggregate_logs(
+        self, log_files=None, group_by="level", time_window=None, count_only=False
+    ):
         """
         Aggregate logs by a specific field.
 
@@ -881,11 +950,16 @@ class LogManager:
         if count_only:
             return dict(aggregated)
         else:
-            return {key: {"count": count, "entries": entries[key]} for key, count in aggregated.items()}
+            return {
+                key: {"count": count, "entries": entries[key]}
+                for key, count in aggregated.items()
+            }
 
     # Log Analysis Methods
 
-    def analyze_logs(self, log_files=None, analysis_type="error_distribution", time_window=None):
+    def analyze_logs(
+        self, log_files=None, analysis_type="error_distribution", time_window=None
+    ):
         """
         Analyze logs for patterns and trends.
 
@@ -981,7 +1055,9 @@ class LogManager:
             "total_errors": total_errors,
             "error_types": dict(error_types),
             "percentages": percentages,
-            "error_messages": {k: v[:5] for k, v in error_messages.items()}  # Limit to 5 messages per type
+            "error_messages": {
+                k: v[:5] for k, v in error_messages.items()
+            },  # Limit to 5 messages per type
         }
 
     def _analyze_log_volume(self, logs):
@@ -992,7 +1068,9 @@ class LogManager:
 
         for log in logs:
             # Extract timestamp
-            timestamp_match = re.search(r"\[(\d{4}-\d{2}-\d{2} \d{2}):\d{2}:\d{2}\]", log)
+            timestamp_match = re.search(
+                r"\[(\d{4}-\d{2}-\d{2} \d{2}):\d{2}:\d{2}\]", log
+            )
             if timestamp_match:
                 hour = timestamp_match.group(1)
                 hourly_counts[hour] += 1
@@ -1006,7 +1084,7 @@ class LogManager:
         return {
             "total_logs": len(logs),
             "hourly_counts": dict(hourly_counts),
-            "level_counts": dict(level_counts)
+            "level_counts": dict(level_counts),
         }
 
     def _analyze_performance(self, logs):
@@ -1036,13 +1114,23 @@ class LogManager:
                     "max": max(durations),
                     "avg": sum(durations) / len(durations),
                     "median": statistics.median(durations) if len(durations) > 0 else 0,
-                    "p95": sorted(durations)[int(len(durations) * 0.95)] if len(durations) > 20 else max(durations),
-                    "p99": sorted(durations)[int(len(durations) * 0.99)] if len(durations) > 100 else max(durations)
+                    "p95": (
+                        sorted(durations)[int(len(durations) * 0.95)]
+                        if len(durations) > 20
+                        else max(durations)
+                    ),
+                    "p99": (
+                        sorted(durations)[int(len(durations) * 0.99)]
+                        if len(durations) > 100
+                        else max(durations)
+                    ),
                 }
 
         return {
-            "total_operations": sum(len(durations) for durations in operation_durations.values()),
-            "operation_stats": stats
+            "total_operations": sum(
+                len(durations) for durations in operation_durations.values()
+            ),
+            "operation_stats": stats,
         }
 
     def _analyze_request_paths(self, logs):
@@ -1077,7 +1165,9 @@ class LogManager:
             stats[path] = {
                 "count": count,
                 "error_count": path_errors[path],
-                "error_rate": round(path_errors[path] / count * 100, 2) if count > 0 else 0
+                "error_rate": (
+                    round(path_errors[path] / count * 100, 2) if count > 0 else 0
+                ),
             }
 
             # Add duration statistics if available
@@ -1090,7 +1180,7 @@ class LogManager:
         return {
             "total_requests": sum(path_counts.values()),
             "total_errors": sum(path_errors.values()),
-            "path_stats": stats
+            "path_stats": stats,
         }
 
     def _analyze_error_trends(self, logs):
@@ -1101,7 +1191,9 @@ class LogManager:
         for log in logs:
             if "[ERROR]" in log or "[CRITICAL]" in log:
                 # Extract timestamp
-                timestamp_match = re.search(r"\[(\d{4}-\d{2}-\d{2} \d{2}):\d{2}:\d{2}\]", log)
+                timestamp_match = re.search(
+                    r"\[(\d{4}-\d{2}-\d{2} \d{2}):\d{2}:\d{2}\]", log
+                )
                 if timestamp_match:
                     hour = timestamp_match.group(1)
 
@@ -1119,9 +1211,7 @@ class LogManager:
         for hour, errors in hourly_errors.items():
             result[hour] = dict(errors)
 
-        return {
-            "hourly_errors": result
-        }
+        return {"hourly_errors": result}
 
     # Log Metrics Methods
 
@@ -1157,17 +1247,29 @@ class LogManager:
                     "max": max(durations),
                     "avg": sum(durations) / len(durations),
                     "median": statistics.median(durations) if len(durations) > 0 else 0,
-                    "p95": sorted(durations)[int(len(durations) * 0.95)] if len(durations) > 20 else max(durations),
-                    "p99": sorted(durations)[int(len(durations) * 0.99)] if len(durations) > 100 else max(durations)
+                    "p95": (
+                        sorted(durations)[int(len(durations) * 0.95)]
+                        if len(durations) > 20
+                        else max(durations)
+                    ),
+                    "p99": (
+                        sorted(durations)[int(len(durations) * 0.99)]
+                        if len(durations) > 100
+                        else max(durations)
+                    ),
                 }
 
         # Get top requests
-        top_requests = dict(sorted(self.metrics["requests"].items(), key=lambda x: x[1], reverse=True)[:10])
+        top_requests = dict(
+            sorted(self.metrics["requests"].items(), key=lambda x: x[1], reverse=True)[
+                :10
+            ]
+        )
 
         return {
             "uptime": {
                 "seconds": uptime_seconds,
-                "formatted": str(uptime).split(".")[0]  # Remove microseconds
+                "formatted": str(uptime).split(".")[0],  # Remove microseconds
             },
             "log_counts": dict(self.metrics["log_counts"]),
             "error_counts": dict(self.metrics["error_counts"]),
@@ -1178,7 +1280,7 @@ class LogManager:
             "performance": performance_stats,
             "top_requests": top_requests,
             "start_time": self.metrics["start_time"].isoformat(),
-            "last_reset": self.metrics["last_reset"].isoformat()
+            "last_reset": self.metrics["last_reset"].isoformat(),
         }
 
     def reset_metrics(self):
@@ -1201,7 +1303,7 @@ class LogManager:
             "performance": defaultdict(list),
             "requests": defaultdict(int),
             "start_time": datetime.now(),
-            "last_reset": datetime.now()
+            "last_reset": datetime.now(),
         }
 
         return previous_metrics
@@ -1211,9 +1313,22 @@ class LogManager:
 _log_manager = None
 
 
-def get_logger(log_dir=None, max_logs=10, max_size_mb=10, max_days=30, level=logging.INFO, app_name="pyprocessor",
-              compress_logs=True, encrypt_sensitive=False, log_format=None, console_format=None, file_format=None,
-              additional_handlers=None, log_metrics=True, correlation_id_header="X-Correlation-ID"):
+def get_logger(
+    log_dir=None,
+    max_logs=10,
+    max_size_mb=10,
+    max_days=30,
+    level=logging.INFO,
+    app_name="pyprocessor",
+    compress_logs=True,
+    encrypt_sensitive=False,
+    log_format=None,
+    console_format=None,
+    file_format=None,
+    additional_handlers=None,
+    log_metrics=True,
+    correlation_id_header="X-Correlation-ID",
+):
     """
     Get the singleton logger instance.
 
@@ -1252,7 +1367,7 @@ def get_logger(log_dir=None, max_logs=10, max_size_mb=10, max_days=30, level=log
             file_format=file_format,
             additional_handlers=additional_handlers,
             log_metrics=log_metrics,
-            correlation_id_header=correlation_id_header
+            correlation_id_header=correlation_id_header,
         )
     return _log_manager
 
@@ -1277,7 +1392,15 @@ def get_correlation_id():
     return get_logger().get_correlation_id()
 
 
-def filter_logs(log_file=None, level=None, start_time=None, end_time=None, pattern=None, correlation_id=None, limit=None):
+def filter_logs(
+    log_file=None,
+    level=None,
+    start_time=None,
+    end_time=None,
+    pattern=None,
+    correlation_id=None,
+    limit=None,
+):
     """
     Filter logs based on various criteria.
 
@@ -1293,10 +1416,19 @@ def filter_logs(log_file=None, level=None, start_time=None, end_time=None, patte
     Returns:
         List of log entries matching the criteria
     """
-    return get_logger().filter_logs(log_file, level, start_time, end_time, pattern, correlation_id, limit)
+    return get_logger().filter_logs(
+        log_file, level, start_time, end_time, pattern, correlation_id, limit
+    )
 
 
-def search_logs(query, log_files=None, case_sensitive=False, whole_word=False, regex=False, limit=None):
+def search_logs(
+    query,
+    log_files=None,
+    case_sensitive=False,
+    whole_word=False,
+    regex=False,
+    limit=None,
+):
     """
     Search logs for a specific query.
 
@@ -1311,10 +1443,14 @@ def search_logs(query, log_files=None, case_sensitive=False, whole_word=False, r
     Returns:
         List of log entries matching the query
     """
-    return get_logger().search_logs(query, log_files, case_sensitive, whole_word, regex, limit)
+    return get_logger().search_logs(
+        query, log_files, case_sensitive, whole_word, regex, limit
+    )
 
 
-def aggregate_logs(log_files=None, group_by="level", time_window=None, count_only=False):
+def aggregate_logs(
+    log_files=None, group_by="level", time_window=None, count_only=False
+):
     """
     Aggregate logs by a specific field.
 
@@ -1380,6 +1516,7 @@ def with_logging(func=None, *, level=logging.DEBUG, log_args=False, log_result=F
     Returns:
         The decorated function
     """
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -1392,6 +1529,7 @@ def with_logging(func=None, *, level=logging.DEBUG, log_args=False, log_result=F
                 try:
                     # Get function signature
                     import inspect
+
                     sig = inspect.signature(func)
                     bound_args = sig.bind(*args, **kwargs)
                     bound_args.apply_defaults()
@@ -1399,7 +1537,7 @@ def with_logging(func=None, *, level=logging.DEBUG, log_args=False, log_result=F
                     # Convert to dictionary, excluding 'self' for methods
                     arg_dict = {}
                     for k, v in bound_args.arguments.items():
-                        if k != 'self':
+                        if k != "self":
                             # Try to make values JSON serializable
                             try:
                                 json.dumps({k: v}, default=str)
@@ -1407,11 +1545,11 @@ def with_logging(func=None, *, level=logging.DEBUG, log_args=False, log_result=F
                             except:
                                 arg_dict[k] = str(v)
 
-                    entry_data['args'] = arg_dict
+                    entry_data["args"] = arg_dict
                 except Exception:
                     # If we can't get the signature, just log the number of args
-                    entry_data['args_count'] = len(args)
-                    entry_data['kwargs_count'] = len(kwargs)
+                    entry_data["args_count"] = len(args)
+                    entry_data["kwargs_count"] = len(kwargs)
 
             # Log function entry
             logger._log(level, f"Entering {func.__name__}", **entry_data)
@@ -1425,10 +1563,10 @@ def with_logging(func=None, *, level=logging.DEBUG, log_args=False, log_result=F
                 if log_result:
                     # Try to make result JSON serializable
                     try:
-                        json.dumps({'result': result}, default=str)
-                        exit_data['result'] = result
+                        json.dumps({"result": result}, default=str)
+                        exit_data["result"] = result
                     except:
-                        exit_data['result'] = str(result)
+                        exit_data["result"] = str(result)
 
                 # Log function exit
                 logger._log(level, f"Exiting {func.__name__}", **exit_data)
@@ -1438,6 +1576,7 @@ def with_logging(func=None, *, level=logging.DEBUG, log_args=False, log_result=F
                 # Log the error
                 logger.error(f"Error in {func.__name__}: {str(e)}", exception=e)
                 raise
+
         return wrapper
 
     # Handle both @with_logging and @with_logging(level=logging.INFO)
@@ -1455,7 +1594,9 @@ class Logger:
     but uses the new LogManager internally.
     """
 
-    def __init__(self, log_dir=None, max_logs=10, max_size_mb=10, max_days=30, level=logging.INFO):
+    def __init__(
+        self, log_dir=None, max_logs=10, max_size_mb=10, max_days=30, level=logging.INFO
+    ):
         """
         Initialize the logger.
 

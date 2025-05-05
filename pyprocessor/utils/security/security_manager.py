@@ -5,16 +5,26 @@ This module provides a central manager for all security-related functionality.
 """
 
 import threading
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pyprocessor.utils.logging.log_manager import get_logger
-from pyprocessor.utils.security.auth_manager import AuthManager, get_auth_manager
-from pyprocessor.utils.security.session_manager import SessionManager, get_session_manager
-from pyprocessor.utils.security.api_key_manager import ApiKeyManager, get_api_key_manager
-from pyprocessor.utils.security.audit_logger import AuditLogger, get_audit_logger
-from pyprocessor.utils.security.password_policy import PasswordPolicy, get_password_policy
-from pyprocessor.utils.security.encryption_manager import EncryptionManager, get_encryption_manager
-from pyprocessor.utils.security.process_sandbox import ProcessSandbox, get_process_sandbox
+from pyprocessor.utils.security.api_key_manager import (
+    get_api_key_manager,
+)
+from pyprocessor.utils.security.audit_logger import get_audit_logger
+from pyprocessor.utils.security.auth_manager import get_auth_manager
+from pyprocessor.utils.security.encryption_manager import (
+    get_encryption_manager,
+)
+from pyprocessor.utils.security.password_policy import (
+    get_password_policy,
+)
+from pyprocessor.utils.security.process_sandbox import (
+    get_process_sandbox,
+)
+from pyprocessor.utils.security.session_manager import (
+    get_session_manager,
+)
 
 
 class SecurityManager:
@@ -87,12 +97,15 @@ class SecurityManager:
         # No shutdown needed for encryption manager
         # Shutdown process sandbox
         from pyprocessor.utils.security.process_sandbox import shutdown_process_sandbox
+
         shutdown_process_sandbox()
 
         self.logger.info("Security manager shutdown")
 
     # Authentication methods
-    def authenticate(self, username: str, password: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+    def authenticate(
+        self, username: str, password: str
+    ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
         Authenticate a user with username and password.
 
@@ -115,7 +128,7 @@ class SecurityManager:
                 "authentication_failed",
                 username=username,
                 success=False,
-                reason="Invalid credentials"
+                reason="Invalid credentials",
             )
             return False, None, None
 
@@ -124,14 +137,14 @@ class SecurityManager:
 
         # Log successful authentication
         self.audit_logger.log_auth_event(
-            "authentication_succeeded",
-            username=username,
-            success=True
+            "authentication_succeeded", username=username, success=True
         )
 
         return True, session_token, user_data
 
-    def authenticate_api_key(self, api_key: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    def authenticate_api_key(
+        self, api_key: str
+    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Authenticate with an API key.
 
@@ -152,7 +165,7 @@ class SecurityManager:
                 "api_key_authentication_failed",
                 api_key_id=api_key[:8] + "...",
                 success=False,
-                reason="Invalid API key"
+                reason="Invalid API key",
             )
             return False, None
 
@@ -164,12 +177,14 @@ class SecurityManager:
             "api_key_authentication_succeeded",
             username=key_data["username"],
             api_key_id=key_data["id"],
-            success=True
+            success=True,
         )
 
         return True, user_data
 
-    def validate_session(self, session_token: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    def validate_session(
+        self, session_token: str
+    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Validate a session token.
 
@@ -200,14 +215,20 @@ class SecurityManager:
             self.audit_logger.log_auth_event(
                 "session_invalidated",
                 session_id=session_token[:8] + "...",
-                success=True
+                success=True,
             )
 
         return success
 
     # User management methods
-    def create_user(self, username: str, password: str, email: str = None,
-                   full_name: str = None, roles: List[str] = None) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+    def create_user(
+        self,
+        username: str,
+        password: str,
+        email: str = None,
+        full_name: str = None,
+        roles: List[str] = None,
+    ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
         Create a new user.
 
@@ -236,16 +257,20 @@ class SecurityManager:
         if success:
             # Log user creation
             self.audit_logger.log_admin_event(
-                "user_created",
-                username=username,
-                success=True
+                "user_created", username=username, success=True
             )
 
         return success, error, user_data
 
-    def update_user(self, username: str, password: str = None, email: str = None,
-                   full_name: str = None, roles: List[str] = None,
-                   active: bool = None) -> Tuple[bool, Optional[str]]:
+    def update_user(
+        self,
+        username: str,
+        password: str = None,
+        email: str = None,
+        full_name: str = None,
+        roles: List[str] = None,
+        active: bool = None,
+    ) -> Tuple[bool, Optional[str]]:
         """
         Update a user.
 
@@ -263,7 +288,9 @@ class SecurityManager:
             - Optional[str]: Error message if user update failed, None otherwise
         """
         # Validate password against policy if provided
-        if password is not None and not self.password_policy.validate_password(password):
+        if password is not None and not self.password_policy.validate_password(
+            password
+        ):
             return False, "Password does not meet policy requirements"
 
         # Update user
@@ -274,9 +301,7 @@ class SecurityManager:
         if success:
             # Log user update
             self.audit_logger.log_admin_event(
-                "user_updated",
-                username=username,
-                success=True
+                "user_updated", username=username, success=True
             )
 
             # Invalidate all sessions for this user if password was changed or user was deactivated
@@ -301,9 +326,7 @@ class SecurityManager:
         if success:
             # Log user deletion
             self.audit_logger.log_admin_event(
-                "user_deleted",
-                username=username,
-                success=True
+                "user_deleted", username=username, success=True
             )
 
             # Invalidate all sessions for this user
@@ -365,10 +388,7 @@ class SecurityManager:
         if success:
             # Log role assignment
             self.audit_logger.log_admin_event(
-                "role_assigned",
-                username=username,
-                role=role_name,
-                success=True
+                "role_assigned", username=username, role=role_name, success=True
             )
 
         return success
@@ -389,17 +409,15 @@ class SecurityManager:
         if success:
             # Log role revocation
             self.audit_logger.log_admin_event(
-                "role_revoked",
-                username=username,
-                role=role_name,
-                success=True
+                "role_revoked", username=username, role=role_name, success=True
             )
 
         return success
 
     # API key methods
-    def create_api_key(self, username: str, description: str = None,
-                      expires_in: int = None) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+    def create_api_key(
+        self, username: str, description: str = None, expires_in: int = None
+    ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
         Create an API key for a user.
 
@@ -429,7 +447,7 @@ class SecurityManager:
                 "api_key_created",
                 username=username,
                 api_key_id=key_data["id"],
-                success=True
+                success=True,
             )
 
         return success, result, key_data
@@ -458,7 +476,7 @@ class SecurityManager:
                 "api_key_revoked",
                 username=key_data["username"],
                 api_key_id=api_key_id,
-                success=True
+                success=True,
             )
 
         return success

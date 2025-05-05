@@ -8,22 +8,22 @@ This module provides a centralized way to manage scheduling of tasks, including:
 - Task cancellation and cleanup
 """
 
-import os
-import sys
-import time
 import threading
+import time
 import uuid
-from pathlib import Path
-from typing import Dict, List, Any, Optional, Union, Callable, Tuple, Set
+from typing import Any, Callable, Dict, List, Optional
 
+from pyprocessor.utils.error_manager import (
+    ErrorSeverity,
+    PyProcessorError,
+    with_error_handling,
+)
 from pyprocessor.utils.log_manager import get_logger
 from pyprocessor.utils.process_manager import get_process_manager, submit_task
-from pyprocessor.utils.error_manager import with_error_handling, PyProcessorError, ErrorSeverity
 
 
 class SchedulerError(PyProcessorError):
     """Error related to scheduler management."""
-    pass
 
 
 class Task:
@@ -33,15 +33,17 @@ class Task:
     A task is a unit of work that can be scheduled for execution.
     """
 
-    def __init__(self,
-                 task_id: str,
-                 func: Callable,
-                 args: tuple = (),
-                 kwargs: dict = None,
-                 priority: int = 0,
-                 dependencies: List[str] = None,
-                 timeout: Optional[float] = None,
-                 callback: Optional[Callable] = None):
+    def __init__(
+        self,
+        task_id: str,
+        func: Callable,
+        args: tuple = (),
+        kwargs: dict = None,
+        priority: int = 0,
+        dependencies: List[str] = None,
+        timeout: Optional[float] = None,
+        callback: Optional[Callable] = None,
+    ):
         """
         Initialize a task.
 
@@ -156,9 +158,7 @@ class SchedulerManager:
 
             self._scheduler_running = True
             self._scheduler_thread = threading.Thread(
-                target=self._scheduler_loop,
-                daemon=True,
-                name="SchedulerThread"
+                target=self._scheduler_loop, daemon=True, name="SchedulerThread"
             )
             self._scheduler_thread.start()
             self.logger.debug("Scheduler thread started")
@@ -226,11 +226,7 @@ class SchedulerManager:
                     task.started_at = time.time()
 
                     # Submit the task
-                    process_task_id = submit_task(
-                        task.func,
-                        *task.args,
-                        **task.kwargs
-                    )
+                    process_task_id = submit_task(task.func, *task.args, **task.kwargs)
 
                     # Update task with process task ID
                     task.process_task_id = process_task_id
@@ -242,7 +238,7 @@ class SchedulerManager:
                     self.logger.debug(
                         f"Task {task.task_id} submitted for execution",
                         task_id=task.task_id,
-                        process_task_id=process_task_id
+                        process_task_id=process_task_id,
                     )
 
                 except Exception as e:
@@ -258,7 +254,7 @@ class SchedulerManager:
                     self.logger.error(
                         f"Error submitting task {task.task_id}: {str(e)}",
                         task_id=task.task_id,
-                        error=str(e)
+                        error=str(e),
                     )
 
     def _check_running_tasks(self):
@@ -273,7 +269,9 @@ class SchedulerManager:
                     continue
 
                 # Get task status from process manager
-                process_status = self.process_manager.get_task_status(task.process_task_id)
+                process_status = self.process_manager.get_task_status(
+                    task.process_task_id
+                )
 
                 # If process task is not found, mark as failed
                 if process_status is None:
@@ -288,7 +286,7 @@ class SchedulerManager:
                     self.logger.error(
                         f"Process task not found for task {task.task_id}",
                         task_id=task.task_id,
-                        process_task_id=task.process_task_id
+                        process_task_id=task.process_task_id,
                     )
 
                     # Call callback if provided
@@ -299,7 +297,7 @@ class SchedulerManager:
                             self.logger.error(
                                 f"Error in task callback: {str(e)}",
                                 task_id=task.task_id,
-                                error=str(e)
+                                error=str(e),
                             )
 
                     continue
@@ -310,7 +308,9 @@ class SchedulerManager:
                     try:
                         if process_status["status"] == "completed":
                             # Get the result
-                            result = self.process_manager.get_task_result(task.process_task_id)
+                            result = self.process_manager.get_task_result(
+                                task.process_task_id
+                            )
 
                             # Update task status
                             task.status = "completed"
@@ -320,7 +320,7 @@ class SchedulerManager:
                             self.logger.debug(
                                 f"Task {task.task_id} completed successfully",
                                 task_id=task.task_id,
-                                process_task_id=task.process_task_id
+                                process_task_id=task.process_task_id,
                             )
 
                             # Call callback if provided
@@ -331,11 +331,15 @@ class SchedulerManager:
                                     self.logger.error(
                                         f"Error in task callback: {str(e)}",
                                         task_id=task.task_id,
-                                        error=str(e)
+                                        error=str(e),
                                     )
                         else:
                             # Update task status on error or cancellation
-                            task.status = "failed" if process_status["status"] == "error" else "cancelled"
+                            task.status = (
+                                "failed"
+                                if process_status["status"] == "error"
+                                else "cancelled"
+                            )
                             task.error = process_status.get("error", "Unknown error")
                             task.completed_at = time.time()
 
@@ -343,7 +347,7 @@ class SchedulerManager:
                                 f"Task {task.task_id} {task.status}: {task.error}",
                                 task_id=task.task_id,
                                 process_task_id=task.process_task_id,
-                                error=task.error
+                                error=task.error,
                             )
 
                             # Call callback if provided
@@ -354,7 +358,7 @@ class SchedulerManager:
                                     self.logger.error(
                                         f"Error in task callback: {str(e)}",
                                         task_id=task.task_id,
-                                        error=str(e)
+                                        error=str(e),
                                     )
                     except Exception as e:
                         # Update task status on error
@@ -366,7 +370,7 @@ class SchedulerManager:
                             f"Error getting task result: {str(e)}",
                             task_id=task.task_id,
                             process_task_id=task.process_task_id,
-                            error=str(e)
+                            error=str(e),
                         )
 
                         # Call callback if provided
@@ -377,7 +381,7 @@ class SchedulerManager:
                                 self.logger.error(
                                     f"Error in task callback: {str(e)}",
                                     task_id=task.task_id,
-                                    error=str(e)
+                                    error=str(e),
                                 )
 
                     # Move task from running to completed
@@ -385,7 +389,17 @@ class SchedulerManager:
                     del self._running_tasks[task.task_id]
 
     @with_error_handling
-    def schedule_task(self, func, *args, task_id=None, priority=0, dependencies=None, timeout=None, callback=None, **kwargs):
+    def schedule_task(
+        self,
+        func,
+        *args,
+        task_id=None,
+        priority=0,
+        dependencies=None,
+        timeout=None,
+        callback=None,
+        **kwargs,
+    ):
         """
         Schedule a task for execution.
 
@@ -415,7 +429,7 @@ class SchedulerManager:
             priority=priority,
             dependencies=dependencies or [],
             timeout=timeout,
-            callback=callback
+            callback=callback,
         )
 
         # Set submission time
@@ -430,7 +444,7 @@ class SchedulerManager:
             f"Task {task_id} scheduled",
             task_id=task_id,
             func=func.__name__,
-            priority=priority
+            priority=priority,
         )
 
         # Start the scheduler if not already running
@@ -466,10 +480,7 @@ class SchedulerManager:
                 self._completed_tasks[task_id] = task
                 del self._pending_tasks[task_id]
 
-                self.logger.debug(
-                    f"Pending task {task_id} cancelled",
-                    task_id=task_id
-                )
+                self.logger.debug(f"Pending task {task_id} cancelled", task_id=task_id)
 
                 # Call callback if provided
                 if task.callback:
@@ -479,7 +490,7 @@ class SchedulerManager:
                         self.logger.error(
                             f"Error in task callback: {str(e)}",
                             task_id=task_id,
-                            error=str(e)
+                            error=str(e),
                         )
 
                 return True
@@ -500,7 +511,7 @@ class SchedulerManager:
                     self.logger.debug(
                         f"Running task {task_id} cancelled",
                         task_id=task_id,
-                        process_task_id=task.process_task_id
+                        process_task_id=task.process_task_id,
                     )
 
                     # Call callback if provided
@@ -511,7 +522,7 @@ class SchedulerManager:
                             self.logger.error(
                                 f"Error in task callback: {str(e)}",
                                 task_id=task_id,
-                                error=str(e)
+                                error=str(e),
                             )
 
                     return True
@@ -519,7 +530,7 @@ class SchedulerManager:
                     self.logger.warning(
                         f"Failed to cancel running task {task_id}",
                         task_id=task_id,
-                        process_task_id=task.process_task_id
+                        process_task_id=task.process_task_id,
                     )
                     return False
 
@@ -565,7 +576,9 @@ class SchedulerManager:
             Dict[str, Dict[str, Any]]: Dictionary of pending task information
         """
         with self._task_lock:
-            return {task_id: task.to_dict() for task_id, task in self._pending_tasks.items()}
+            return {
+                task_id: task.to_dict() for task_id, task in self._pending_tasks.items()
+            }
 
     @with_error_handling
     def get_running_tasks(self):
@@ -576,7 +589,9 @@ class SchedulerManager:
             Dict[str, Dict[str, Any]]: Dictionary of running task information
         """
         with self._task_lock:
-            return {task_id: task.to_dict() for task_id, task in self._running_tasks.items()}
+            return {
+                task_id: task.to_dict() for task_id, task in self._running_tasks.items()
+            }
 
     @with_error_handling
     def get_completed_tasks(self):
@@ -587,7 +602,10 @@ class SchedulerManager:
             Dict[str, Dict[str, Any]]: Dictionary of completed task information
         """
         with self._task_lock:
-            return {task_id: task.to_dict() for task_id, task in self._completed_tasks.items()}
+            return {
+                task_id: task.to_dict()
+                for task_id, task in self._completed_tasks.items()
+            }
 
     @with_error_handling
     def clear_completed_tasks(self):
@@ -630,7 +648,7 @@ class SchedulerManager:
                 raise SchedulerError(
                     f"Task not found: {task_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"task_id": task_id}
+                    details={"task_id": task_id},
                 )
 
             task = self._tasks[task_id]
@@ -645,13 +663,15 @@ class SchedulerManager:
         # If task is running, wait for the process task to complete
         if process_task_id:
             try:
-                return self.process_manager.get_task_result(process_task_id, timeout=timeout)
+                return self.process_manager.get_task_result(
+                    process_task_id, timeout=timeout
+                )
             except Exception as e:
                 self.logger.error(
                     f"Error waiting for task {task_id}: {str(e)}",
                     task_id=task_id,
                     process_task_id=process_task_id,
-                    error=str(e)
+                    error=str(e),
                 )
                 return None
 
@@ -663,7 +683,7 @@ class SchedulerManager:
                 self.logger.warning(
                     f"Timeout waiting for task {task_id}",
                     task_id=task_id,
-                    timeout=timeout
+                    timeout=timeout,
                 )
                 return None
 
@@ -673,7 +693,7 @@ class SchedulerManager:
                     raise SchedulerError(
                         f"Task not found: {task_id}",
                         severity=ErrorSeverity.ERROR,
-                        details={"task_id": task_id}
+                        details={"task_id": task_id},
                     )
 
                 task = self._tasks[task_id]
@@ -705,6 +725,7 @@ def get_scheduler_manager() -> SchedulerManager:
 
 # Module-level functions for convenience
 
+
 def start_scheduler():
     """
     Start the scheduler thread.
@@ -719,7 +740,16 @@ def stop_scheduler():
     return get_scheduler_manager().stop_scheduler()
 
 
-def schedule_task(func, *args, task_id=None, priority=0, dependencies=None, timeout=None, callback=None, **kwargs):
+def schedule_task(
+    func,
+    *args,
+    task_id=None,
+    priority=0,
+    dependencies=None,
+    timeout=None,
+    callback=None,
+    **kwargs,
+):
     """
     Schedule a task for execution.
 
@@ -737,8 +767,14 @@ def schedule_task(func, *args, task_id=None, priority=0, dependencies=None, time
         str: Task ID
     """
     return get_scheduler_manager().schedule_task(
-        func, *args, task_id=task_id, priority=priority, dependencies=dependencies,
-        timeout=timeout, callback=callback, **kwargs
+        func,
+        *args,
+        task_id=task_id,
+        priority=priority,
+        dependencies=dependencies,
+        timeout=timeout,
+        callback=callback,
+        **kwargs,
     )
 
 

@@ -10,28 +10,33 @@ This module provides a centralized way to manage system resources, including:
 """
 
 import os
-import time
-import threading
 import platform
-import psutil
+import threading
+import time
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union, Callable
+from typing import Any, Callable, Dict, List, Optional
+
+import psutil
 
 from pyprocessor.utils.log_manager import get_logger
 from pyprocessor.utils.process.gpu_manager import (
-    get_gpu_manager, get_gpus, get_gpu_count, get_all_gpu_usage,
-    start_gpu_monitoring, stop_gpu_monitoring, GPUCapability
+    get_all_gpu_usage,
+    start_gpu_monitoring,
+    stop_gpu_monitoring,
 )
+
 
 # Import temp file manager for disk space monitoring
 # Use a deferred import to avoid circular imports
 def get_temp_file_manager():
     from pyprocessor.utils.file_system.temp_file_manager import get_temp_file_manager
+
     return get_temp_file_manager()
 
 
 class ResourceType(Enum):
     """Types of system resources."""
+
     CPU = "cpu"
     MEMORY = "memory"
     DISK = "disk"
@@ -40,6 +45,7 @@ class ResourceType(Enum):
 
 class ResourceState(Enum):
     """Resource utilization states."""
+
     NORMAL = "normal"
     WARNING = "warning"
     CRITICAL = "critical"
@@ -197,7 +203,7 @@ class ResourceManager:
     def __init__(self):
         """Initialize the resource manager."""
         # Only initialize once
-        if getattr(self, '_initialized', False):
+        if getattr(self, "_initialized", False):
             return
 
         # Get logger
@@ -268,9 +274,7 @@ class ResourceManager:
 
         # Start monitoring thread
         self._monitoring_thread = threading.Thread(
-            target=self._monitoring_loop,
-            daemon=True,
-            name="ResourceMonitor"
+            target=self._monitoring_loop, daemon=True, name="ResourceMonitor"
         )
         self._monitoring_thread.start()
 
@@ -330,13 +334,24 @@ class ResourceManager:
                         self._usage_history[ResourceType.GPU].pop(0)
 
                 # Update statistics
-                self._stats["cpu_peak"] = max(self._stats["cpu_peak"], cpu_usage.utilization)
-                self._stats["memory_peak"] = max(self._stats["memory_peak"], memory_usage.utilization)
-                self._stats["disk_peak"] = max(self._stats["disk_peak"], disk_usage.utilization)
+                self._stats["cpu_peak"] = max(
+                    self._stats["cpu_peak"], cpu_usage.utilization
+                )
+                self._stats["memory_peak"] = max(
+                    self._stats["memory_peak"], memory_usage.utilization
+                )
+                self._stats["disk_peak"] = max(
+                    self._stats["disk_peak"], disk_usage.utilization
+                )
 
                 if gpu_usage:
-                    self._stats["gpu_peak"] = max(self._stats["gpu_peak"], gpu_usage.utilization)
-                    self._stats["gpu_memory_peak"] = max(self._stats["gpu_memory_peak"], gpu_usage.details.get("memory_utilization", 0.0))
+                    self._stats["gpu_peak"] = max(
+                        self._stats["gpu_peak"], gpu_usage.utilization
+                    )
+                    self._stats["gpu_memory_peak"] = max(
+                        self._stats["gpu_memory_peak"],
+                        gpu_usage.details.get("memory_utilization", 0.0),
+                    )
 
                 # Check for warning/critical states and call callbacks
                 resources_to_check = [cpu_usage, memory_usage, disk_usage]
@@ -350,14 +365,18 @@ class ResourceManager:
                             try:
                                 callback(usage)
                             except Exception as e:
-                                self.logger.error(f"Error in resource warning callback: {str(e)}")
+                                self.logger.error(
+                                    f"Error in resource warning callback: {str(e)}"
+                                )
                     elif usage.state == ResourceState.CRITICAL:
                         self._stats["critical_events"] += 1
                         for callback in self._callbacks[ResourceState.CRITICAL]:
                             try:
                                 callback(usage)
                             except Exception as e:
-                                self.logger.error(f"Error in resource critical callback: {str(e)}")
+                                self.logger.error(
+                                    f"Error in resource critical callback: {str(e)}"
+                                )
 
                 # Check tracked processes
                 self._check_tracked_processes()
@@ -443,7 +462,7 @@ class ResourceManager:
                     "count": cpu_count,
                     "frequency": current_freq,
                     "per_cpu": psutil.cpu_percent(interval=0.1, percpu=True),
-                }
+                },
             )
 
             return cpu_usage
@@ -456,7 +475,7 @@ class ResourceManager:
                 utilization=0.0,
                 available=1.0,
                 total=1.0,
-                state=ResourceState.NORMAL
+                state=ResourceState.NORMAL,
             )
 
     def get_memory_usage(self) -> ResourceUsage:
@@ -488,7 +507,7 @@ class ResourceManager:
                     "free": memory.free,
                     "cached": getattr(memory, "cached", None),
                     "buffers": getattr(memory, "buffers", None),
-                }
+                },
             )
 
             return memory_usage
@@ -501,7 +520,7 @@ class ResourceManager:
                 utilization=0.0,
                 available=1.0,
                 total=1.0,
-                state=ResourceState.NORMAL
+                state=ResourceState.NORMAL,
             )
 
     def get_disk_usage(self, path: str = None) -> ResourceUsage:
@@ -525,9 +544,9 @@ class ResourceManager:
                 disk_info = temp_file_manager.get_disk_space_info(path)
 
                 # Map state from temp_file_manager to ResourceState
-                if disk_info.get('state') == 'critical':
+                if disk_info.get("state") == "critical":
                     state = ResourceState.CRITICAL
-                elif disk_info.get('state') == 'warning':
+                elif disk_info.get("state") == "warning":
                     state = ResourceState.WARNING
                 else:
                     state = ResourceState.NORMAL
@@ -535,28 +554,30 @@ class ResourceManager:
                 # Create disk usage object from temp_file_manager's info
                 disk_usage = ResourceUsage(
                     resource_type=ResourceType.DISK,
-                    utilization=disk_info.get('utilization', 0.0),
-                    available=disk_info.get('free', 0),
-                    total=disk_info.get('total', 1),
+                    utilization=disk_info.get("utilization", 0.0),
+                    available=disk_info.get("free", 0),
+                    total=disk_info.get("total", 1),
                     state=state,
                     details={
-                        "used": disk_info.get('used', 0),
-                        "free": disk_info.get('free', 0),
+                        "used": disk_info.get("used", 0),
+                        "free": disk_info.get("free", 0),
                         "path": path,
                         # Add I/O stats if available
-                        "timestamp": disk_info.get('timestamp')
-                    }
+                        "timestamp": disk_info.get("timestamp"),
+                    },
                 )
 
                 # Try to add I/O stats
                 try:
                     disk_io = psutil.disk_io_counters()
-                    disk_usage.details.update({
-                        "read_count": getattr(disk_io, "read_count", None),
-                        "write_count": getattr(disk_io, "write_count", None),
-                        "read_bytes": getattr(disk_io, "read_bytes", None),
-                        "write_bytes": getattr(disk_io, "write_bytes", None),
-                    })
+                    disk_usage.details.update(
+                        {
+                            "read_count": getattr(disk_io, "read_count", None),
+                            "write_count": getattr(disk_io, "write_count", None),
+                            "read_bytes": getattr(disk_io, "read_bytes", None),
+                            "write_bytes": getattr(disk_io, "write_bytes", None),
+                        }
+                    )
                 except Exception:
                     pass  # Ignore errors getting I/O stats
 
@@ -591,7 +612,7 @@ class ResourceManager:
                         "write_count": getattr(disk_io, "write_count", None),
                         "read_bytes": getattr(disk_io, "read_bytes", None),
                         "write_bytes": getattr(disk_io, "write_bytes", None),
-                    }
+                    },
                 )
 
                 return disk_usage
@@ -604,7 +625,7 @@ class ResourceManager:
                 utilization=0.0,
                 available=1.0,
                 total=1.0,
-                state=ResourceState.NORMAL
+                state=ResourceState.NORMAL,
             )
 
     def get_gpu_usage(self) -> Optional[ResourceUsage]:
@@ -647,7 +668,7 @@ class ResourceManager:
                     "decoder_usage": primary_gpu.decoder_usage,
                     "gpu_index": primary_gpu.index,
                     "all_gpus": [gpu.to_dict() for gpu in gpu_usages],
-                }
+                },
             )
 
             return gpu_usage
@@ -738,7 +759,9 @@ class ResourceManager:
         self._resource_limits = resource_limits
         self.logger.debug(f"Set resource limits: {resource_limits.to_dict()}")
 
-    def set_thresholds(self, resource_type: ResourceType, warning: float, critical: float) -> None:
+    def set_thresholds(
+        self, resource_type: ResourceType, warning: float, critical: float
+    ) -> None:
         """
         Set resource thresholds.
 
@@ -748,9 +771,13 @@ class ResourceManager:
             critical: Critical threshold (0.0-1.0)
         """
         self._thresholds[resource_type] = ResourceThresholds(warning, critical)
-        self.logger.debug(f"Set {resource_type.value} thresholds: warning={warning:.2f}, critical={critical:.2f}")
+        self.logger.debug(
+            f"Set {resource_type.value} thresholds: warning={warning:.2f}, critical={critical:.2f}"
+        )
 
-    def register_callback(self, callback: Callable[[ResourceUsage], None], state: ResourceState) -> None:
+    def register_callback(
+        self, callback: Callable[[ResourceUsage], None], state: ResourceState
+    ) -> None:
         """
         Register a callback for resource state.
 
@@ -764,7 +791,9 @@ class ResourceManager:
         self._callbacks[state].append(callback)
         self.logger.debug(f"Registered callback for {state.value} resource state")
 
-    def unregister_callback(self, callback: Callable[[ResourceUsage], None], state: ResourceState) -> bool:
+    def unregister_callback(
+        self, callback: Callable[[ResourceUsage], None], state: ResourceState
+    ) -> bool:
         """
         Unregister a callback for resource state.
 
@@ -785,7 +814,9 @@ class ResourceManager:
         except ValueError:
             return False
 
-    def get_usage_history(self, resource_type: ResourceType, count: int = None) -> List[ResourceUsage]:
+    def get_usage_history(
+        self, resource_type: ResourceType, count: int = None
+    ) -> List[ResourceUsage]:
         """
         Get resource usage history.
 
@@ -849,6 +880,7 @@ def get_resource_manager() -> ResourceManager:
 
 
 # Module-level functions for convenience
+
 
 def start_monitoring(interval: float = 5.0) -> None:
     """
@@ -949,7 +981,7 @@ def set_resource_limits(
     memory_limit: Optional[int] = None,
     disk_limit: Optional[int] = None,
     gpu_limit: Optional[float] = None,
-    gpu_memory_limit: Optional[int] = None
+    gpu_memory_limit: Optional[int] = None,
 ) -> None:
     """
     Set resource limits.
@@ -961,11 +993,15 @@ def set_resource_limits(
         gpu_limit: GPU usage limit in percentage (0-100)
         gpu_memory_limit: GPU memory usage limit in bytes
     """
-    resource_limits = ResourceLimits(cpu_limit, memory_limit, disk_limit, gpu_limit, gpu_memory_limit)
+    resource_limits = ResourceLimits(
+        cpu_limit, memory_limit, disk_limit, gpu_limit, gpu_memory_limit
+    )
     return get_resource_manager().set_resource_limits(resource_limits)
 
 
-def set_thresholds(resource_type: ResourceType, warning: float, critical: float) -> None:
+def set_thresholds(
+    resource_type: ResourceType, warning: float, critical: float
+) -> None:
     """
     Set resource thresholds.
 
@@ -977,7 +1013,9 @@ def set_thresholds(resource_type: ResourceType, warning: float, critical: float)
     return get_resource_manager().set_thresholds(resource_type, warning, critical)
 
 
-def register_callback(callback: Callable[[ResourceUsage], None], state: ResourceState) -> None:
+def register_callback(
+    callback: Callable[[ResourceUsage], None], state: ResourceState
+) -> None:
     """
     Register a callback for resource state.
 
@@ -988,7 +1026,9 @@ def register_callback(callback: Callable[[ResourceUsage], None], state: Resource
     return get_resource_manager().register_callback(callback, state)
 
 
-def unregister_callback(callback: Callable[[ResourceUsage], None], state: ResourceState) -> bool:
+def unregister_callback(
+    callback: Callable[[ResourceUsage], None], state: ResourceState
+) -> bool:
     """
     Unregister a callback for resource state.
 
@@ -1002,7 +1042,9 @@ def unregister_callback(callback: Callable[[ResourceUsage], None], state: Resour
     return get_resource_manager().unregister_callback(callback, state)
 
 
-def get_usage_history(resource_type: ResourceType, count: int = None) -> List[ResourceUsage]:
+def get_usage_history(
+    resource_type: ResourceType, count: int = None
+) -> List[ResourceUsage]:
     """
     Get resource usage history.
 
@@ -1038,4 +1080,5 @@ def shutdown_resource_manager() -> None:
 
     # Also shutdown GPU manager
     from pyprocessor.utils.process.gpu_manager import shutdown_gpu_manager
+
     shutdown_gpu_manager()

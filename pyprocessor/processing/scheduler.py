@@ -1,19 +1,22 @@
-import time
+import re
 import subprocess
-from concurrent.futures import ProcessPoolExecutor
-from threading import Lock
-from pathlib import Path
+import sys
+import time
 
 # Multiprocessing queue for progress updates
 from multiprocessing import Manager
-import re
-import sys
+from pathlib import Path
+from threading import Lock
 
 # Import tqdm for CLI progress bars
 from tqdm import tqdm
 
 from pyprocessor.utils.media.ffmpeg_manager import get_ffmpeg_path, get_ffprobe_path
-from pyprocessor.utils.process.scheduler_manager import get_scheduler_manager, schedule_task, wait_for_task
+from pyprocessor.utils.process.scheduler_manager import (
+    get_scheduler_manager,
+    schedule_task,
+    wait_for_task,
+)
 
 # Global queues that will be shared between processes
 progress_queue = None
@@ -21,7 +24,16 @@ output_files_queue = None
 
 
 # Standalone function for multiprocessing that doesn't require encoder or logger
-def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=None, progress_callback=None, output_file_callback=None, encrypt_output=False, encryption_key_id=None):
+def process_video_task(
+    file_path,
+    output_folder_path,
+    ffmpeg_params,
+    task_id=None,
+    progress_callback=None,
+    output_file_callback=None,
+    encrypt_output=False,
+    encryption_key_id=None,
+):
     """Process a single video file - standalone function for multiprocessing or batch processing
 
     Args:
@@ -270,7 +282,9 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
         # Encrypt output if requested
         if encrypt_output:
             # Import here to avoid circular imports
-            from pyprocessor.utils.security.encryption_manager import get_encryption_manager
+            from pyprocessor.utils.security.encryption_manager import (
+                get_encryption_manager,
+            )
 
             # Get encryption manager
             encryption_manager = get_encryption_manager()
@@ -278,9 +292,13 @@ def process_video_task(file_path, output_folder_path, ffmpeg_params, task_id=Non
             # Encrypt output files
             # Use print for standalone process mode (no logger available)
             print(f"Encrypting output files in {output_subfolder}")
-            encryption_success = encryption_manager.encrypt_output(output_subfolder, encryption_key_id)
+            encryption_success = encryption_manager.encrypt_output(
+                output_subfolder, encryption_key_id
+            )
             if not encryption_success:
-                print(f"Warning: Encryption of output files in {output_subfolder} was not fully successful")
+                print(
+                    f"Warning: Encryption of output files in {output_subfolder} was not fully successful"
+                )
 
         return (file.name, True, time.time() - start_time, None)
 
@@ -366,12 +384,20 @@ class ProcessingScheduler:
                     file_progress[task_id] = (filename, progress)
 
                     # Update CLI progress bar if progress has changed
-                    if task_id not in last_progress or last_progress[task_id] != progress:
-                        if hasattr(self, 'progress_bars') and 'file' in self.progress_bars:
+                    if (
+                        task_id not in last_progress
+                        or last_progress[task_id] != progress
+                    ):
+                        if (
+                            hasattr(self, "progress_bars")
+                            and "file" in self.progress_bars
+                        ):
                             # Update the file progress bar
-                            self.progress_bars['file'].set_description(f"Processing: {filename}")
-                            self.progress_bars['file'].n = progress
-                            self.progress_bars['file'].refresh()
+                            self.progress_bars["file"].set_description(
+                                f"Processing: {filename}"
+                            )
+                            self.progress_bars["file"].n = progress
+                            self.progress_bars["file"].refresh()
                         last_progress[task_id] = progress
 
                     # Call the progress callback with file-level progress
@@ -472,7 +498,7 @@ class ProcessingScheduler:
                 unit="file",
                 position=0,
                 leave=True,
-                file=sys.stdout
+                file=sys.stdout,
             )
 
             # Create file progress bar
@@ -482,13 +508,13 @@ class ProcessingScheduler:
                 unit="%",
                 position=1,
                 leave=True,
-                file=sys.stdout
+                file=sys.stdout,
             )
 
             # Store the progress bars for updating
             self.progress_bars = {
-                'overall': overall_progress,
-                'file': file_progress_bar
+                "overall": overall_progress,
+                "file": file_progress_bar,
             }
 
             # Record start time
@@ -496,7 +522,9 @@ class ProcessingScheduler:
 
             # Get encryption settings from config if not provided
             if encrypt_output is None:
-                encrypt_output = self.config.get("security.encryption.encrypt_output", False)
+                encrypt_output = self.config.get(
+                    "security.encryption.encrypt_output", False
+                )
 
             if encryption_key_id is None:
                 encryption_key_id = self.config.get("security.encryption.key_id", None)
@@ -515,11 +543,15 @@ class ProcessingScheduler:
             if batch_enabled:
                 # Use batch processing
                 self.logger.info("Using batch processing mode")
-                return self._process_videos_batch(valid_files, processing_start, encrypt_output, encryption_key_id)
+                return self._process_videos_batch(
+                    valid_files, processing_start, encrypt_output, encryption_key_id
+                )
             else:
                 # Use individual process mode
                 self.logger.info("Using individual process mode")
-                return self._process_videos_individual(valid_files, processing_start, encrypt_output, encryption_key_id)
+                return self._process_videos_individual(
+                    valid_files, processing_start, encrypt_output, encryption_key_id
+                )
 
         except Exception as e:
             self.logger.error(f"Error in process_videos: {str(e)}")
@@ -529,11 +561,20 @@ class ProcessingScheduler:
         finally:
             self.is_running = False
 
-    def _process_videos_batch(self, valid_files, processing_start, encrypt_output=False, encryption_key_id=None):
+    def _process_videos_batch(
+        self,
+        valid_files,
+        processing_start,
+        encrypt_output=False,
+        encryption_key_id=None,
+    ):
         """Process videos using batch processing"""
         try:
             # Import batch processor here to avoid circular imports
-            from pyprocessor.processing.batch_processor import BatchProcessor, create_batches
+            from pyprocessor.processing.batch_processor import (
+                BatchProcessor,
+                create_batches,
+            )
 
             # Create a manager for sharing queues between processes
             global progress_queue, output_files_queue
@@ -569,7 +610,9 @@ class ProcessingScheduler:
             if batch_size is None:
                 self.logger.info(f"Created {len(batches)} batches with dynamic sizing")
             else:
-                self.logger.info(f"Created {len(batches)} batches of up to {batch_size} files each")
+                self.logger.info(
+                    f"Created {len(batches)} batches of up to {batch_size} files each"
+                )
 
             # Process each batch
             successful_count = 0
@@ -581,7 +624,9 @@ class ProcessingScheduler:
                     self.is_running = False
                     return False
 
-                self.logger.info(f"Processing batch {i+1}/{len(batches)} with {len(batch)} files")
+                self.logger.info(
+                    f"Processing batch {i+1}/{len(batches)} with {len(batch)} files"
+                )
 
                 # Process the batch
                 results = batch_processor.process_batch(
@@ -591,7 +636,7 @@ class ProcessingScheduler:
                     self.progress_callback,
                     self.output_file_callback,
                     encrypt_output=encrypt_output,
-                    encryption_key_id=encryption_key_id
+                    encryption_key_id=encryption_key_id,
                 )
 
                 # Process results
@@ -602,18 +647,27 @@ class ProcessingScheduler:
                         current = self.processed_count
 
                     # Update overall progress bar
-                    if hasattr(self, 'progress_bars') and 'overall' in self.progress_bars:
-                        self.progress_bars['overall'].update(1)
-                        self.progress_bars['file'].reset()
-                        self.progress_bars['file'].set_description(f"Completed: {filename}")
+                    if (
+                        hasattr(self, "progress_bars")
+                        and "overall" in self.progress_bars
+                    ):
+                        self.progress_bars["overall"].update(1)
+                        self.progress_bars["file"].reset()
+                        self.progress_bars["file"].set_description(
+                            f"Completed: {filename}"
+                        )
 
                     if success:
                         successful_count += 1
-                        self.logger.info(f"Completed processing: {filename} ({duration:.2f}s)")
+                        self.logger.info(
+                            f"Completed processing: {filename} ({duration:.2f}s)"
+                        )
                     else:
                         failed_count += 1
                         if error_msg:
-                            self.logger.error(f"Error processing {filename}: {error_msg}")
+                            self.logger.error(
+                                f"Error processing {filename}: {error_msg}"
+                            )
                         else:
                             self.logger.error(f"Failed to process: {filename}")
 
@@ -622,7 +676,7 @@ class ProcessingScheduler:
             output_files_queue = None
 
             # Close progress bars
-            if hasattr(self, 'progress_bars'):
+            if hasattr(self, "progress_bars"):
                 for bar in self.progress_bars.values():
                     bar.close()
                 del self.progress_bars
@@ -644,7 +698,13 @@ class ProcessingScheduler:
             self.is_running = False
             return False
 
-    def _process_videos_individual(self, valid_files, processing_start, encrypt_output=False, encryption_key_id=None):
+    def _process_videos_individual(
+        self,
+        valid_files,
+        processing_start,
+        encrypt_output=False,
+        encryption_key_id=None,
+    ):
         """Process videos using individual processes for each file"""
         try:
             # Create a manager for sharing queues between processes
@@ -687,15 +747,13 @@ class ProcessingScheduler:
                 # Call progress callback if set - this is for overall progress
                 # File-level progress is handled by the progress_queue thread
                 if self.progress_callback:
-                    self.progress_callback(
-                        filename, 100, current, self.total_files
-                    )
+                    self.progress_callback(filename, 100, current, self.total_files)
 
                 # Update overall progress bar
-                if hasattr(self, 'progress_bars') and 'overall' in self.progress_bars:
-                    self.progress_bars['overall'].update(1)
-                    self.progress_bars['file'].reset()
-                    self.progress_bars['file'].set_description(f"Completed: {filename}")
+                if hasattr(self, "progress_bars") and "overall" in self.progress_bars:
+                    self.progress_bars["overall"].update(1)
+                    self.progress_bars["file"].reset()
+                    self.progress_bars["file"].set_description(f"Completed: {filename}")
 
                 if success:
                     self.logger.info(
@@ -703,9 +761,7 @@ class ProcessingScheduler:
                     )
                 else:
                     if error_msg:
-                        self.logger.error(
-                            f"Error processing {filename}: {error_msg}"
-                        )
+                        self.logger.error(f"Error processing {filename}: {error_msg}")
                     else:
                         self.logger.error(f"Failed to process: {filename}")
 
@@ -722,7 +778,7 @@ class ProcessingScheduler:
                     callback=task_callback,
                     priority=i,  # Lower index = higher priority
                     encrypt_output=encrypt_output,
-                    encryption_key_id=encryption_key_id
+                    encryption_key_id=encryption_key_id,
                 )
                 task_ids.append(task_id)
 
@@ -755,7 +811,7 @@ class ProcessingScheduler:
             output_files_queue = None
 
             # Close progress bars
-            if hasattr(self, 'progress_bars'):
+            if hasattr(self, "progress_bars"):
                 for bar in self.progress_bars.values():
                     bar.close()
                 del self.progress_bars

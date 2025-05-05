@@ -5,8 +5,8 @@ This module defines the schema for the PyProcessor configuration,
 including default values, types, and validation rules.
 """
 
-from typing import Dict, Any, List, Union, Optional
 from enum import Enum
+from typing import Any, Dict
 
 
 class ConfigValueType(Enum):
@@ -39,8 +39,9 @@ class ConfigSchema:
         Returns:
             Dict[str, Any]: Configuration schema
         """
-        from pyprocessor.utils.file_system.path_manager import get_default_media_root
         import multiprocessing
+
+        from pyprocessor.utils.file_system.path_manager import get_default_media_root
 
         # Calculate default parallel jobs
         cores = multiprocessing.cpu_count()
@@ -73,21 +74,48 @@ class ConfigSchema:
                         "type": ConfigValueType.ENUM,
                         "default": "libx265",
                         "description": "Video encoder to use",
-                        "enum": ["libx264", "libx265", "h264_nvenc", "hevc_nvenc", "h264_amf", "hevc_amf", "h264_qsv", "hevc_qsv"],
+                        "enum": [
+                            "libx264",
+                            "libx265",
+                            "h264_nvenc",
+                            "hevc_nvenc",
+                            "h264_amf",
+                            "hevc_amf",
+                            "h264_qsv",
+                            "hevc_qsv",
+                        ],
                         "env_var": "PYPROCESSOR_VIDEO_ENCODER",
                     },
                     "preset": {
                         "type": ConfigValueType.ENUM,
                         "default": "ultrafast",
                         "description": "Encoding preset (speed vs quality)",
-                        "enum": ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"],
+                        "enum": [
+                            "ultrafast",
+                            "superfast",
+                            "veryfast",
+                            "faster",
+                            "fast",
+                            "medium",
+                            "slow",
+                            "slower",
+                            "veryslow",
+                        ],
                         "env_var": "PYPROCESSOR_PRESET",
                     },
                     "tune": {
                         "type": ConfigValueType.ENUM,
                         "default": "zerolatency",
                         "description": "Encoding tuning parameter",
-                        "enum": ["film", "animation", "grain", "stillimage", "fastdecode", "zerolatency", "none"],
+                        "enum": [
+                            "film",
+                            "animation",
+                            "grain",
+                            "stillimage",
+                            "fastdecode",
+                            "zerolatency",
+                            "none",
+                        ],
                         "env_var": "PYPROCESSOR_TUNE",
                     },
                     "fps": {

@@ -16,7 +16,7 @@ class FileManager:
             "The FileManager class in processing/file_manager.py is deprecated and will be removed in a future version. "
             "Please use the FileManager class from utils/file_manager.py instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
 
         self.config = config

@@ -41,6 +41,11 @@ jobs:
           python -m pip install --upgrade pip
           python scripts/dev_tools.py deps --install --extras dev
 
+      - name: Format code
+        run: |
+          # Format code with Black
+          python -m black pyprocessor scripts
+
       - name: Check code quality
         run: |
           # Run all code quality checks

@@ -22,12 +22,11 @@ Options:
     --validate      Validate compatibility of installed dependencies
 """
 
+import argparse
 import os
-import sys
 import platform
 import subprocess
-import argparse
-import shutil
+import sys
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -35,8 +34,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 # Import the dependency manager if available
 try:
     from pyprocessor.utils.core.dependency_manager import (
-        check_dependencies, check_for_updates
+        check_dependencies,
+        check_for_updates,
     )
+
     DEPENDENCY_MANAGER_AVAILABLE = True
 except ImportError:
     DEPENDENCY_MANAGER_AVAILABLE = False
@@ -142,7 +143,15 @@ def update_dependencies(requirements_file, extras=None):
     try:
         # Update base requirements
         subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-r", requirements_file, "--upgrade"],
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "-r",
+                requirements_file,
+                "--upgrade",
+            ],
             check=True,
         )
         print(f"✓ Updated dependencies from {requirements_file}")
@@ -264,16 +273,30 @@ def check_for_dependency_updates():
 def main():
     """Main function to run the dependency management process."""
     parser = argparse.ArgumentParser(description="Manage dependencies for PyProcessor")
-    parser.add_argument("--check", action="store_true", help="Check for missing dependencies")
-    parser.add_argument("--install", action="store_true", help="Install missing dependencies")
-    parser.add_argument("--update", action="store_true", help="Update dependencies to the latest versions")
-    parser.add_argument("--venv", action="store_true", help="Create a virtual environment")
+    parser.add_argument(
+        "--check", action="store_true", help="Check for missing dependencies"
+    )
+    parser.add_argument(
+        "--install", action="store_true", help="Install missing dependencies"
+    )
+    parser.add_argument(
+        "--update",
+        action="store_true",
+        help="Update dependencies to the latest versions",
+    )
+    parser.add_argument(
+        "--venv", action="store_true", help="Create a virtual environment"
+    )
     parser.add_argument(
         "--extras",
         choices=["dev", "ffmpeg", "all"],
         help="Install extra dependencies (dev, ffmpeg, all)",
     )
-    parser.add_argument("--validate", action="store_true", help="Validate compatibility of installed dependencies")
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate compatibility of installed dependencies",
+    )
     args = parser.parse_args()
 
     # If no arguments are provided, show help

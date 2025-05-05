@@ -7,13 +7,17 @@ import sys
 import time
 
 from pyprocessor.processing.encoder import FFmpegEncoder
-from pyprocessor.utils.file_system.file_manager import get_file_manager
 from pyprocessor.processing.scheduler import ProcessingScheduler
 from pyprocessor.utils.config.config_manager import Config
-from pyprocessor.utils.logging.log_manager import get_logger
-from pyprocessor.utils.file_system.path_utils import ensure_dir_exists
-from pyprocessor.utils.core.plugin_manager import get_plugin_manager, load_all_plugins, discover_plugins
 from pyprocessor.utils.core.dependency_manager import check_dependencies
+from pyprocessor.utils.core.plugin_manager import (
+    discover_plugins,
+    get_plugin_manager,
+    load_all_plugins,
+)
+from pyprocessor.utils.file_system.file_manager import get_file_manager
+from pyprocessor.utils.file_system.path_utils import ensure_dir_exists
+from pyprocessor.utils.logging.log_manager import get_logger
 from pyprocessor.utils.security.security_manager import get_security_manager
 
 
@@ -144,45 +148,71 @@ class ApplicationContext:
                 self.config.config_manager.set("batch_processing.enabled", False)
 
         if hasattr(args, "batch_size") and args.batch_size is not None:
-            self.config.config_manager.set("batch_processing.batch_size", args.batch_size)
+            self.config.config_manager.set(
+                "batch_processing.batch_size", args.batch_size
+            )
 
         if hasattr(args, "max_memory") and args.max_memory is not None:
-            self.config.config_manager.set("batch_processing.max_memory_percent", args.max_memory)
+            self.config.config_manager.set(
+                "batch_processing.max_memory_percent", args.max_memory
+            )
 
         # Handle server optimization options
         if hasattr(args, "optimize_server") and args.optimize_server:
             # Set server optimization enabled and type
             self.config.config_manager.set("server_optimization.enabled", True)
-            self.config.config_manager.set("server_optimization.server_type", args.optimize_server)
+            self.config.config_manager.set(
+                "server_optimization.server_type", args.optimize_server
+            )
 
             # IIS options
             if args.optimize_server == "iis":
                 if hasattr(args, "site_name") and args.site_name:
-                    self.config.config_manager.set("server_optimization.iis.site_name", args.site_name)
+                    self.config.config_manager.set(
+                        "server_optimization.iis.site_name", args.site_name
+                    )
                 if hasattr(args, "video_path") and args.video_path:
-                    self.config.config_manager.set("server_optimization.iis.video_path", args.video_path)
+                    self.config.config_manager.set(
+                        "server_optimization.iis.video_path", args.video_path
+                    )
                 if hasattr(args, "enable_http2"):
-                    self.config.config_manager.set("server_optimization.iis.enable_http2", args.enable_http2)
+                    self.config.config_manager.set(
+                        "server_optimization.iis.enable_http2", args.enable_http2
+                    )
                 if hasattr(args, "enable_http3"):
-                    self.config.config_manager.set("server_optimization.iis.enable_http3", args.enable_http3)
+                    self.config.config_manager.set(
+                        "server_optimization.iis.enable_http3", args.enable_http3
+                    )
                 if hasattr(args, "enable_cors"):
-                    self.config.config_manager.set("server_optimization.iis.enable_cors", args.enable_cors)
+                    self.config.config_manager.set(
+                        "server_optimization.iis.enable_cors", args.enable_cors
+                    )
                 if hasattr(args, "cors_origin") and args.cors_origin:
-                    self.config.config_manager.set("server_optimization.iis.cors_origin", args.cors_origin)
+                    self.config.config_manager.set(
+                        "server_optimization.iis.cors_origin", args.cors_origin
+                    )
 
             # Nginx options
             elif args.optimize_server == "nginx":
                 if hasattr(args, "output_config") and args.output_config:
-                    self.config.config_manager.set("server_optimization.nginx.output_path", args.output_config)
+                    self.config.config_manager.set(
+                        "server_optimization.nginx.output_path", args.output_config
+                    )
                 if hasattr(args, "server_name") and args.server_name:
-                    self.config.config_manager.set("server_optimization.nginx.server_name", args.server_name)
+                    self.config.config_manager.set(
+                        "server_optimization.nginx.server_name", args.server_name
+                    )
                 if hasattr(args, "enable_http3"):
-                    self.config.config_manager.set("server_optimization.nginx.enable_http3", args.enable_http3)
+                    self.config.config_manager.set(
+                        "server_optimization.nginx.enable_http3", args.enable_http3
+                    )
 
             # Linux options
             elif args.optimize_server == "linux":
                 if hasattr(args, "apply_changes"):
-                    self.config.config_manager.set("server_optimization.linux.apply_changes", args.apply_changes)
+                    self.config.config_manager.set(
+                        "server_optimization.linux.apply_changes", args.apply_changes
+                    )
 
         # Handle security options
         if hasattr(args, "enable_encryption") and args.enable_encryption:
@@ -193,7 +223,9 @@ class ApplicationContext:
 
         if hasattr(args, "encryption_key") and args.encryption_key:
             # Store the key ID for later use during encoding
-            self.config.config_manager.set("security.encryption.key_id", args.encryption_key)
+            self.config.config_manager.set(
+                "security.encryption.key_id", args.encryption_key
+            )
 
     def _register_signal_handlers(self):
         """Register signal handlers for clean shutdown."""
@@ -222,6 +254,7 @@ class ApplicationContext:
         if self.plugin_manager and self.plugins:
             self.logger.info("Unloading plugins...")
             from pyprocessor.utils.core.plugin_manager import unload_all_plugins
+
             unload_all_plugins()
 
         # Shutdown security manager
@@ -266,8 +299,7 @@ class ApplicationContext:
 
                     # Call the unified server optimizer interface
                     success, message, script_path = server_optimizer.optimize_server(
-                        server_type=server_type,
-                        **server_config
+                        server_type=server_type, **server_config
                     )
                 except Exception as e:
                     success = False
@@ -292,7 +324,9 @@ class ApplicationContext:
 
             # Validate input/output directories
             if not self.config.input_folder.exists():
-                self.logger.error(f"Input directory does not exist: {self.config.input_folder}")
+                self.logger.error(
+                    f"Input directory does not exist: {self.config.input_folder}"
+                )
                 return 1
 
             # Ensure output directory exists
@@ -310,13 +344,14 @@ class ApplicationContext:
             self.logger.info("Processing videos...")
 
             # Get encryption settings from config
-            encrypt_output = self.config.get("security.encryption.encrypt_output", False)
+            encrypt_output = self.config.get(
+                "security.encryption.encrypt_output", False
+            )
             encryption_key_id = self.config.get("security.encryption.key_id", None)
 
             # Process videos with encryption settings
             success = self.scheduler.process_videos(
-                encrypt_output=encrypt_output,
-                encryption_key_id=encryption_key_id
+                encrypt_output=encrypt_output, encryption_key_id=encryption_key_id
             )
 
             # Step 3: Organize folders (if enabled)
@@ -351,6 +386,7 @@ class ApplicationContext:
         if self.plugin_manager and self.plugins:
             self.logger.info("Unloading plugins...")
             from pyprocessor.utils.core.plugin_manager import unload_all_plugins
+
             unload_all_plugins()
             self.logger.info("All plugins unloaded")
 

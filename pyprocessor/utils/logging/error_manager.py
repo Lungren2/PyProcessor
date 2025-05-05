@@ -5,30 +5,42 @@ This module provides a centralized error handling system with custom exception c
 error categorization, and error recovery mechanisms.
 """
 
-import sys
-import os
-import time
-import json
-import uuid
-import traceback
-import threading
-import inspect
-import functools
-import subprocess
 import collections
-from enum import Enum
+import functools
+import inspect
+import json
+import os
+import subprocess
+import threading
+import time
+import traceback
+import uuid
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, TypeVar, Generic, Iterator, Set
+from enum import Enum
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from pyprocessor.utils.logging.log_manager import get_logger
+
 
 # Forward declaration for circular reference
 class PyProcessorError(Exception):
     pass
 
+
 # Type variable for generic return type
-T = TypeVar('T')
-R = TypeVar('R')
+T = TypeVar("T")
+R = TypeVar("R")
 
 
 class Result(Generic[T]):
@@ -44,7 +56,12 @@ class Result(Generic[T]):
         error: The error that occurred (if unsuccessful)
     """
 
-    def __init__(self, success: bool, value: Optional[T] = None, error: Optional[PyProcessorError] = None):
+    def __init__(
+        self,
+        success: bool,
+        value: Optional[T] = None,
+        error: Optional[PyProcessorError] = None,
+    ):
         """
         Initialize the result.
 
@@ -58,7 +75,7 @@ class Result(Generic[T]):
         self.error = error
 
     @classmethod
-    def ok(cls, value: T) -> 'Result[T]':
+    def ok(cls, value: T) -> "Result[T]":
         """
         Create a successful result.
 
@@ -71,7 +88,7 @@ class Result(Generic[T]):
         return cls(True, value=value)
 
     @classmethod
-    def fail(cls, error: Union[PyProcessorError, Exception, str]) -> 'Result[T]':
+    def fail(cls, error: Union[PyProcessorError, Exception, str]) -> "Result[T]":
         """
         Create a failed result.
 
@@ -127,7 +144,7 @@ class Result(Generic[T]):
         else:
             return default
 
-    def map(self, func: Callable[[T], R]) -> 'Result[R]':
+    def map(self, func: Callable[[T], R]) -> "Result[R]":
         """
         Apply a function to the value if the operation was successful.
 
@@ -145,7 +162,7 @@ class Result(Generic[T]):
         else:
             return Result(False, error=self.error)
 
-    def flat_map(self, func: Callable[[T], 'Result[R]']) -> 'Result[R]':
+    def flat_map(self, func: Callable[[T], "Result[R]"]) -> "Result[R]":
         """
         Apply a function that returns a Result to the value if the operation was successful.
 
@@ -256,8 +273,14 @@ class PyProcessorError(Exception):
             "message": self.message,
             "severity": self.severity.name,
             "category": self.category.name,
-            "original_exception": str(self.original_exception) if self.original_exception else None,
-            "original_exception_type": type(self.original_exception).__name__ if self.original_exception else None,
+            "original_exception": (
+                str(self.original_exception) if self.original_exception else None
+            ),
+            "original_exception_type": (
+                type(self.original_exception).__name__
+                if self.original_exception
+                else None
+            ),
             "details": self.details,
             "handled": self.handled,
             "recovery_attempts": self.recovery_attempts,
@@ -265,7 +288,7 @@ class PyProcessorError(Exception):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'PyProcessorError':
+    def from_dict(cls, data: Dict[str, Any]) -> "PyProcessorError":
         """
         Create an error from a dictionary.
 
@@ -322,16 +345,14 @@ class PyProcessorError(Exception):
             str: Stack trace
         """
         if self.original_exception:
-            return "".join(traceback.format_exception(
-                type(self.original_exception),
-                self.original_exception,
-                self.original_exception.__traceback__
-            ))
-        return "".join(traceback.format_exception(
-            type(self),
-            self,
-            self.__traceback__
-        ))
+            return "".join(
+                traceback.format_exception(
+                    type(self.original_exception),
+                    self.original_exception,
+                    self.original_exception.__traceback__,
+                )
+            )
+        return "".join(traceback.format_exception(type(self), self, self.__traceback__))
 
 
 class ConfigurationError(PyProcessorError):
@@ -709,7 +730,7 @@ class ErrorManager:
 
         # Trim history if it's too long
         if len(self._error_history) > self._max_history:
-            self._error_history = self._error_history[-self._max_history:]
+            self._error_history = self._error_history[-self._max_history :]
 
         # Add to similar errors
         fingerprint = self._get_error_fingerprint(error)
@@ -774,7 +795,10 @@ class ErrorManager:
         # Check if we've sent a notification for this type of error recently
         fingerprint = self._get_error_fingerprint(error)
         last_notification = self._last_notification_time.get(fingerprint)
-        if last_notification and (error.timestamp - last_notification) < self._notification_cooldown:
+        if (
+            last_notification
+            and (error.timestamp - last_notification) < self._notification_cooldown
+        ):
             return
 
         # Check if there's a notification handler for this category
@@ -803,7 +827,11 @@ class ErrorManager:
             str: Error fingerprint
         """
         # Use category, message, and original exception type as the fingerprint
-        original_type = type(error.original_exception).__name__ if error.original_exception else "None"
+        original_type = (
+            type(error.original_exception).__name__
+            if error.original_exception
+            else "None"
+        )
         return f"{error.category.name}:{error.message}:{original_type}"
 
     def register_error_handler(
@@ -819,7 +847,9 @@ class ErrorManager:
             handler: Function that takes an error and returns True if handled
         """
         # Convert exception type to category if needed
-        if isinstance(error_category, type) and issubclass(error_category, PyProcessorError):
+        if isinstance(error_category, type) and issubclass(
+            error_category, PyProcessorError
+        ):
             # Get the category from a dummy instance
             dummy = error_category("dummy")
             category = dummy.category
@@ -911,11 +941,24 @@ class ErrorManager:
             ErrorCategory: The error category
         """
         # Categorize based on exception type
-        if isinstance(exception, (FileNotFoundError, FileExistsError, IsADirectoryError, NotADirectoryError)):
+        if isinstance(
+            exception,
+            (FileNotFoundError, FileExistsError, IsADirectoryError, NotADirectoryError),
+        ):
             return ErrorCategory.FILE_SYSTEM
-        elif isinstance(exception, (ConnectionError, ConnectionRefusedError, ConnectionResetError, TimeoutError)):
+        elif isinstance(
+            exception,
+            (
+                ConnectionError,
+                ConnectionRefusedError,
+                ConnectionResetError,
+                TimeoutError,
+            ),
+        ):
             return ErrorCategory.NETWORK
-        elif isinstance(exception, (PermissionError, OSError)) and "Permission" in str(exception):
+        elif isinstance(exception, (PermissionError, OSError)) and "Permission" in str(
+            exception
+        ):
             return ErrorCategory.PERMISSION
         elif isinstance(exception, (MemoryError, ResourceWarning)):
             return ErrorCategory.RESOURCE
@@ -923,7 +966,9 @@ class ErrorManager:
             return ErrorCategory.VALIDATION
         elif isinstance(exception, (OSError, SystemError)):
             return ErrorCategory.SYSTEM
-        elif isinstance(exception, (subprocess.SubprocessError, subprocess.CalledProcessError)):
+        elif isinstance(
+            exception, (subprocess.SubprocessError, subprocess.CalledProcessError)
+        ):
             return ErrorCategory.PROCESS
         else:
             return ErrorCategory.UNKNOWN
@@ -998,7 +1043,9 @@ class ErrorManager:
 
         return filtered_errors
 
-    def get_similar_errors(self, error: Union[PyProcessorError, str]) -> List[PyProcessorError]:
+    def get_similar_errors(
+        self, error: Union[PyProcessorError, str]
+    ) -> List[PyProcessorError]:
         """
         Get errors similar to the given error.
 
@@ -1031,8 +1078,12 @@ class ErrorManager:
         return {
             "total_errors": sum(self._error_counts.values()),
             "unique_errors": len(self._error_counts),
-            "errors_by_category": {k.name: dict(v) for k, v in self._error_counts_by_category.items()},
-            "errors_by_severity": {k.name: dict(v) for k, v in self._error_counts_by_severity.items()},
+            "errors_by_category": {
+                k.name: dict(v) for k, v in self._error_counts_by_category.items()
+            },
+            "errors_by_severity": {
+                k.name: dict(v) for k, v in self._error_counts_by_severity.items()
+            },
             "most_common_errors": dict(self._error_counts.most_common(10)),
         }
 
@@ -1049,7 +1100,9 @@ class ErrorManager:
             handler: Recovery handler function that takes an error and returns True if recovery was successful
         """
         # Convert exception class to category if needed
-        if isinstance(error_category, type) and issubclass(error_category, PyProcessorError):
+        if isinstance(error_category, type) and issubclass(
+            error_category, PyProcessorError
+        ):
             error_category = error_category().category
 
         # Register the handler
@@ -1069,7 +1122,9 @@ class ErrorManager:
             handler: Notification handler function that takes an error
         """
         # Convert exception class to category if needed
-        if isinstance(error_category, type) and issubclass(error_category, PyProcessorError):
+        if isinstance(error_category, type) and issubclass(
+            error_category, PyProcessorError
+        ):
             error_category = error_category().category
 
         # Register the handler
@@ -1150,7 +1205,7 @@ class ErrorManager:
 
             # Trim history if it's too long
             if len(self._error_history) > self._max_history:
-                self._error_history = self._error_history[-self._max_history:]
+                self._error_history = self._error_history[-self._max_history :]
 
             # Update metrics and similar errors
             for error in errors:
@@ -1178,7 +1233,7 @@ class ErrorManager:
 
         # Trim history if it's too long
         if len(self._error_history) > self._max_history:
-            self._error_history = self._error_history[-self._max_history:]
+            self._error_history = self._error_history[-self._max_history :]
 
     def get_last_error(self) -> Optional[PyProcessorError]:
         """
@@ -1201,7 +1256,11 @@ class ErrorManager:
         Returns:
             str: Formatted exception with traceback
         """
-        return "".join(traceback.format_exception(type(exception), exception, exception.__traceback__))
+        return "".join(
+            traceback.format_exception(
+                type(exception), exception, exception.__traceback__
+            )
+        )
 
 
 # Create a singleton instance
@@ -1264,7 +1323,14 @@ def get_filtered_error_history(
         List[PyProcessorError]: Filtered list of errors
     """
     return get_error_manager().get_filtered_error_history(
-        category, severity, start_time, end_time, handled_only, unhandled_only, recovered_only, max_results
+        category,
+        severity,
+        start_time,
+        end_time,
+        handled_only,
+        unhandled_only,
+        recovered_only,
+        max_results,
     )
 
 
@@ -1419,10 +1485,14 @@ def convert_exception(
     Returns:
         PyProcessorError: The converted error
     """
-    return get_error_manager().convert_exception(exception, message, severity, category, details)
+    return get_error_manager().convert_exception(
+        exception, message, severity, category, details
+    )
 
 
-def safe_call(func: Callable, *args, **kwargs) -> Tuple[bool, Any, Optional[PyProcessorError]]:
+def safe_call(
+    func: Callable, *args, **kwargs
+) -> Tuple[bool, Any, Optional[PyProcessorError]]:
     """
     Call a function safely, catching any exceptions.
 
@@ -1523,7 +1593,10 @@ class RetryConfig:
         for exc_type in self.retry_on:
             if isinstance(exc_type, ErrorCategory):
                 # If it's a PyProcessorError, check the category
-                if isinstance(exception, PyProcessorError) and exception.category == exc_type:
+                if (
+                    isinstance(exception, PyProcessorError)
+                    and exception.category == exc_type
+                ):
                     return True
                 # If it's a standard exception, convert it and check the category
                 error_manager = get_error_manager()
@@ -1602,7 +1675,9 @@ def with_retry(retry_config: Optional[RetryConfig] = None):
                         error = convert_exception(e)
                         handle_error(error)
                         raise error
+
         return wrapper
+
     return decorator
 
 
@@ -1662,6 +1737,7 @@ def with_error_handling(func=None, *, category=None, reraise=True, context=None)
     Returns:
         The decorated function
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -1697,7 +1773,7 @@ def with_error_handling(func=None, *, category=None, reraise=True, context=None)
                     e,
                     message=f"Error in {qualname}: {str(e)}",
                     category=category,
-                    details=error_context
+                    details=error_context,
                 )
 
                 # Handle the error
@@ -1707,6 +1783,7 @@ def with_error_handling(func=None, *, category=None, reraise=True, context=None)
                 if reraise:
                     raise error
                 return None
+
         return wrapper
 
     # Handle both @with_error_handling and @with_error_handling(category=...)
@@ -1767,7 +1844,7 @@ class ErrorContext:
         self.details["caller"] = {
             "file": os.path.basename(filename),
             "line": lineno,
-            "function": function
+            "function": function,
         }
 
         # Convert the exception to a PyProcessorError
@@ -1775,7 +1852,7 @@ class ErrorContext:
             exc_val,
             message=f"Error during {self.operation}: {str(exc_val)}",
             category=self.category,
-            details=self.details
+            details=self.details,
         )
 
         # Handle the error

@@ -23,25 +23,28 @@ Options:
         --platform         Target platform (windows, macos, linux, all)
 """
 
-import os
-import sys
-import subprocess
 import argparse
+import os
 import platform
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from pyprocessor.utils.logging.log_manager import get_logger
+
 # Import the FFmpegManager and log manager
 from pyprocessor.utils.media.ffmpeg_manager import FFmpegManager
-from pyprocessor.utils.logging.log_manager import get_logger
 
 # Import path utilities if available
 try:
     from pyprocessor.utils.file_system.path_manager import (
-        ensure_dir_exists, file_exists, copy_file
+        copy_file,
+        ensure_dir_exists,
+        file_exists,
     )
 except ImportError:
     # If the module is not installed yet, define simple versions
@@ -71,6 +74,7 @@ except ImportError:
 # Get the logger
 logger = get_logger(level="INFO")
 
+
 # Create a logger function for the FFmpegManager
 def logger_func(level, message):
     if level == "info":
@@ -85,7 +89,9 @@ def logger_func(level, message):
 
 def download_ffmpeg():
     """Download and extract FFmpeg binaries for packaging."""
-    print(f"Downloading FFmpeg binaries for {platform.system()} ({platform.machine()})...")
+    print(
+        f"Downloading FFmpeg binaries for {platform.system()} ({platform.machine()})..."
+    )
 
     # Create directories if they don't exist
     temp_dir = ensure_dir_exists("ffmpeg_temp")
@@ -98,7 +104,9 @@ def download_ffmpeg():
     success = ffmpeg_manager.download_ffmpeg(bin_dir)
 
     if success:
-        print("FFmpeg preparation complete. You can now run the build script to create the executable.")
+        print(
+            "FFmpeg preparation complete. You can now run the build script to create the executable."
+        )
 
     return success
 
@@ -106,6 +114,7 @@ def download_ffmpeg():
 #
 # Build Functions
 #
+
 
 def check_pyinstaller():
     """Check if PyInstaller is installed."""
@@ -129,8 +138,7 @@ def install_pyinstaller():
     logger.info("Installing PyInstaller...")
     try:
         subprocess.run(
-            [sys.executable, "-m", "pip", "install", "PyInstaller"],
-            check=True
+            [sys.executable, "-m", "pip", "install", "PyInstaller"], check=True
         )
         logger.info("PyInstaller installed successfully.")
         return True
@@ -291,7 +299,9 @@ def build_executable(skip_ffmpeg=False):
     # Download FFmpeg if not skipping
     if not skip_ffmpeg:
         if not download_ffmpeg():
-            logger.error("Failed to download FFmpeg. Please try again or download manually.")
+            logger.error(
+                "Failed to download FFmpeg. Please try again or download manually."
+            )
             return False
 
     # Create spec file if it doesn't exist
@@ -335,6 +345,7 @@ def build_executable(skip_ffmpeg=False):
 # Package Functions
 #
 
+
 def find_nsis():
     """Find the NSIS executable."""
     if platform.system() != "Windows":
@@ -343,6 +354,7 @@ def find_nsis():
     try:
         # Try to find NSIS in the registry
         import winreg
+
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\NSIS") as key:
             nsis_path = winreg.QueryValueEx(key, "")[0]
             makensis_path = Path(nsis_path) / "makensis.exe"
@@ -491,13 +503,21 @@ def create_macos_package():
         dmg_path = packages_dir / f"PyProcessor-{get_version()}.dmg"
 
         # Use hdiutil to create DMG
-        subprocess.run([
-            "hdiutil", "create",
-            "-volname", "PyProcessor",
-            "-srcfolder", str(app_path),
-            "-ov", "-format", "UDZO",
-            str(dmg_path)
-        ], check=True)
+        subprocess.run(
+            [
+                "hdiutil",
+                "create",
+                "-volname",
+                "PyProcessor",
+                "-srcfolder",
+                str(app_path),
+                "-ov",
+                "-format",
+                "UDZO",
+                str(dmg_path),
+            ],
+            check=True,
+        )
 
         print(f"✓ Created macOS package: {dmg_path}")
         return True
@@ -535,41 +555,71 @@ def create_linux_packages():
 
         # Create DEB package
         deb_path = packages_dir / f"pyprocessor_{get_version()}_amd64.deb"
-        subprocess.run([
-            "fpm",
-            "-s", "dir",
-            "-t", "deb",
-            "-n", "pyprocessor",
-            "-v", get_version(),
-            "--description", "Cross-platform media processing engine",
-            "--url", "https://github.com/Lungren2/PyProcessor",
-            "--license", "MIT",
-            "--vendor", "Lungren2",
-            "--architecture", "amd64",
-            "--depends", "ffmpeg",
-            "-C", "dist/PyProcessor",
-            "--prefix", "/opt/pyprocessor",
-            "."
-        ], check=True)
+        subprocess.run(
+            [
+                "fpm",
+                "-s",
+                "dir",
+                "-t",
+                "deb",
+                "-n",
+                "pyprocessor",
+                "-v",
+                get_version(),
+                "--description",
+                "Cross-platform media processing engine",
+                "--url",
+                "https://github.com/Lungren2/PyProcessor",
+                "--license",
+                "MIT",
+                "--vendor",
+                "Lungren2",
+                "--architecture",
+                "amd64",
+                "--depends",
+                "ffmpeg",
+                "-C",
+                "dist/PyProcessor",
+                "--prefix",
+                "/opt/pyprocessor",
+                ".",
+            ],
+            check=True,
+        )
 
         # Create RPM package
         rpm_path = packages_dir / f"pyprocessor-{get_version()}.x86_64.rpm"
-        subprocess.run([
-            "fpm",
-            "-s", "dir",
-            "-t", "rpm",
-            "-n", "pyprocessor",
-            "-v", get_version(),
-            "--description", "Cross-platform media processing engine",
-            "--url", "https://github.com/Lungren2/PyProcessor",
-            "--license", "MIT",
-            "--vendor", "Lungren2",
-            "--architecture", "x86_64",
-            "--depends", "ffmpeg",
-            "-C", "dist/PyProcessor",
-            "--prefix", "/opt/pyprocessor",
-            "."
-        ], check=True)
+        subprocess.run(
+            [
+                "fpm",
+                "-s",
+                "dir",
+                "-t",
+                "rpm",
+                "-n",
+                "pyprocessor",
+                "-v",
+                get_version(),
+                "--description",
+                "Cross-platform media processing engine",
+                "--url",
+                "https://github.com/Lungren2/PyProcessor",
+                "--license",
+                "MIT",
+                "--vendor",
+                "Lungren2",
+                "--architecture",
+                "x86_64",
+                "--depends",
+                "ffmpeg",
+                "-C",
+                "dist/PyProcessor",
+                "--prefix",
+                "/opt/pyprocessor",
+                ".",
+            ],
+            check=True,
+        )
 
         print(f"✓ Created Linux packages: {deb_path} and {rpm_path}")
         return True
@@ -614,7 +664,9 @@ def package_executable(skip_build=False, target_platform=None):
             create_linux_packages()
 
         print("\nNote: You can only create packages for the current platform.")
-        print("To create packages for all platforms, you need to run this script on each platform.")
+        print(
+            "To create packages for all platforms, you need to run this script on each platform."
+        )
     elif target_platform == "windows":
         if system != "Windows":
             print("Windows packaging can only be done on Windows")
@@ -642,6 +694,7 @@ def package_executable(skip_build=False, target_platform=None):
 # Main Function
 #
 
+
 def main():
     """Main function to parse arguments and run the appropriate command."""
     parser = argparse.ArgumentParser(description="PyProcessor Build Tools")
@@ -651,16 +704,24 @@ def main():
     subparsers.add_parser("ffmpeg", help="Download and extract FFmpeg binaries")
 
     # Build command
-    build_parser = subparsers.add_parser("build", help="Build the PyProcessor executable")
-    build_parser.add_argument("--skip-ffmpeg", action="store_true", help="Skip downloading FFmpeg")
+    build_parser = subparsers.add_parser(
+        "build", help="Build the PyProcessor executable"
+    )
+    build_parser.add_argument(
+        "--skip-ffmpeg", action="store_true", help="Skip downloading FFmpeg"
+    )
 
     # Package command
-    package_parser = subparsers.add_parser("package", help="Package the PyProcessor executable")
-    package_parser.add_argument("--skip-build", action="store_true", help="Skip building the executable")
+    package_parser = subparsers.add_parser(
+        "package", help="Package the PyProcessor executable"
+    )
+    package_parser.add_argument(
+        "--skip-build", action="store_true", help="Skip building the executable"
+    )
     package_parser.add_argument(
         "--platform",
         choices=["windows", "macos", "linux", "all"],
-        help="Target platform for packaging"
+        help="Target platform for packaging",
     )
 
     args = parser.parse_args()

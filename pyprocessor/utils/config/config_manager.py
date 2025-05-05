@@ -5,36 +5,31 @@ This module provides a singleton configuration manager that can be used througho
 It ensures consistent configuration handling and format across all modules.
 """
 
-import os
+import datetime
 import json
 import multiprocessing
-import threading
+import os
 import re
-import time
-import copy
-import difflib
-import hashlib
+import threading
 from pathlib import Path
-import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union, Set, Callable, Iterator
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+from pyprocessor.utils.config_schema import ConfigSchema, ConfigValueType
+from pyprocessor.utils.core.validation_manager import (
+    validate_object,
+    validate_path,
+)
 from pyprocessor.utils.file_system.path_manager import (
-    normalize_path,
-    get_default_media_root,
-    get_profiles_dir,
-    get_logs_dir,
     ensure_dir_exists,
-    expand_env_vars
+    expand_env_vars,
+    get_logs_dir,
+    get_profiles_dir,
+    normalize_path,
+)
+from pyprocessor.utils.logging.error_manager import (
+    with_error_handling,
 )
 from pyprocessor.utils.logging.log_manager import get_logger
-from pyprocessor.utils.logging.error_manager import (
-    get_error_manager, with_error_handling, ConfigurationError, ErrorSeverity
-)
-from pyprocessor.utils.core.validation_manager import (
-    validate_string, validate_number, validate_boolean, validate_path,
-    validate_list, validate_dict, validate_object, ValidationResult
-)
-from pyprocessor.utils.config_schema import ConfigSchema, ConfigValueType
 
 
 class ConfigManager:
@@ -188,13 +183,17 @@ class ConfigManager:
                     try:
                         env_value = int(env_value)
                     except ValueError:
-                        self.logger.warning(f"Cannot convert environment variable {value['env_var']}={env_value} to int")
+                        self.logger.warning(
+                            f"Cannot convert environment variable {value['env_var']}={env_value} to int"
+                        )
                         continue
                 elif value["type"] == ConfigValueType.FLOAT:
                     try:
                         env_value = float(env_value)
                     except ValueError:
-                        self.logger.warning(f"Cannot convert environment variable {value['env_var']}={env_value} to float")
+                        self.logger.warning(
+                            f"Cannot convert environment variable {value['env_var']}={env_value} to float"
+                        )
                         continue
                 elif value["type"] == ConfigValueType.BOOLEAN:
                     if env_value.lower() in ("true", "yes", "1", "on"):
@@ -202,7 +201,9 @@ class ConfigManager:
                     elif env_value.lower() in ("false", "no", "0", "off"):
                         env_value = False
                     else:
-                        self.logger.warning(f"Cannot convert environment variable {value['env_var']}={env_value} to bool")
+                        self.logger.warning(
+                            f"Cannot convert environment variable {value['env_var']}={env_value} to bool"
+                        )
                         continue
                 elif value["type"] == ConfigValueType.ARRAY:
                     try:
@@ -218,10 +219,14 @@ class ConfigManager:
                     try:
                         env_value = json.loads(env_value)
                         if not isinstance(env_value, dict):
-                            self.logger.warning(f"Environment variable {value['env_var']}={env_value} is not a valid JSON object")
+                            self.logger.warning(
+                                f"Environment variable {value['env_var']}={env_value} is not a valid JSON object"
+                            )
                             continue
                     except json.JSONDecodeError:
-                        self.logger.warning(f"Environment variable {value['env_var']}={env_value} is not a valid JSON object")
+                        self.logger.warning(
+                            f"Environment variable {value['env_var']}={env_value} is not a valid JSON object"
+                        )
                         continue
 
                 # Set the value
@@ -295,7 +300,9 @@ class ConfigManager:
         try:
             return int(value)
         except (ValueError, TypeError):
-            self.logger.warning(f"Cannot convert {key}={value} to int, using default {default}")
+            self.logger.warning(
+                f"Cannot convert {key}={value} to int, using default {default}"
+            )
             return default
 
     def get_float(self, key: str, default: Optional[float] = None) -> Optional[float]:
@@ -316,7 +323,9 @@ class ConfigManager:
         try:
             return float(value)
         except (ValueError, TypeError):
-            self.logger.warning(f"Cannot convert {key}={value} to float, using default {default}")
+            self.logger.warning(
+                f"Cannot convert {key}={value} to float, using default {default}"
+            )
             return default
 
     def get_bool(self, key: str, default: Optional[bool] = None) -> Optional[bool]:
@@ -344,7 +353,9 @@ class ConfigManager:
         elif isinstance(value, int):
             return bool(value)
 
-        self.logger.warning(f"Cannot convert {key}={value} to bool, using default {default}")
+        self.logger.warning(
+            f"Cannot convert {key}={value} to bool, using default {default}"
+        )
         return default
 
     def get_list(self, key: str, default: Optional[List] = None) -> Optional[List]:
@@ -374,7 +385,9 @@ class ConfigManager:
                 # Try to split by comma
                 return [item.strip() for item in value.split(",")]
 
-        self.logger.warning(f"Cannot convert {key}={value} to list, using default {default}")
+        self.logger.warning(
+            f"Cannot convert {key}={value} to list, using default {default}"
+        )
         return default
 
     def get_dict(self, key: str, default: Optional[Dict] = None) -> Optional[Dict]:
@@ -403,7 +416,9 @@ class ConfigManager:
             except json.JSONDecodeError:
                 pass
 
-        self.logger.warning(f"Cannot convert {key}={value} to dict, using default {default}")
+        self.logger.warning(
+            f"Cannot convert {key}={value} to dict, using default {default}"
+        )
         return default
 
     def set(self, key: str, value: Any) -> None:
@@ -454,13 +469,13 @@ class ConfigManager:
             "timestamp": datetime.datetime.now().isoformat(),
             "key": key,
             "old_value": old_value,
-            "new_value": new_value
+            "new_value": new_value,
         }
         self._history.append(change)
 
         # Trim history if it's too long
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
         # Notify change callbacks
         for callback in self._change_callbacks:
@@ -469,7 +484,9 @@ class ConfigManager:
             except Exception as e:
                 self.logger.error(f"Error in change callback: {str(e)}")
 
-    def register_change_callback(self, callback: Callable[[str, Any, Any], None]) -> None:
+    def register_change_callback(
+        self, callback: Callable[[str, Any, Any], None]
+    ) -> None:
         """
         Register a callback to be called when a configuration value changes.
 
@@ -479,7 +496,9 @@ class ConfigManager:
         if callback not in self._change_callbacks:
             self._change_callbacks.append(callback)
 
-    def unregister_change_callback(self, callback: Callable[[str, Any, Any], None]) -> None:
+    def unregister_change_callback(
+        self, callback: Callable[[str, Any, Any], None]
+    ) -> None:
         """
         Unregister a change callback.
 
@@ -499,7 +518,11 @@ class ConfigManager:
         for key, value in config_dict.items():
             self.set(key, value)
 
-    def load(self, filepath: Optional[Union[str, Path]] = None, profile_name: Optional[str] = None) -> bool:
+    def load(
+        self,
+        filepath: Optional[Union[str, Path]] = None,
+        profile_name: Optional[str] = None,
+    ) -> bool:
         """
         Load configuration from file.
 
@@ -543,7 +566,11 @@ class ConfigManager:
             self.logger.error(f"Error loading configuration: {str(e)}")
             return False
 
-    def save(self, filepath: Optional[Union[str, Path]] = None, profile_name: Optional[str] = None) -> bool:
+    def save(
+        self,
+        filepath: Optional[Union[str, Path]] = None,
+        profile_name: Optional[str] = None,
+    ) -> bool:
         """
         Save configuration to file.
 
@@ -625,7 +652,9 @@ class ConfigManager:
         # Check directories
         try:
             input_folder = self.get_path("input_folder")
-            path_result = validate_path(input_folder, "input_folder", must_exist=True, must_be_dir=True)
+            path_result = validate_path(
+                input_folder, "input_folder", must_exist=True, must_be_dir=True
+            )
             if not path_result:
                 for error in path_result.errors:
                     errors.append(error.message)
@@ -634,7 +663,9 @@ class ConfigManager:
 
         try:
             output_folder = self.get_path("output_folder")
-            path_result = validate_path(output_folder, "output_folder", must_exist=True, must_be_dir=True)
+            path_result = validate_path(
+                output_folder, "output_folder", must_exist=True, must_be_dir=True
+            )
             if not path_result:
                 for error in path_result.errors:
                     errors.append(error.message)
@@ -689,7 +720,9 @@ class ConfigManager:
             elif value["type"] == ConfigValueType.OBJECT:
                 field_schema["type"] = "dict"
                 if "properties" in value:
-                    field_schema["schema"] = self._create_validation_schema_recursive(value["properties"])
+                    field_schema["schema"] = self._create_validation_schema_recursive(
+                        value["properties"]
+                    )
             elif value["type"] == ConfigValueType.PATH:
                 field_schema["type"] = "path"
             elif value["type"] == ConfigValueType.REGEX:
@@ -704,7 +737,9 @@ class ConfigManager:
 
         return validation_schema
 
-    def _create_validation_schema_recursive(self, schema: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    def _create_validation_schema_recursive(
+        self, schema: Dict[str, Any]
+    ) -> Dict[str, Dict[str, Any]]:
         """
         Recursively create a validation schema from the configuration schema.
 
@@ -752,7 +787,9 @@ class ConfigManager:
             elif value["type"] == ConfigValueType.OBJECT:
                 field_schema["type"] = "dict"
                 if "properties" in value:
-                    field_schema["schema"] = self._create_validation_schema_recursive(value["properties"])
+                    field_schema["schema"] = self._create_validation_schema_recursive(
+                        value["properties"]
+                    )
             elif value["type"] == ConfigValueType.PATH:
                 field_schema["type"] = "path"
             elif value["type"] == ConfigValueType.REGEX:
@@ -767,7 +804,13 @@ class ConfigManager:
 
         return validation_schema
 
-    def _validate_recursive(self, schema: Dict[str, Any], prefix: str, errors: List[str], warnings: List[str]):
+    def _validate_recursive(
+        self,
+        schema: Dict[str, Any],
+        prefix: str,
+        errors: List[str],
+        warnings: List[str],
+    ):
         """
         Recursively validate configuration against schema.
 
@@ -808,13 +851,19 @@ class ConfigManager:
                     int_value = int(config_value)
                     # Check min/max
                     if "min" in value and int_value < value["min"]:
-                        warnings.append(f"Value for {full_key} is below minimum: {int_value} < {value['min']}. Using minimum.")
+                        warnings.append(
+                            f"Value for {full_key} is below minimum: {int_value} < {value['min']}. Using minimum."
+                        )
                         self.set(full_key, value["min"])
                     elif "max" in value and int_value > value["max"]:
-                        warnings.append(f"Value for {full_key} is above maximum: {int_value} > {value['max']}. Using maximum.")
+                        warnings.append(
+                            f"Value for {full_key} is above maximum: {int_value} > {value['max']}. Using maximum."
+                        )
                         self.set(full_key, value["max"])
                 except (ValueError, TypeError):
-                    warnings.append(f"Invalid integer value for {full_key}: {config_value}. Using default.")
+                    warnings.append(
+                        f"Invalid integer value for {full_key}: {config_value}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
             elif value["type"] == ConfigValueType.FLOAT:
@@ -822,41 +871,59 @@ class ConfigManager:
                     float_value = float(config_value)
                     # Check min/max
                     if "min" in value and float_value < value["min"]:
-                        warnings.append(f"Value for {full_key} is below minimum: {float_value} < {value['min']}. Using minimum.")
+                        warnings.append(
+                            f"Value for {full_key} is below minimum: {float_value} < {value['min']}. Using minimum."
+                        )
                         self.set(full_key, value["min"])
                     elif "max" in value and float_value > value["max"]:
-                        warnings.append(f"Value for {full_key} is above maximum: {float_value} > {value['max']}. Using maximum.")
+                        warnings.append(
+                            f"Value for {full_key} is above maximum: {float_value} > {value['max']}. Using maximum."
+                        )
                         self.set(full_key, value["max"])
                 except (ValueError, TypeError):
-                    warnings.append(f"Invalid float value for {full_key}: {config_value}. Using default.")
+                    warnings.append(
+                        f"Invalid float value for {full_key}: {config_value}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
             elif value["type"] == ConfigValueType.BOOLEAN:
                 if not isinstance(config_value, bool):
-                    warnings.append(f"Invalid boolean value for {full_key}: {config_value}. Using default.")
+                    warnings.append(
+                        f"Invalid boolean value for {full_key}: {config_value}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
             elif value["type"] == ConfigValueType.STRING:
                 if not isinstance(config_value, str):
-                    warnings.append(f"Invalid string value for {full_key}: {config_value}. Using default.")
+                    warnings.append(
+                        f"Invalid string value for {full_key}: {config_value}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
                 elif "pattern" in value:
                     try:
                         if not re.match(value["pattern"], config_value):
-                            warnings.append(f"Value for {full_key} does not match pattern: {value['pattern']}. Using default.")
+                            warnings.append(
+                                f"Value for {full_key} does not match pattern: {value['pattern']}. Using default."
+                            )
                             if "default" in value:
                                 self.set(full_key, value["default"])
                     except re.error:
-                        warnings.append(f"Invalid pattern for {full_key}: {value['pattern']}. Skipping pattern validation.")
+                        warnings.append(
+                            f"Invalid pattern for {full_key}: {value['pattern']}. Skipping pattern validation."
+                        )
             elif value["type"] == ConfigValueType.ENUM:
                 if "enum" in value and config_value not in value["enum"]:
-                    warnings.append(f"Invalid enum value for {full_key}: {config_value}. Valid options: {', '.join(value['enum'])}. Using default.")
+                    warnings.append(
+                        f"Invalid enum value for {full_key}: {config_value}. Valid options: {', '.join(value['enum'])}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
             elif value["type"] == ConfigValueType.ARRAY:
                 if not isinstance(config_value, list):
-                    warnings.append(f"Invalid array value for {full_key}: {config_value}. Using default.")
+                    warnings.append(
+                        f"Invalid array value for {full_key}: {config_value}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
                 elif "items" in value and isinstance(value["items"], dict):
@@ -867,40 +934,63 @@ class ConfigManager:
                                 try:
                                     int(item)
                                 except (ValueError, TypeError):
-                                    warnings.append(f"Invalid integer item in {full_key}[{i}]: {item}. Removing item.")
+                                    warnings.append(
+                                        f"Invalid integer item in {full_key}[{i}]: {item}. Removing item."
+                                    )
                                     config_value.pop(i)
                             elif value["items"]["type"] == ConfigValueType.FLOAT:
                                 try:
                                     float(item)
                                 except (ValueError, TypeError):
-                                    warnings.append(f"Invalid float item in {full_key}[{i}]: {item}. Removing item.")
+                                    warnings.append(
+                                        f"Invalid float item in {full_key}[{i}]: {item}. Removing item."
+                                    )
                                     config_value.pop(i)
-                            elif value["items"]["type"] == ConfigValueType.BOOLEAN and not isinstance(item, bool):
-                                warnings.append(f"Invalid boolean item in {full_key}[{i}]: {item}. Removing item.")
+                            elif value["items"][
+                                "type"
+                            ] == ConfigValueType.BOOLEAN and not isinstance(item, bool):
+                                warnings.append(
+                                    f"Invalid boolean item in {full_key}[{i}]: {item}. Removing item."
+                                )
                                 config_value.pop(i)
-                            elif value["items"]["type"] == ConfigValueType.STRING and not isinstance(item, str):
-                                warnings.append(f"Invalid string item in {full_key}[{i}]: {item}. Removing item.")
+                            elif value["items"][
+                                "type"
+                            ] == ConfigValueType.STRING and not isinstance(item, str):
+                                warnings.append(
+                                    f"Invalid string item in {full_key}[{i}]: {item}. Removing item."
+                                )
                                 config_value.pop(i)
                     # Update array value
                     self.set(full_key, config_value)
             elif value["type"] == ConfigValueType.OBJECT:
                 if not isinstance(config_value, dict):
-                    warnings.append(f"Invalid object value for {full_key}: {config_value}. Using default.")
+                    warnings.append(
+                        f"Invalid object value for {full_key}: {config_value}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
                 elif "properties" in value:
                     # Recursively validate object properties
-                    self._validate_recursive(value["properties"], f"{full_key}." if full_key else "", errors, warnings)
+                    self._validate_recursive(
+                        value["properties"],
+                        f"{full_key}." if full_key else "",
+                        errors,
+                        warnings,
+                    )
             elif value["type"] == ConfigValueType.PATH:
                 try:
                     # Try to convert to Path object
                     path_value = self.get_path(full_key)
                     if path_value is None:
-                        warnings.append(f"Invalid path value for {full_key}: {config_value}. Using default.")
+                        warnings.append(
+                            f"Invalid path value for {full_key}: {config_value}. Using default."
+                        )
                         if "default" in value:
                             self.set(full_key, value["default"])
                 except Exception as e:
-                    warnings.append(f"Invalid path value for {full_key}: {config_value}. Error: {str(e)}. Using default.")
+                    warnings.append(
+                        f"Invalid path value for {full_key}: {config_value}. Error: {str(e)}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
             elif value["type"] == ConfigValueType.REGEX:
@@ -908,7 +998,9 @@ class ConfigManager:
                     # Try to compile regex
                     re.compile(config_value)
                 except re.error as e:
-                    warnings.append(f"Invalid regex value for {full_key}: {config_value}. Error: {str(e)}. Using default.")
+                    warnings.append(
+                        f"Invalid regex value for {full_key}: {config_value}. Error: {str(e)}. Using default."
+                    )
                     if "default" in value:
                         self.set(full_key, value["default"])
 
@@ -1038,7 +1130,7 @@ class ConfigManager:
 
         # Trim history if it's too long
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
     def clear_history(self) -> None:
         """
@@ -1061,7 +1153,9 @@ class ConfigManager:
             return False
 
         # Find all changes after the specified version
-        changes_to_revert = [change for change in self._history if change["version"] > version]
+        changes_to_revert = [
+            change for change in self._history if change["version"] > version
+        ]
 
         # Sort changes in reverse order (newest first)
         changes_to_revert.sort(key=lambda x: x["version"], reverse=True)
@@ -1082,7 +1176,9 @@ class ConfigManager:
         self._version = version
 
         # Update history
-        self._history = [change for change in self._history if change["version"] <= version]
+        self._history = [
+            change for change in self._history if change["version"] <= version
+        ]
 
         self.logger.info(f"Configuration reverted to version {version}")
         return True
@@ -1099,7 +1195,13 @@ class ConfigManager:
         """
         self._merge_recursive(self._config, config_dict, "", overwrite)
 
-    def _merge_recursive(self, target: Dict[str, Any], source: Dict[str, Any], prefix: str, overwrite: bool) -> None:
+    def _merge_recursive(
+        self,
+        target: Dict[str, Any],
+        source: Dict[str, Any],
+        prefix: str,
+        overwrite: bool,
+    ) -> None:
         """
         Recursively merge configuration dictionaries.
 
@@ -1112,14 +1214,20 @@ class ConfigManager:
         for key, value in source.items():
             full_key = f"{prefix}{key}" if prefix else key
 
-            if isinstance(value, dict) and key in target and isinstance(target[key], dict):
+            if (
+                isinstance(value, dict)
+                and key in target
+                and isinstance(target[key], dict)
+            ):
                 # Recursively merge dictionaries
                 self._merge_recursive(target[key], value, f"{full_key}.", overwrite)
             elif key not in target or overwrite:
                 # Set the value using the set method to track changes
                 self.set(full_key, value)
 
-    def merge_from_file(self, filepath: Union[str, Path], overwrite: bool = True) -> bool:
+    def merge_from_file(
+        self, filepath: Union[str, Path], overwrite: bool = True
+    ) -> bool:
         """
         Merge configuration with values from a file.
 
@@ -1162,7 +1270,9 @@ class ConfigManager:
         """
         return self._diff_recursive(self._config, other_config)
 
-    def _diff_recursive(self, config1: Dict[str, Any], config2: Dict[str, Any]) -> Dict[str, Any]:
+    def _diff_recursive(
+        self, config1: Dict[str, Any], config2: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Recursively compare configuration dictionaries.
 
@@ -1173,11 +1283,7 @@ class ConfigManager:
         Returns:
             Dict[str, Any]: Dictionary with added, removed, and changed keys
         """
-        result = {
-            "added": {},
-            "removed": {},
-            "changed": {}
-        }
+        result = {"added": {}, "removed": {}, "changed": {}}
 
         # Find added and changed keys
         for key, value in config2.items():
@@ -1195,10 +1301,7 @@ class ConfigManager:
                 if nested_diff["changed"]:
                     result["changed"][key] = nested_diff["changed"]
             elif config1[key] != value:
-                result["changed"][key] = {
-                    "old": config1[key],
-                    "new": value
-                }
+                result["changed"][key] = {"old": config1[key], "new": value}
 
         # Find removed keys
         for key in config1:
@@ -1287,7 +1390,9 @@ class ConfigManager:
             self.logger.info(f"Configuration exported to {filepath}")
             return True
         except ImportError:
-            self.logger.error("PyYAML is not installed. Install it with 'pip install pyyaml'")
+            self.logger.error(
+                "PyYAML is not installed. Install it with 'pip install pyyaml'"
+            )
             return False
         except Exception as e:
             self.logger.error(f"Error exporting configuration to YAML: {str(e)}")
@@ -1329,7 +1434,9 @@ class ConfigManager:
             self.logger.error(f"Error exporting configuration to CSV: {str(e)}")
             return False
 
-    def _flatten_config(self, config: Dict[str, Any], prefix: str = "") -> Dict[str, Any]:
+    def _flatten_config(
+        self, config: Dict[str, Any], prefix: str = ""
+    ) -> Dict[str, Any]:
         """
         Flatten a nested configuration dictionary.
 
@@ -1354,7 +1461,9 @@ class ConfigManager:
 
         return result
 
-    def import_from_json(self, filepath: Union[str, Path], overwrite: bool = True) -> bool:
+    def import_from_json(
+        self, filepath: Union[str, Path], overwrite: bool = True
+    ) -> bool:
         """
         Import configuration from a JSON file.
 
@@ -1367,7 +1476,9 @@ class ConfigManager:
         """
         return self.merge_from_file(filepath, overwrite)
 
-    def import_from_yaml(self, filepath: Union[str, Path], overwrite: bool = True) -> bool:
+    def import_from_yaml(
+        self, filepath: Union[str, Path], overwrite: bool = True
+    ) -> bool:
         """
         Import configuration from a YAML file.
 
@@ -1395,13 +1506,17 @@ class ConfigManager:
             self.logger.info(f"Configuration imported from {filepath}")
             return True
         except ImportError:
-            self.logger.error("PyYAML is not installed. Install it with 'pip install pyyaml'")
+            self.logger.error(
+                "PyYAML is not installed. Install it with 'pip install pyyaml'"
+            )
             return False
         except Exception as e:
             self.logger.error(f"Error importing configuration from YAML: {str(e)}")
             return False
 
-    def import_from_csv(self, filepath: Union[str, Path], overwrite: bool = True) -> bool:
+    def import_from_csv(
+        self, filepath: Union[str, Path], overwrite: bool = True
+    ) -> bool:
         """
         Import configuration from a CSV file.
 
@@ -1489,7 +1604,9 @@ class ConfigManager:
 
         return doc
 
-    def _generate_documentation_recursive(self, schema: Dict[str, Any], prefix: str, level: int = 0) -> str:
+    def _generate_documentation_recursive(
+        self, schema: Dict[str, Any], prefix: str, level: int = 0
+    ) -> str:
         """
         Recursively generate documentation from the configuration schema.
 
@@ -1549,7 +1666,9 @@ class ConfigManager:
 
             # Add nested properties
             if "properties" in value and isinstance(value["properties"], dict):
-                doc += self._generate_documentation_recursive(value["properties"], f"{full_key}.", level + 1)
+                doc += self._generate_documentation_recursive(
+                    value["properties"], f"{full_key}.", level + 1
+                )
 
         return doc
 
@@ -1572,6 +1691,7 @@ def get_config() -> ConfigManager:
 
 
 # Module-level functions for the new methods
+
 
 def get_version() -> int:
     """

@@ -5,12 +5,11 @@ This module provides functionality for processing videos in batches,
 allowing multiple videos to be processed within a single process.
 """
 
-import os
-import time
-import threading
 import queue
+import threading
+import time
 from pathlib import Path
-from typing import List, Dict, Any, Callable, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from pyprocessor.utils.logging import get_logger
 from pyprocessor.utils.process.resource_manager import get_resource_manager
@@ -48,12 +47,16 @@ class BatchProcessor:
         self.is_running = False
         self.abort_requested = False
 
-    def process_batch(self, files: List[Path], output_folder: Path,
-                     ffmpeg_params: Dict[str, Any],
-                     progress_callback: Optional[Callable] = None,
-                     output_file_callback: Optional[Callable] = None,
-                     encrypt_output: bool = False,
-                     encryption_key_id: Optional[str] = None) -> List[Tuple[str, bool, float, str]]:
+    def process_batch(
+        self,
+        files: List[Path],
+        output_folder: Path,
+        ffmpeg_params: Dict[str, Any],
+        progress_callback: Optional[Callable] = None,
+        output_file_callback: Optional[Callable] = None,
+        encrypt_output: bool = False,
+        encryption_key_id: Optional[str] = None,
+    ) -> List[Tuple[str, bool, float, str]]:
         """
         Process a batch of video files.
 
@@ -79,7 +82,9 @@ class BatchProcessor:
 
         # Add files to processing queue
         for file in files:
-            self.processing_queue.put((file, output_folder, ffmpeg_params, encrypt_output, encryption_key_id))
+            self.processing_queue.put(
+                (file, output_folder, ffmpeg_params, encrypt_output, encryption_key_id)
+            )
 
         # Start worker threads
         num_threads = min(len(files), self.batch_size)
@@ -90,7 +95,7 @@ class BatchProcessor:
                 target=self._worker_thread,
                 args=(i, progress_callback, output_file_callback),
                 daemon=True,
-                name=f"BatchWorker-{i}"
+                name=f"BatchWorker-{i}",
             )
             thread.start()
             self.worker_threads.append(thread)
@@ -112,7 +117,9 @@ class BatchProcessor:
 
             # If abort was requested, wait for threads to finish current file
             if self.abort_requested:
-                self.logger.warning("Batch processing aborted, waiting for threads to finish current files")
+                self.logger.warning(
+                    "Batch processing aborted, waiting for threads to finish current files"
+                )
                 for thread in self.worker_threads:
                     if thread.is_alive():
                         thread.join(timeout=5.0)
@@ -121,9 +128,12 @@ class BatchProcessor:
 
         return results
 
-    def _worker_thread(self, thread_id: int,
-                      progress_callback: Optional[Callable],
-                      output_file_callback: Optional[Callable]):
+    def _worker_thread(
+        self,
+        thread_id: int,
+        progress_callback: Optional[Callable],
+        output_file_callback: Optional[Callable],
+    ):
         """
         Worker thread for processing videos.
 
@@ -138,7 +148,13 @@ class BatchProcessor:
             try:
                 # Get next file from queue with timeout to allow checking abort flag
                 try:
-                    file, output_folder, ffmpeg_params, encrypt_output, encryption_key_id = self.processing_queue.get(timeout=0.5)
+                    (
+                        file,
+                        output_folder,
+                        ffmpeg_params,
+                        encrypt_output,
+                        encryption_key_id,
+                    ) = self.processing_queue.get(timeout=0.5)
                 except queue.Empty:
                     break
 
@@ -159,7 +175,7 @@ class BatchProcessor:
                         progress_callback=progress_callback,
                         output_file_callback=output_file_callback,
                         encrypt_output=encrypt_output,
-                        encryption_key_id=encryption_key_id
+                        encryption_key_id=encryption_key_id,
                     )
 
                     # Add result to results queue
@@ -170,7 +186,9 @@ class BatchProcessor:
 
                     # Log completion
                     duration = time.time() - start_time
-                    self.logger.info(f"Thread {thread_id} completed {file.name} in {duration:.2f}s")
+                    self.logger.info(
+                        f"Thread {thread_id} completed {file.name} in {duration:.2f}s"
+                    )
 
                 except Exception as e:
                     self.logger.error(f"Error processing {file.name}: {str(e)}")
@@ -192,7 +210,9 @@ class BatchProcessor:
         return True
 
 
-def create_batches(files: List[Path], batch_size: int = None, config=None, logger=None) -> List[List[Path]]:
+def create_batches(
+    files: List[Path], batch_size: int = None, config=None, logger=None
+) -> List[List[Path]]:
     """
     Create batches of files for processing.
 
@@ -208,12 +228,13 @@ def create_batches(files: List[Path], batch_size: int = None, config=None, logge
     # If batch size is not specified, calculate the optimal size
     if batch_size is None:
         from pyprocessor.utils.process.resource_calculator import get_optimal_batch_size
+
         batch_size = get_optimal_batch_size(files, config, logger)
 
     # Create batches
     batches = []
     for i in range(0, len(files), batch_size):
-        batch = files[i:i + batch_size]
+        batch = files[i : i + batch_size]
         batches.append(batch)
 
     return batches

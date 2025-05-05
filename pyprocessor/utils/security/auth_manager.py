@@ -5,29 +5,38 @@ This module provides user authentication and authorization functionality.
 """
 
 import json
-import os
 import threading
 import time
-import uuid
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 import bcrypt
 
-from pyprocessor.utils.logging.log_manager import get_logger
 from pyprocessor.utils.file_system.path_utils import (
-    normalize_path, ensure_dir_exists, get_user_data_dir
+    ensure_dir_exists,
+    get_user_data_dir,
+    normalize_path,
 )
+from pyprocessor.utils.logging.log_manager import get_logger
 
 
 class User:
     """User model for authentication and authorization."""
 
-    def __init__(self, username: str, password_hash: str, email: str = None,
-                full_name: str = None, roles: List[str] = None, 
-                created_at: float = None, updated_at: float = None,
-                last_login: float = None, failed_attempts: int = 0,
-                locked_until: float = None, active: bool = True):
+    def __init__(
+        self,
+        username: str,
+        password_hash: str,
+        email: str = None,
+        full_name: str = None,
+        roles: List[str] = None,
+        created_at: float = None,
+        updated_at: float = None,
+        last_login: float = None,
+        failed_attempts: int = 0,
+        locked_until: float = None,
+        active: bool = True,
+    ):
         """
         Initialize a user.
 
@@ -74,11 +83,11 @@ class User:
             "last_login": self.last_login,
             "failed_attempts": self.failed_attempts,
             "locked_until": self.locked_until,
-            "active": self.active
+            "active": self.active,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'User':
+    def from_dict(cls, data: Dict[str, Any]) -> "User":
         """
         Create user from dictionary.
 
@@ -99,15 +108,16 @@ class User:
             last_login=data.get("last_login"),
             failed_attempts=data.get("failed_attempts", 0),
             locked_until=data.get("locked_until"),
-            active=data.get("active", True)
+            active=data.get("active", True),
         )
 
 
 class Role:
     """Role model for authorization."""
 
-    def __init__(self, name: str, description: str = None, 
-                permissions: List[str] = None):
+    def __init__(
+        self, name: str, description: str = None, permissions: List[str] = None
+    ):
         """
         Initialize a role.
 
@@ -130,11 +140,11 @@ class Role:
         return {
             "name": self.name,
             "description": self.description,
-            "permissions": self.permissions
+            "permissions": self.permissions,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Role':
+    def from_dict(cls, data: Dict[str, Any]) -> "Role":
         """
         Create role from dictionary.
 
@@ -147,7 +157,7 @@ class Role:
         return cls(
             name=data["name"],
             description=data.get("description"),
-            permissions=data.get("permissions", [])
+            permissions=data.get("permissions", []),
         )
 
 
@@ -172,13 +182,10 @@ class Permission:
         Returns:
             Dict[str, Any]: Permission data
         """
-        return {
-            "name": self.name,
-            "description": self.description
-        }
+        return {"name": self.name, "description": self.description}
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Permission':
+    def from_dict(cls, data: Dict[str, Any]) -> "Permission":
         """
         Create permission from dictionary.
 
@@ -188,10 +195,7 @@ class Permission:
         Returns:
             Permission: Permission object
         """
-        return cls(
-            name=data["name"],
-            description=data.get("description")
-        )
+        return cls(name=data["name"], description=data.get("description"))
 
 
 class AuthManager:
@@ -253,10 +257,16 @@ class AuthManager:
         if config:
             if hasattr(config, "get"):
                 # Config is a dictionary-like object
-                self.max_failed_attempts = config.get("security.max_failed_attempts", self.max_failed_attempts)
-                self.lockout_duration = config.get("security.lockout_duration", self.lockout_duration)
-                self.password_hash_rounds = config.get("security.password_hash_rounds", self.password_hash_rounds)
-                
+                self.max_failed_attempts = config.get(
+                    "security.max_failed_attempts", self.max_failed_attempts
+                )
+                self.lockout_duration = config.get(
+                    "security.lockout_duration", self.lockout_duration
+                )
+                self.password_hash_rounds = config.get(
+                    "security.password_hash_rounds", self.password_hash_rounds
+                )
+
                 # Get data directory from config if available
                 data_dir = config.get("security.data_dir")
                 if data_dir:
@@ -309,10 +319,7 @@ class AuthManager:
     def _save_users(self):
         """Save users to file."""
         try:
-            data = {
-                username: user.to_dict()
-                for username, user in self.users.items()
-            }
+            data = {username: user.to_dict() for username, user in self.users.items()}
             with open(self.users_file, "w") as f:
                 json.dump(data, f, indent=2)
             self.logger.info(f"Saved {len(self.users)} users to {self.users_file}")
@@ -329,8 +336,7 @@ class AuthManager:
             with open(self.roles_file, "r") as f:
                 data = json.load(f)
                 self.roles = {
-                    name: Role.from_dict(role_data)
-                    for name, role_data in data.items()
+                    name: Role.from_dict(role_data) for name, role_data in data.items()
                 }
             self.logger.info(f"Loaded {len(self.roles)} roles from {self.roles_file}")
         except Exception as e:
@@ -339,10 +345,7 @@ class AuthManager:
     def _save_roles(self):
         """Save roles to file."""
         try:
-            data = {
-                name: role.to_dict()
-                for name, role in self.roles.items()
-            }
+            data = {name: role.to_dict() for name, role in self.roles.items()}
             with open(self.roles_file, "w") as f:
                 json.dump(data, f, indent=2)
             self.logger.info(f"Saved {len(self.roles)} roles to {self.roles_file}")
@@ -362,7 +365,9 @@ class AuthManager:
                     name: Permission.from_dict(permission_data)
                     for name, permission_data in data.items()
                 }
-            self.logger.info(f"Loaded {len(self.permissions)} permissions from {self.permissions_file}")
+            self.logger.info(
+                f"Loaded {len(self.permissions)} permissions from {self.permissions_file}"
+            )
         except Exception as e:
             self.logger.error(f"Failed to load permissions: {e}")
 
@@ -375,7 +380,9 @@ class AuthManager:
             }
             with open(self.permissions_file, "w") as f:
                 json.dump(data, f, indent=2)
-            self.logger.info(f"Saved {len(self.permissions)} permissions to {self.permissions_file}")
+            self.logger.info(
+                f"Saved {len(self.permissions)} permissions to {self.permissions_file}"
+            )
         except Exception as e:
             self.logger.error(f"Failed to save permissions: {e}")
 
@@ -429,27 +436,40 @@ class AuthManager:
     def _create_default_roles(self):
         """Create default roles if they don't exist."""
         default_roles = [
-            Role("admin", "Administrator with full access", [
-                # All permissions
-                permission.name for permission in self.permissions.values()
-            ]),
-            Role("user", "Regular user", [
-                "media.process",
-                "media.view",
-                "media.upload",
-                "media.download",
-                "media.delete",
-                "config.view",
-                "plugin.view",
-                "system.view",
-            ]),
-            Role("guest", "Guest user with limited access", [
-                "media.view",
-                "media.download",
-                "config.view",
-                "plugin.view",
-                "system.view",
-            ]),
+            Role(
+                "admin",
+                "Administrator with full access",
+                [
+                    # All permissions
+                    permission.name
+                    for permission in self.permissions.values()
+                ],
+            ),
+            Role(
+                "user",
+                "Regular user",
+                [
+                    "media.process",
+                    "media.view",
+                    "media.upload",
+                    "media.download",
+                    "media.delete",
+                    "config.view",
+                    "plugin.view",
+                    "system.view",
+                ],
+            ),
+            Role(
+                "guest",
+                "Guest user with limited access",
+                [
+                    "media.view",
+                    "media.download",
+                    "config.view",
+                    "plugin.view",
+                    "system.view",
+                ],
+            ),
         ]
 
         for role in default_roles:
@@ -466,21 +486,28 @@ class AuthManager:
             # Generate a random password for the admin user
             import random
             import string
-            password = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(16))
-            
+
+            password = "".join(
+                random.choice(string.ascii_letters + string.digits) for _ in range(16)
+            )
+
             # Create admin user
             self.create_user(
                 username="admin",
                 password=password,
                 email=None,
                 full_name="Administrator",
-                roles=["admin"]
+                roles=["admin"],
             )
-            
-            self.logger.warning(f"Created default admin user with username 'admin' and password '{password}'")
+
+            self.logger.warning(
+                f"Created default admin user with username 'admin' and password '{password}'"
+            )
             self.logger.warning("Please change the admin password immediately!")
 
-    def authenticate(self, username: str, password: str) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    def authenticate(
+        self, username: str, password: str
+    ) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """
         Authenticate a user with username and password.
 
@@ -502,7 +529,9 @@ class AuthManager:
 
         # Check if user is active
         if not user.active:
-            self.logger.warning(f"Authentication failed: User is not active: {username}")
+            self.logger.warning(
+                f"Authentication failed: User is not active: {username}"
+            )
             return False, None
 
         # Check if account is locked
@@ -519,12 +548,16 @@ class AuthManager:
             # Lock account if too many failed attempts
             if user.failed_attempts >= self.max_failed_attempts:
                 user.locked_until = time.time() + self.lockout_duration
-                self.logger.warning(f"Account locked due to too many failed attempts: {username}")
+                self.logger.warning(
+                    f"Account locked due to too many failed attempts: {username}"
+                )
 
             # Save users
             self._save_users()
 
-            self.logger.warning(f"Authentication failed: Invalid password for user: {username}")
+            self.logger.warning(
+                f"Authentication failed: Invalid password for user: {username}"
+            )
             return False, None
 
         # Authentication successful
@@ -543,8 +576,14 @@ class AuthManager:
         self.logger.info(f"Authentication successful: {username}")
         return True, user_data
 
-    def create_user(self, username: str, password: str, email: str = None,
-                   full_name: str = None, roles: List[str] = None) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+    def create_user(
+        self,
+        username: str,
+        password: str,
+        email: str = None,
+        full_name: str = None,
+        roles: List[str] = None,
+    ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
         Create a new user.
 
@@ -587,7 +626,7 @@ class AuthManager:
             password_hash=password_hash,
             email=email,
             full_name=full_name,
-            roles=roles
+            roles=roles,
         )
 
         # Add user
@@ -603,9 +642,15 @@ class AuthManager:
         self.logger.info(f"User created: {username}")
         return True, None, user_data
 
-    def update_user(self, username: str, password: str = None, email: str = None,
-                   full_name: str = None, roles: List[str] = None, 
-                   active: bool = None) -> Tuple[bool, Optional[str]]:
+    def update_user(
+        self,
+        username: str,
+        password: str = None,
+        email: str = None,
+        full_name: str = None,
+        roles: List[str] = None,
+        active: bool = None,
+    ) -> Tuple[bool, Optional[str]]:
         """
         Update a user.
 
@@ -881,8 +926,13 @@ def authenticate(username: str, password: str) -> Tuple[bool, Optional[Dict[str,
     return get_auth_manager().authenticate(username, password)
 
 
-def create_user(username: str, password: str, email: str = None,
-               full_name: str = None, roles: List[str] = None) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+def create_user(
+    username: str,
+    password: str,
+    email: str = None,
+    full_name: str = None,
+    roles: List[str] = None,
+) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
     """
     Create a new user.
 
@@ -902,9 +952,14 @@ def create_user(username: str, password: str, email: str = None,
     return get_auth_manager().create_user(username, password, email, full_name, roles)
 
 
-def update_user(username: str, password: str = None, email: str = None,
-               full_name: str = None, roles: List[str] = None, 
-               active: bool = None) -> Tuple[bool, Optional[str]]:
+def update_user(
+    username: str,
+    password: str = None,
+    email: str = None,
+    full_name: str = None,
+    roles: List[str] = None,
+    active: bool = None,
+) -> Tuple[bool, Optional[str]]:
     """
     Update a user.
 
@@ -921,7 +976,9 @@ def update_user(username: str, password: str = None, email: str = None,
         - bool: True if user was updated, False otherwise
         - Optional[str]: Error message if user update failed, None otherwise
     """
-    return get_auth_manager().update_user(username, password, email, full_name, roles, active)
+    return get_auth_manager().update_user(
+        username, password, email, full_name, roles, active
+    )
 
 
 def delete_user(username: str) -> bool:

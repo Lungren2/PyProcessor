@@ -14,18 +14,19 @@ This module provides utilities for sandboxing processes to improve security:
 
 import os
 import platform
+import re
+import shutil
 import subprocess
 import threading
 import time
-import re
-import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Import required modules
 from pyprocessor.utils.logging.log_manager import get_logger
-from pyprocessor.utils.security.audit_logger import get_audit_logger, log_security_event
 from pyprocessor.utils.process.resource_manager import get_resource_manager
+from pyprocessor.utils.security.audit_logger import get_audit_logger, log_security_event
+
 
 # Step 1: Define SandboxPolicy class
 class SandboxPolicy:
@@ -109,10 +110,13 @@ class SandboxPolicy:
         """Add a regex pattern to the command blacklist."""
         self.command_pattern_blacklist.append(re.compile(pattern))
 
-    def set_resource_limits(self, cpu_limit: Optional[float] = None,
-                           memory_limit: Optional[int] = None,
-                           file_size_limit: Optional[int] = None,
-                           process_count_limit: Optional[int] = None) -> None:
+    def set_resource_limits(
+        self,
+        cpu_limit: Optional[float] = None,
+        memory_limit: Optional[int] = None,
+        file_size_limit: Optional[int] = None,
+        process_count_limit: Optional[int] = None,
+    ) -> None:
         """Set resource limits for the sandboxed process."""
         if cpu_limit is not None:
             self.cpu_limit = cpu_limit
@@ -132,7 +136,9 @@ class SandboxPolicy:
         """Enable or disable network access."""
         self.network_access_enabled = enabled
 
-    def set_privilege_reduction(self, enabled: bool, run_as_user: Optional[str] = None) -> None:
+    def set_privilege_reduction(
+        self, enabled: bool, run_as_user: Optional[str] = None
+    ) -> None:
         """Configure privilege reduction."""
         self.reduce_privileges = enabled
         self.run_as_user = run_as_user
@@ -205,7 +211,9 @@ class SandboxPolicy:
 
         return False
 
-    def is_network_access_allowed(self, host: Optional[str] = None, port: Optional[int] = None) -> bool:
+    def is_network_access_allowed(
+        self, host: Optional[str] = None, port: Optional[int] = None
+    ) -> bool:
         """Check if network access is allowed."""
         if not self.network_access_enabled:
             return False
@@ -233,35 +241,35 @@ class SandboxPolicy:
                 "cpu_limit": self.cpu_limit,
                 "memory_limit": self.memory_limit,
                 "file_size_limit": self.file_size_limit,
-                "process_count_limit": self.process_count_limit
+                "process_count_limit": self.process_count_limit,
             },
             "filesystem_access": {
                 "allowed_read_paths": list(self.allowed_read_paths),
                 "allowed_write_paths": list(self.allowed_write_paths),
-                "denied_paths": list(self.denied_paths)
+                "denied_paths": list(self.denied_paths),
             },
             "network_access": {
                 "enabled": self.network_access_enabled,
                 "allowed_hosts": list(self.allowed_hosts),
-                "allowed_ports": list(self.allowed_ports)
+                "allowed_ports": list(self.allowed_ports),
             },
             "process_privileges": {
                 "reduce_privileges": self.reduce_privileges,
-                "run_as_user": self.run_as_user
+                "run_as_user": self.run_as_user,
             },
             "timeout": {
                 "timeout": self.timeout,
-                "kill_on_timeout": self.kill_on_timeout
+                "kill_on_timeout": self.kill_on_timeout,
             },
             "command_validation": {
                 "allowed_commands": list(self.allowed_commands),
                 "denied_commands": list(self.denied_commands),
-                "validate_command_args": self.validate_command_args
-            }
+                "validate_command_args": self.validate_command_args,
+            },
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'SandboxPolicy':
+    def from_dict(cls, data: Dict[str, Any]) -> "SandboxPolicy":
         """Create a policy from a dictionary."""
         policy = cls()
 
@@ -271,7 +279,7 @@ class SandboxPolicy:
             cpu_limit=resource_limits.get("cpu_limit"),
             memory_limit=resource_limits.get("memory_limit"),
             file_size_limit=resource_limits.get("file_size_limit"),
-            process_count_limit=resource_limits.get("process_count_limit")
+            process_count_limit=resource_limits.get("process_count_limit"),
         )
 
         # Filesystem access
@@ -295,14 +303,14 @@ class SandboxPolicy:
         process_privileges = data.get("process_privileges", {})
         policy.set_privilege_reduction(
             enabled=process_privileges.get("reduce_privileges", True),
-            run_as_user=process_privileges.get("run_as_user")
+            run_as_user=process_privileges.get("run_as_user"),
         )
 
         # Timeout
         timeout = data.get("timeout", {})
         policy.set_timeout(
             timeout=timeout.get("timeout", 300),
-            kill_on_timeout=timeout.get("kill_on_timeout", True)
+            kill_on_timeout=timeout.get("kill_on_timeout", True),
         )
 
         # Command validation
@@ -311,7 +319,9 @@ class SandboxPolicy:
             policy.allow_command(command)
         for command in command_validation.get("denied_commands", []):
             policy.deny_command(command)
-        policy.validate_command_args = command_validation.get("validate_command_args", True)
+        policy.validate_command_args = command_validation.get(
+            "validate_command_args", True
+        )
 
         return policy
 
@@ -330,11 +340,15 @@ class SandboxedProcess:
     - Process monitoring
     """
 
-    def __init__(self, cmd: List[str], policy: SandboxPolicy,
-                 cwd: Optional[Union[str, Path]] = None,
-                 env: Optional[Dict[str, str]] = None,
-                 input_data: Optional[str] = None,
-                 process_id: Optional[str] = None):
+    def __init__(
+        self,
+        cmd: List[str],
+        policy: SandboxPolicy,
+        cwd: Optional[Union[str, Path]] = None,
+        env: Optional[Dict[str, str]] = None,
+        input_data: Optional[str] = None,
+        process_id: Optional[str] = None,
+    ):
         """Initialize a sandboxed process."""
         self.logger = get_logger()
         self.audit_logger = get_audit_logger()
@@ -383,7 +397,7 @@ class SandboxedProcess:
                 # Basic validation - check for suspicious patterns
                 for arg in self.cmd[1:]:
                     # Check for shell metacharacters that could be used for command injection
-                    if re.search(r'[;&|`$><]', arg):
+                    if re.search(r"[;&|`$><]", arg):
                         return False, f"Suspicious command argument: {arg}"
 
             return True, None
@@ -401,7 +415,7 @@ class SandboxedProcess:
         # Validate paths in command arguments
         for arg in self.cmd[1:]:
             # Check if argument looks like a file path
-            if os.path.sep in arg or arg.startswith('.'):
+            if os.path.sep in arg or arg.startswith("."):
                 path = os.path.abspath(os.path.join(self.cwd or os.getcwd(), arg))
 
                 # Check if path is allowed for reading
@@ -443,7 +457,10 @@ class SandboxedProcess:
             self.resource_manager.track_process(self.process.pid)
 
             # Set resource limits in the resource manager
-            if self.policy.cpu_limit is not None or self.policy.memory_limit is not None:
+            if (
+                self.policy.cpu_limit is not None
+                or self.policy.memory_limit is not None
+            ):
                 limits = {}
                 if self.policy.cpu_limit is not None:
                     limits["cpu"] = self.policy.cpu_limit
@@ -504,7 +521,10 @@ class SandboxedProcess:
                     usage = self.resource_manager.get_process_usage(self.process.pid)
 
                     # Check CPU usage
-                    if self.policy.cpu_limit is not None and usage.get("cpu", 0) > self.policy.cpu_limit:
+                    if (
+                        self.policy.cpu_limit is not None
+                        and usage.get("cpu", 0) > self.policy.cpu_limit
+                    ):
                         self.logger.warning(
                             f"Process {self.process_id} exceeded CPU limit: "
                             f"{usage.get('cpu', 0):.2f}% > {self.policy.cpu_limit:.2f}%"
@@ -516,11 +536,14 @@ class SandboxedProcess:
                             resource="cpu",
                             limit=self.policy.cpu_limit,
                             usage=usage.get("cpu", 0),
-                            action="warning"
+                            action="warning",
                         )
 
                     # Check memory usage
-                    if self.policy.memory_limit is not None and usage.get("memory", 0) > self.policy.memory_limit:
+                    if (
+                        self.policy.memory_limit is not None
+                        and usage.get("memory", 0) > self.policy.memory_limit
+                    ):
                         self.logger.warning(
                             f"Process {self.process_id} exceeded memory limit: "
                             f"{usage.get('memory', 0)} > {self.policy.memory_limit}"
@@ -532,14 +555,16 @@ class SandboxedProcess:
                             resource="memory",
                             limit=self.policy.memory_limit,
                             usage=usage.get("memory", 0),
-                            action="warning"
+                            action="warning",
                         )
 
                     # Sleep before next check
                     time.sleep(1.0)
 
                 except Exception as e:
-                    self.logger.error(f"Error monitoring process {self.process_id}: {str(e)}")
+                    self.logger.error(
+                        f"Error monitoring process {self.process_id}: {str(e)}"
+                    )
                     break
 
             self.logger.debug(f"Process monitor for {self.process_id} stopped")
@@ -552,20 +577,24 @@ class SandboxedProcess:
         if self.process is None:
             return
 
-        self.logger.debug(f"Starting timeout handler for {self.process_id} ({self.policy.timeout}s)")
+        self.logger.debug(
+            f"Starting timeout handler for {self.process_id} ({self.policy.timeout}s)"
+        )
 
         # Wait for the timeout
         timeout_occurred = not self._stop_event.wait(self.policy.timeout)
 
         if timeout_occurred and self.process.poll() is None:
-            self.logger.warning(f"Process {self.process_id} timed out after {self.policy.timeout}s")
+            self.logger.warning(
+                f"Process {self.process_id} timed out after {self.policy.timeout}s"
+            )
 
             # Log the timeout
             log_security_event(
                 "sandbox.timeout",
                 process_id=self.process_id,
                 timeout=self.policy.timeout,
-                action="terminating" if self.policy.kill_on_timeout else "warning"
+                action="terminating" if self.policy.kill_on_timeout else "warning",
             )
 
             if self.policy.kill_on_timeout:
@@ -586,7 +615,7 @@ class SandboxedProcess:
                 process_id=self.process_id,
                 command=self.cmd,
                 error=cmd_error,
-                action="blocked"
+                action="blocked",
             )
 
             return False
@@ -604,7 +633,7 @@ class SandboxedProcess:
                 process_id=self.process_id,
                 command=self.cmd,
                 error=path_error,
-                action="blocked"
+                action="blocked",
             )
 
             return False
@@ -623,7 +652,7 @@ class SandboxedProcess:
                 process_id=self.process_id,
                 command=self.cmd,
                 cwd=self.cwd,
-                policy=self.policy.to_dict()
+                policy=self.policy.to_dict(),
             )
 
             # Create the process
@@ -637,7 +666,7 @@ class SandboxedProcess:
                 text=True,
                 universal_newlines=True,
                 bufsize=1,  # Line buffered
-                shell=False  # Never use shell=True for security reasons
+                shell=False,  # Never use shell=True for security reasons
             )
 
             # Apply resource limits
@@ -656,7 +685,7 @@ class SandboxedProcess:
             self.monitor_thread = threading.Thread(
                 target=self._monitor_process,
                 daemon=True,
-                name=f"sandbox-monitor-{self.process_id}"
+                name=f"sandbox-monitor-{self.process_id}",
             )
             self.monitor_thread.start()
 
@@ -665,12 +694,14 @@ class SandboxedProcess:
                 self.timeout_thread = threading.Thread(
                     target=self._handle_timeout,
                     daemon=True,
-                    name=f"sandbox-timeout-{self.process_id}"
+                    name=f"sandbox-timeout-{self.process_id}",
                 )
                 self.timeout_thread.start()
 
             self.status = "running"
-            self.logger.info(f"Started sandboxed process {self.process_id} (PID: {self.process.pid})")
+            self.logger.info(
+                f"Started sandboxed process {self.process_id} (PID: {self.process.pid})"
+            )
 
             return True
 
@@ -685,7 +716,7 @@ class SandboxedProcess:
                 process_id=self.process_id,
                 command=self.cmd,
                 error=str(e),
-                action="failed"
+                action="failed",
             )
 
             return False
@@ -717,7 +748,7 @@ class SandboxedProcess:
                 process_id=self.process_id,
                 exit_code=exit_code,
                 duration=self.end_time - self.start_time if self.start_time else None,
-                action="completed"
+                action="completed",
             )
 
             self.logger.info(
@@ -728,7 +759,9 @@ class SandboxedProcess:
             return exit_code
 
         except subprocess.TimeoutExpired:
-            self.logger.warning(f"Timeout waiting for process {self.process_id} to complete")
+            self.logger.warning(
+                f"Timeout waiting for process {self.process_id} to complete"
+            )
             return None
 
         except Exception as e:
@@ -741,7 +774,7 @@ class SandboxedProcess:
                 "sandbox.process_error",
                 process_id=self.process_id,
                 error=str(e),
-                action="error"
+                action="error",
             )
 
             return -1
@@ -756,7 +789,7 @@ class SandboxedProcess:
             log_security_event(
                 "sandbox.process_terminate",
                 process_id=self.process_id,
-                action="terminating"
+                action="terminating",
             )
 
             # Stop monitoring
@@ -776,7 +809,9 @@ class SandboxedProcess:
                     "sandbox.process_end",
                     process_id=self.process_id,
                     action="terminated",
-                    duration=self.end_time - self.start_time if self.start_time else None
+                    duration=(
+                        self.end_time - self.start_time if self.start_time else None
+                    ),
                 )
 
                 self.logger.info(f"Terminated sandboxed process {self.process_id}")
@@ -793,10 +828,14 @@ class SandboxedProcess:
                     "sandbox.process_end",
                     process_id=self.process_id,
                     action="killed",
-                    duration=self.end_time - self.start_time if self.start_time else None
+                    duration=(
+                        self.end_time - self.start_time if self.start_time else None
+                    ),
                 )
 
-                self.logger.warning(f"Killed sandboxed process {self.process_id} after termination timeout")
+                self.logger.warning(
+                    f"Killed sandboxed process {self.process_id} after termination timeout"
+                )
                 return True
 
         except Exception as e:
@@ -809,7 +848,7 @@ class SandboxedProcess:
                 "sandbox.process_error",
                 process_id=self.process_id,
                 error=str(e),
-                action="error"
+                action="error",
             )
 
             return False
@@ -823,10 +862,14 @@ class SandboxedProcess:
             "exit_code": self.exit_code,
             "start_time": self.start_time,
             "end_time": self.end_time,
-            "duration": self.end_time - self.start_time if self.start_time and self.end_time else None,
+            "duration": (
+                self.end_time - self.start_time
+                if self.start_time and self.end_time
+                else None
+            ),
             "stdout": self.stdout_data,
             "stderr": self.stderr_data,
-            "error": self.error_message
+            "error": self.error_message,
         }
 
 
@@ -883,7 +926,7 @@ class ProcessSandbox:
         policy.set_resource_limits(
             cpu_limit=80.0,  # 80% CPU
             memory_limit=1024 * 1024 * 1024,  # 1 GB
-            process_count_limit=5
+            process_count_limit=5,
         )
 
         # Set timeout
@@ -927,13 +970,17 @@ class ProcessSandbox:
             self._default_policy = self._create_default_policy()
         return self._default_policy
 
-    def run_process(self, cmd: List[str], policy: Optional[SandboxPolicy] = None,
-                   cwd: Optional[Union[str, Path]] = None,
-                   env: Optional[Dict[str, str]] = None,
-                   input_data: Optional[str] = None,
-                   process_id: Optional[str] = None,
-                   wait: bool = True,
-                   timeout: Optional[float] = None) -> Union[Dict[str, Any], str]:
+    def run_process(
+        self,
+        cmd: List[str],
+        policy: Optional[SandboxPolicy] = None,
+        cwd: Optional[Union[str, Path]] = None,
+        env: Optional[Dict[str, str]] = None,
+        input_data: Optional[str] = None,
+        process_id: Optional[str] = None,
+        wait: bool = True,
+        timeout: Optional[float] = None,
+    ) -> Union[Dict[str, Any], str]:
         """Run a process in a sandbox."""
         # Use the provided policy or the default
         if policy is None:
@@ -946,7 +993,7 @@ class ProcessSandbox:
             cwd=cwd,
             env=env,
             input_data=input_data,
-            process_id=process_id
+            process_id=process_id,
         )
 
         # Start the process
@@ -977,7 +1024,9 @@ class ProcessSandbox:
         with self._process_lock:
             return self._processes.get(process_id)
 
-    def wait_process(self, process_id: str, timeout: Optional[float] = None) -> Optional[Dict[str, Any]]:
+    def wait_process(
+        self, process_id: str, timeout: Optional[float] = None
+    ) -> Optional[Dict[str, Any]]:
         """Wait for a sandboxed process to complete."""
         process = self.get_process(process_id)
         if process is None:
@@ -1034,13 +1083,16 @@ class ProcessSandbox:
     def get_process_list(self) -> List[Dict[str, Any]]:
         """Get a list of all sandboxed processes."""
         with self._process_lock:
-            return [{
-                "process_id": p.process_id,
-                "command": p.cmd,
-                "status": p.status,
-                "start_time": p.start_time,
-                "pid": p.process.pid if p.process else None
-            } for p in self._processes.values()]
+            return [
+                {
+                    "process_id": p.process_id,
+                    "command": p.cmd,
+                    "status": p.status,
+                    "start_time": p.start_time,
+                    "pid": p.process.pid if p.process else None,
+                }
+                for p in self._processes.values()
+            ]
 
     def cleanup(self) -> int:
         """Clean up completed processes."""
@@ -1088,6 +1140,7 @@ def get_process_sandbox() -> ProcessSandbox:
 
 # Module-level functions for convenience
 
+
 def create_sandbox_policy(name: str) -> SandboxPolicy:
     """
     Create a new sandbox policy.
@@ -1124,13 +1177,16 @@ def get_default_sandbox_policy() -> SandboxPolicy:
     return get_process_sandbox().get_default_policy()
 
 
-def run_sandboxed_process(cmd: List[str], policy: Optional[SandboxPolicy] = None,
-                        cwd: Optional[Union[str, Path]] = None,
-                        env: Optional[Dict[str, str]] = None,
-                        input_data: Optional[str] = None,
-                        process_id: Optional[str] = None,
-                        wait: bool = True,
-                        timeout: Optional[float] = None) -> Union[Dict[str, Any], str]:
+def run_sandboxed_process(
+    cmd: List[str],
+    policy: Optional[SandboxPolicy] = None,
+    cwd: Optional[Union[str, Path]] = None,
+    env: Optional[Dict[str, str]] = None,
+    input_data: Optional[str] = None,
+    process_id: Optional[str] = None,
+    wait: bool = True,
+    timeout: Optional[float] = None,
+) -> Union[Dict[str, Any], str]:
     """
     Run a process in a sandbox.
 
@@ -1153,7 +1209,9 @@ def run_sandboxed_process(cmd: List[str], policy: Optional[SandboxPolicy] = None
     )
 
 
-def wait_sandboxed_process(process_id: str, timeout: Optional[float] = None) -> Optional[Dict[str, Any]]:
+def wait_sandboxed_process(
+    process_id: str, timeout: Optional[float] = None
+) -> Optional[Dict[str, Any]]:
     """
     Wait for a sandboxed process to complete.
 

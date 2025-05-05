@@ -5,34 +5,40 @@ This module provides encryption and decryption functionality for media files
 and other sensitive data using AES-256 encryption.
 """
 
-import os
-import json
 import base64
-import hashlib
+import json
+import os
 import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Union, BinaryIO
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple, Union
 
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.hazmat.primitives import hashes, hmac
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-from pyprocessor.utils.logging.log_manager import get_logger
 from pyprocessor.utils.file_system.path_utils import (
-    normalize_path, ensure_dir_exists, get_user_data_dir
+    ensure_dir_exists,
+    get_user_data_dir,
+    normalize_path,
 )
+from pyprocessor.utils.logging.log_manager import get_logger
 
 
 class EncryptionKey:
     """Encryption key model."""
 
-    def __init__(self, key_id: str, key_data: bytes, created_at: float,
-                 expires_at: Optional[float] = None, description: str = None,
-                 metadata: Dict[str, Any] = None):
+    def __init__(
+        self,
+        key_id: str,
+        key_data: bytes,
+        created_at: float,
+        expires_at: Optional[float] = None,
+        description: str = None,
+        metadata: Dict[str, Any] = None,
+    ):
         """
         Initialize an encryption key.
 
@@ -107,20 +113,20 @@ class EncryptionManager:
             return
 
         # Update configuration from config object
-        if hasattr(config, 'encryption'):
+        if hasattr(config, "encryption"):
             encryption_config = config.encryption
 
             # Update key rotation interval
-            if hasattr(encryption_config, 'key_rotation_interval_days'):
+            if hasattr(encryption_config, "key_rotation_interval_days"):
                 days = encryption_config.key_rotation_interval_days
                 self.key_rotation_interval = days * 24 * 60 * 60
 
             # Update PBKDF2 iterations
-            if hasattr(encryption_config, 'pbkdf2_iterations'):
+            if hasattr(encryption_config, "pbkdf2_iterations"):
                 self.pbkdf2_iterations = encryption_config.pbkdf2_iterations
 
             # Update data directory
-            if hasattr(encryption_config, 'keys_dir'):
+            if hasattr(encryption_config, "keys_dir"):
                 self.data_dir = normalize_path(encryption_config.keys_dir)
                 self.keys_file = self.data_dir / "keys.json"
 
@@ -143,7 +149,9 @@ class EncryptionManager:
         self.logger.info("Encryption manager initialized with configuration")
 
     # Key management methods
-    def generate_key(self, description: str = None, expires_in: int = None) -> Tuple[bool, str, Dict[str, Any]]:
+    def generate_key(
+        self, description: str = None, expires_in: int = None
+    ) -> Tuple[bool, str, Dict[str, Any]]:
         """
         Generate a new encryption key.
 
@@ -176,7 +184,7 @@ class EncryptionManager:
                 created_at=time.time(),
                 expires_at=expires_at,
                 description=description,
-                metadata={}
+                metadata={},
             )
 
             # Store the key
@@ -190,11 +198,11 @@ class EncryptionManager:
 
             # Create metadata for return
             metadata = {
-                'id': key_id,
-                'created_at': key.created_at,
-                'expires_at': key.expires_at,
-                'description': key.description,
-                'is_default': key_id == self.default_key_id
+                "id": key_id,
+                "created_at": key.created_at,
+                "expires_at": key.expires_at,
+                "description": key.description,
+                "is_default": key_id == self.default_key_id,
             }
 
             return True, key_id, metadata
@@ -203,7 +211,9 @@ class EncryptionManager:
             self.logger.error(f"Error generating key: {str(e)}")
             return False, f"Error: {str(e)}", None
 
-    def derive_key_from_password(self, password: str, salt: Optional[bytes] = None) -> Tuple[bytes, bytes]:
+    def derive_key_from_password(
+        self, password: str, salt: Optional[bytes] = None
+    ) -> Tuple[bytes, bytes]:
         """
         Derive an encryption key from a password.
 
@@ -227,11 +237,11 @@ class EncryptionManager:
                 length=32,  # 32 bytes = 256 bits for AES-256
                 salt=salt,
                 iterations=self.pbkdf2_iterations,
-                backend=default_backend()
+                backend=default_backend(),
             )
 
             # Derive key
-            key = kdf.derive(password.encode('utf-8'))
+            key = kdf.derive(password.encode("utf-8"))
 
             return key, salt
 
@@ -309,11 +319,11 @@ class EncryptionManager:
 
                 # Create metadata
                 metadata = {
-                    'id': key_id,
-                    'created_at': key.created_at,
-                    'expires_at': key.expires_at,
-                    'description': key.description,
-                    'is_default': key_id == self.default_key_id
+                    "id": key_id,
+                    "created_at": key.created_at,
+                    "expires_at": key.expires_at,
+                    "description": key.description,
+                    "is_default": key_id == self.default_key_id,
                 }
 
                 result.append(metadata)
@@ -324,7 +334,9 @@ class EncryptionManager:
             self.logger.error(f"Error listing keys: {str(e)}")
             return []
 
-    def rotate_key(self, old_key_id: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+    def rotate_key(
+        self, old_key_id: str
+    ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
         Rotate an encryption key.
 
@@ -346,7 +358,7 @@ class EncryptionManager:
             # Generate a new key with the same description
             success, new_key_id, metadata = self.generate_key(
                 description=f"Rotated from {old_key_id}: {old_key.description}",
-                expires_in=None  # No expiration for rotated keys
+                expires_in=None,  # No expiration for rotated keys
             )
 
             if not success:
@@ -358,8 +370,8 @@ class EncryptionManager:
                 self._save_keys()
 
             # Mark the old key as rotated in its metadata
-            old_key.metadata['rotated_to'] = new_key_id
-            old_key.metadata['rotated_at'] = time.time()
+            old_key.metadata["rotated_to"] = new_key_id
+            old_key.metadata["rotated_at"] = time.time()
 
             # If we want to keep the old key for a while (for decryption of existing data)
             # we can set an expiration time
@@ -410,7 +422,9 @@ class EncryptionManager:
             return False
 
     # Encryption/decryption methods
-    def encrypt_data(self, data: bytes, key_id: Optional[str] = None) -> Tuple[bool, bytes, Dict[str, Any]]:
+    def encrypt_data(
+        self, data: bytes, key_id: Optional[str] = None
+    ) -> Tuple[bool, bytes, Dict[str, Any]]:
         """
         Encrypt data using AES-256.
 
@@ -443,9 +457,7 @@ class EncryptionManager:
 
             # Create AES cipher
             cipher = Cipher(
-                algorithms.AES(key.key_data),
-                modes.CBC(iv),
-                backend=default_backend()
+                algorithms.AES(key.key_data), modes.CBC(iv), backend=default_backend()
             )
 
             # Create encryptor
@@ -462,10 +474,10 @@ class EncryptionManager:
 
             # Create metadata
             metadata = {
-                'key_id': key_id,
-                'algorithm': 'AES-256-CBC',
-                'iv': base64.b64encode(iv).decode('utf-8'),
-                'created_at': time.time()
+                "key_id": key_id,
+                "algorithm": "AES-256-CBC",
+                "iv": base64.b64encode(iv).decode("utf-8"),
+                "created_at": time.time(),
             }
 
             return True, encrypted_data, metadata
@@ -474,7 +486,9 @@ class EncryptionManager:
             self.logger.error(f"Error encrypting data: {str(e)}")
             return False, b"", {}
 
-    def decrypt_data(self, encrypted_data: bytes, metadata: Dict[str, Any]) -> Tuple[bool, bytes]:
+    def decrypt_data(
+        self, encrypted_data: bytes, metadata: Dict[str, Any]
+    ) -> Tuple[bool, bytes]:
         """
         Decrypt data using AES-256.
 
@@ -489,9 +503,9 @@ class EncryptionManager:
         """
         try:
             # Get required metadata
-            key_id = metadata.get('key_id')
-            algorithm = metadata.get('algorithm')
-            iv_base64 = metadata.get('iv')
+            key_id = metadata.get("key_id")
+            algorithm = metadata.get("algorithm")
+            iv_base64 = metadata.get("iv")
 
             # Validate metadata
             if not all([key_id, algorithm, iv_base64]):
@@ -499,7 +513,7 @@ class EncryptionManager:
                 return False, b""
 
             # Check algorithm
-            if algorithm != 'AES-256-CBC':
+            if algorithm != "AES-256-CBC":
                 self.logger.error(f"Unsupported encryption algorithm: {algorithm}")
                 return False, b""
 
@@ -514,9 +528,7 @@ class EncryptionManager:
 
             # Create AES cipher
             cipher = Cipher(
-                algorithms.AES(key.key_data),
-                modes.CBC(iv),
-                backend=default_backend()
+                algorithms.AES(key.key_data), modes.CBC(iv), backend=default_backend()
             )
 
             # Create decryptor
@@ -537,8 +549,13 @@ class EncryptionManager:
             self.logger.error(f"Error decrypting data: {str(e)}")
             return False, b""
 
-    def encrypt_file(self, input_path: Union[str, Path], output_path: Optional[Union[str, Path]] = None,
-                    key_id: Optional[str] = None, chunk_size: int = 1024 * 1024) -> Tuple[bool, Optional[Path], Dict[str, Any]]:
+    def encrypt_file(
+        self,
+        input_path: Union[str, Path],
+        output_path: Optional[Union[str, Path]] = None,
+        key_id: Optional[str] = None,
+        chunk_size: int = 1024 * 1024,
+    ) -> Tuple[bool, Optional[Path], Dict[str, Any]]:
         """
         Encrypt a file using AES-256.
 
@@ -565,7 +582,7 @@ class EncryptionManager:
 
             # Set default output path if not provided
             if output_path is None:
-                output_path = input_path.with_suffix(input_path.suffix + '.enc')
+                output_path = input_path.with_suffix(input_path.suffix + ".enc")
             else:
                 output_path = normalize_path(output_path)
 
@@ -590,9 +607,7 @@ class EncryptionManager:
 
             # Create AES cipher
             cipher = Cipher(
-                algorithms.AES(key.key_data),
-                modes.CBC(iv),
-                backend=default_backend()
+                algorithms.AES(key.key_data), modes.CBC(iv), backend=default_backend()
             )
 
             # Create encryptor
@@ -603,20 +618,20 @@ class EncryptionManager:
 
             # Create metadata
             metadata = {
-                'key_id': key_id,
-                'algorithm': 'AES-256-CBC',
-                'iv': base64.b64encode(iv).decode('utf-8'),
-                'created_at': time.time(),
-                'original_filename': input_path.name,
-                'original_size': input_path.stat().st_size
+                "key_id": key_id,
+                "algorithm": "AES-256-CBC",
+                "iv": base64.b64encode(iv).decode("utf-8"),
+                "created_at": time.time(),
+                "original_filename": input_path.name,
+                "original_size": input_path.stat().st_size,
             }
 
             # Write metadata and encrypted data to output file
-            with open(input_path, 'rb') as in_file, open(output_path, 'wb') as out_file:
+            with open(input_path, "rb") as in_file, open(output_path, "wb") as out_file:
                 # Write metadata as JSON header (with size prefix)
-                metadata_json = json.dumps(metadata).encode('utf-8')
+                metadata_json = json.dumps(metadata).encode("utf-8")
                 metadata_size = len(metadata_json)
-                out_file.write(metadata_size.to_bytes(4, byteorder='big'))
+                out_file.write(metadata_size.to_bytes(4, byteorder="big"))
                 out_file.write(metadata_json)
 
                 # Process file in chunks
@@ -647,8 +662,13 @@ class EncryptionManager:
             self.logger.error(f"Error encrypting file {input_path}: {str(e)}")
             return False, None, {}
 
-    def decrypt_file(self, input_path: Union[str, Path], output_path: Optional[Union[str, Path]] = None,
-                    metadata: Optional[Dict[str, Any]] = None, chunk_size: int = 1024 * 1024) -> Tuple[bool, Optional[Path]]:
+    def decrypt_file(
+        self,
+        input_path: Union[str, Path],
+        output_path: Optional[Union[str, Path]] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        chunk_size: int = 1024 * 1024,
+    ) -> Tuple[bool, Optional[Path]]:
         """
         Decrypt a file using AES-256.
 
@@ -674,35 +694,39 @@ class EncryptionManager:
 
             # Read metadata from file if not provided
             if metadata is None:
-                with open(input_path, 'rb') as in_file:
+                with open(input_path, "rb") as in_file:
                     # Read metadata size (4 bytes)
                     metadata_size_bytes = in_file.read(4)
                     if len(metadata_size_bytes) != 4:
-                        self.logger.error(f"Invalid encrypted file format: {input_path}")
+                        self.logger.error(
+                            f"Invalid encrypted file format: {input_path}"
+                        )
                         return False, None
 
-                    metadata_size = int.from_bytes(metadata_size_bytes, byteorder='big')
+                    metadata_size = int.from_bytes(metadata_size_bytes, byteorder="big")
 
                     # Read metadata JSON
                     metadata_json = in_file.read(metadata_size)
                     if len(metadata_json) != metadata_size:
-                        self.logger.error(f"Invalid encrypted file format: {input_path}")
+                        self.logger.error(
+                            f"Invalid encrypted file format: {input_path}"
+                        )
                         return False, None
 
-                    metadata = json.loads(metadata_json.decode('utf-8'))
+                    metadata = json.loads(metadata_json.decode("utf-8"))
 
             # Set default output path if not provided
             if output_path is None:
                 # Use original filename from metadata if available
-                original_filename = metadata.get('original_filename')
+                original_filename = metadata.get("original_filename")
                 if original_filename:
                     output_path = input_path.parent / original_filename
                 else:
                     # Remove .enc suffix if present
-                    if input_path.suffix == '.enc':
-                        output_path = input_path.with_suffix('')
+                    if input_path.suffix == ".enc":
+                        output_path = input_path.with_suffix("")
                     else:
-                        output_path = input_path.with_suffix(input_path.suffix + '.dec')
+                        output_path = input_path.with_suffix(input_path.suffix + ".dec")
             else:
                 output_path = normalize_path(output_path)
 
@@ -710,9 +734,9 @@ class EncryptionManager:
             ensure_dir_exists(output_path.parent)
 
             # Get required metadata
-            key_id = metadata.get('key_id')
-            algorithm = metadata.get('algorithm')
-            iv_base64 = metadata.get('iv')
+            key_id = metadata.get("key_id")
+            algorithm = metadata.get("algorithm")
+            iv_base64 = metadata.get("iv")
 
             # Validate metadata
             if not all([key_id, algorithm, iv_base64]):
@@ -720,7 +744,7 @@ class EncryptionManager:
                 return False, None
 
             # Check algorithm
-            if algorithm != 'AES-256-CBC':
+            if algorithm != "AES-256-CBC":
                 self.logger.error(f"Unsupported encryption algorithm: {algorithm}")
                 return False, None
 
@@ -735,9 +759,7 @@ class EncryptionManager:
 
             # Create AES cipher
             cipher = Cipher(
-                algorithms.AES(key.key_data),
-                modes.CBC(iv),
-                backend=default_backend()
+                algorithms.AES(key.key_data), modes.CBC(iv), backend=default_backend()
             )
 
             # Create decryptor
@@ -747,10 +769,10 @@ class EncryptionManager:
             unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
 
             # Decrypt file
-            with open(input_path, 'rb') as in_file, open(output_path, 'wb') as out_file:
+            with open(input_path, "rb") as in_file, open(output_path, "wb") as out_file:
                 # Skip metadata
                 metadata_size_bytes = in_file.read(4)
-                metadata_size = int.from_bytes(metadata_size_bytes, byteorder='big')
+                metadata_size = int.from_bytes(metadata_size_bytes, byteorder="big")
                 in_file.read(metadata_size)  # Skip metadata JSON
 
                 # Process file in chunks
@@ -765,7 +787,9 @@ class EncryptionManager:
                     # For the last chunk, we need to unpad
                     if len(chunk) < chunk_size:
                         try:
-                            unpadded_chunk = unpadder.update(decrypted_chunk) + unpadder.finalize()
+                            unpadded_chunk = (
+                                unpadder.update(decrypted_chunk) + unpadder.finalize()
+                            )
                         except Exception as e:
                             self.logger.error(f"Error unpadding data: {str(e)}")
                             return False, None
@@ -795,8 +819,13 @@ class EncryptionManager:
             self.logger.error(f"Error decrypting file {input_path}: {str(e)}")
             return False, None
 
-    def encrypt_stream(self, input_stream: BinaryIO, output_stream: BinaryIO,
-                      key_id: Optional[str] = None, chunk_size: int = 1024 * 1024) -> Tuple[bool, Dict[str, Any]]:
+    def encrypt_stream(
+        self,
+        input_stream: BinaryIO,
+        output_stream: BinaryIO,
+        key_id: Optional[str] = None,
+        chunk_size: int = 1024 * 1024,
+    ) -> Tuple[bool, Dict[str, Any]]:
         """
         Encrypt a stream using AES-256.
 
@@ -814,8 +843,13 @@ class EncryptionManager:
         # TODO: Implement stream encryption
         return False, {}
 
-    def decrypt_stream(self, input_stream: BinaryIO, output_stream: BinaryIO,
-                      metadata: Dict[str, Any], chunk_size: int = 1024 * 1024) -> bool:
+    def decrypt_stream(
+        self,
+        input_stream: BinaryIO,
+        output_stream: BinaryIO,
+        metadata: Dict[str, Any],
+        chunk_size: int = 1024 * 1024,
+    ) -> bool:
         """
         Decrypt a stream using AES-256.
 
@@ -857,20 +891,18 @@ class EncryptionManager:
 
             # Create export data
             export_data = {
-                'id': key.id,
-                'created_at': key.created_at,
-                'expires_at': key.expires_at,
-                'description': key.description,
-                'metadata': key.metadata,
-                'salt': base64.b64encode(salt).decode('utf-8')
+                "id": key.id,
+                "created_at": key.created_at,
+                "expires_at": key.expires_at,
+                "description": key.description,
+                "metadata": key.metadata,
+                "salt": base64.b64encode(salt).decode("utf-8"),
             }
 
             # Encrypt the key data
             iv = os.urandom(16)
             cipher = Cipher(
-                algorithms.AES(derived_key),
-                modes.CBC(iv),
-                backend=default_backend()
+                algorithms.AES(derived_key), modes.CBC(iv), backend=default_backend()
             )
             encryptor = cipher.encryptor()
 
@@ -882,12 +914,14 @@ class EncryptionManager:
             encrypted_key_data = encryptor.update(padded_data) + encryptor.finalize()
 
             # Add encrypted key data and IV to export data
-            export_data['key_data'] = base64.b64encode(encrypted_key_data).decode('utf-8')
-            export_data['iv'] = base64.b64encode(iv).decode('utf-8')
+            export_data["key_data"] = base64.b64encode(encrypted_key_data).decode(
+                "utf-8"
+            )
+            export_data["iv"] = base64.b64encode(iv).decode("utf-8")
 
             # Serialize to JSON and encode in base64
             json_data = json.dumps(export_data)
-            encoded_data = base64.b64encode(json_data.encode('utf-8')).decode('utf-8')
+            encoded_data = base64.b64encode(json_data.encode("utf-8")).decode("utf-8")
 
             # Format as a portable string
             portable_key = f"PYPROC_KEY_{encoded_data}"
@@ -898,7 +932,9 @@ class EncryptionManager:
             self.logger.error(f"Error exporting key {key_id}: {str(e)}")
             return False, f"Error: {str(e)}"
 
-    def import_key(self, key_data: str, passphrase: str) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
+    def import_key(
+        self, key_data: str, passphrase: str
+    ) -> Tuple[bool, Optional[str], Optional[Dict[str, Any]]]:
         """
         Import an encryption key.
 
@@ -918,19 +954,19 @@ class EncryptionManager:
                 return False, "Invalid key format", None
 
             # Decode the data
-            encoded_data = key_data[len("PYPROC_KEY_"):]
-            json_data = base64.b64decode(encoded_data).decode('utf-8')
+            encoded_data = key_data[len("PYPROC_KEY_") :]
+            json_data = base64.b64decode(encoded_data).decode("utf-8")
             export_data = json.loads(json_data)
 
             # Extract data
-            key_id = export_data['id']
-            created_at = export_data['created_at']
-            expires_at = export_data.get('expires_at')
-            description = export_data.get('description')
-            metadata = export_data.get('metadata', {})
-            salt_base64 = export_data['salt']
-            encrypted_key_data_base64 = export_data['key_data']
-            iv_base64 = export_data['iv']
+            key_id = export_data["id"]
+            created_at = export_data["created_at"]
+            expires_at = export_data.get("expires_at")
+            description = export_data.get("description")
+            metadata = export_data.get("metadata", {})
+            salt_base64 = export_data["salt"]
+            encrypted_key_data_base64 = export_data["key_data"]
+            iv_base64 = export_data["iv"]
 
             # Decode binary data
             salt = base64.b64decode(salt_base64)
@@ -942,14 +978,14 @@ class EncryptionManager:
 
             # Decrypt the key data
             cipher = Cipher(
-                algorithms.AES(derived_key),
-                modes.CBC(iv),
-                backend=default_backend()
+                algorithms.AES(derived_key), modes.CBC(iv), backend=default_backend()
             )
             decryptor = cipher.decryptor()
 
             # Decrypt and unpad
-            padded_key_data = decryptor.update(encrypted_key_data) + decryptor.finalize()
+            padded_key_data = (
+                decryptor.update(encrypted_key_data) + decryptor.finalize()
+            )
             unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
             key_data_bytes = unpadder.update(padded_key_data) + unpadder.finalize()
 
@@ -960,7 +996,7 @@ class EncryptionManager:
                 created_at=created_at,
                 expires_at=expires_at,
                 description=description,
-                metadata=metadata
+                metadata=metadata,
             )
 
             # Store the key
@@ -969,11 +1005,11 @@ class EncryptionManager:
 
             # Create metadata for return
             return_metadata = {
-                'id': key_id,
-                'created_at': created_at,
-                'expires_at': expires_at,
-                'description': description,
-                'is_default': key_id == self.default_key_id
+                "id": key_id,
+                "created_at": created_at,
+                "expires_at": expires_at,
+                "description": description,
+                "is_default": key_id == self.default_key_id,
             }
 
             return True, key_id, return_metadata
@@ -981,7 +1017,6 @@ class EncryptionManager:
         except Exception as e:
             self.logger.error(f"Error importing key: {str(e)}")
             return False, f"Error: {str(e)}", None
-
 
     def _load_keys(self):
         """
@@ -992,30 +1027,30 @@ class EncryptionManager:
                 self.logger.debug("Keys file does not exist, no keys to load")
                 return
 
-            with open(self.keys_file, 'r') as f:
+            with open(self.keys_file, "r") as f:
                 keys_data = json.load(f)
 
             # Process each key
             for key_id, key_data in keys_data.items():
                 try:
                     # Decode key data
-                    raw_key = base64.b64decode(key_data['key_data'])
+                    raw_key = base64.b64decode(key_data["key_data"])
 
                     # Create key object
                     key = EncryptionKey(
                         key_id=key_id,
                         key_data=raw_key,
-                        created_at=key_data['created_at'],
-                        expires_at=key_data.get('expires_at'),
-                        description=key_data.get('description'),
-                        metadata=key_data.get('metadata', {})
+                        created_at=key_data["created_at"],
+                        expires_at=key_data.get("expires_at"),
+                        description=key_data.get("description"),
+                        metadata=key_data.get("metadata", {}),
                     )
 
                     # Add to keys dictionary
                     self.keys[key_id] = key
 
                     # Set as default if marked
-                    if key_data.get('is_default', False):
+                    if key_data.get("is_default", False):
                         self.default_key_id = key_id
 
                 except Exception as e:
@@ -1036,24 +1071,24 @@ class EncryptionManager:
 
             for key_id, key in self.keys.items():
                 # Encode key data
-                encoded_key = base64.b64encode(key.key_data).decode('utf-8')
+                encoded_key = base64.b64encode(key.key_data).decode("utf-8")
 
                 # Create serializable key data
                 key_data = {
-                    'key_data': encoded_key,
-                    'created_at': key.created_at,
-                    'is_default': key_id == self.default_key_id
+                    "key_data": encoded_key,
+                    "created_at": key.created_at,
+                    "is_default": key_id == self.default_key_id,
                 }
 
                 # Add optional fields
                 if key.expires_at is not None:
-                    key_data['expires_at'] = key.expires_at
+                    key_data["expires_at"] = key.expires_at
 
                 if key.description is not None:
-                    key_data['description'] = key.description
+                    key_data["description"] = key.description
 
                 if key.metadata:
-                    key_data['metadata'] = key.metadata
+                    key_data["metadata"] = key.metadata
 
                 keys_data[key_id] = key_data
 
@@ -1061,7 +1096,7 @@ class EncryptionManager:
             ensure_dir_exists(self.data_dir)
 
             # Write to file
-            with open(self.keys_file, 'w') as f:
+            with open(self.keys_file, "w") as f:
                 json.dump(keys_data, f, indent=2)
 
             self.logger.debug(f"Saved {len(self.keys)} encryption keys")

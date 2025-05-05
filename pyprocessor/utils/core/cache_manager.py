@@ -8,22 +8,22 @@ This module provides a centralized way to cache data, including:
 - Cache statistics
 """
 
-import os
-import time
+import hashlib
 import json
 import pickle
-import hashlib
 import threading
+import time
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, Callable
+from typing import Any, Dict, List, Optional, Union
 
 from pyprocessor.utils.log_manager import get_logger
-from pyprocessor.utils.path_manager import get_user_cache_dir, ensure_dir_exists
+from pyprocessor.utils.path_manager import ensure_dir_exists, get_user_cache_dir
 
 
 class CacheBackend(Enum):
     """Cache backend types."""
+
     MEMORY = "memory"
     DISK = "disk"
     MULTI = "multi"  # Multi-level cache (memory + disk)
@@ -35,6 +35,7 @@ class CacheBackend(Enum):
 
 class CachePolicy(Enum):
     """Cache eviction policy types."""
+
     LRU = "lru"  # Least Recently Used
     MRU = "mru"  # Most Recently Used
     FIFO = "fifo"  # First In First Out
@@ -43,6 +44,7 @@ class CachePolicy(Enum):
 
 class TTLStrategy(Enum):
     """TTL strategy types."""
+
     FIXED = "fixed"  # Fixed TTL from creation time
     SLIDING = "sliding"  # TTL resets on each access
 
@@ -50,8 +52,13 @@ class TTLStrategy(Enum):
 class CacheEntry:
     """A cache entry with metadata."""
 
-    def __init__(self, key: str, value: Any, ttl: Optional[int] = None,
-                 ttl_strategy: TTLStrategy = TTLStrategy.FIXED):
+    def __init__(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[int] = None,
+        ttl_strategy: TTLStrategy = TTLStrategy.FIXED,
+    ):
         """
         Initialize a cache entry.
 
@@ -75,6 +82,7 @@ class CacheEntry:
         try:
             # Try to get the size using sys.getsizeof
             import sys
+
             return sys.getsizeof(value)
         except (ImportError, TypeError):
             # Fallback to a rough estimate based on pickle size
@@ -149,10 +157,14 @@ class CacheManager:
                 cls._instance._initialized = False
             return cls._instance
 
-    def __init__(self, max_memory_size: int = 1000, max_disk_size: int = 1024 * 1024 * 100,
-                 eviction_policy: CachePolicy = CachePolicy.LRU,
-                 default_ttl_strategy: TTLStrategy = TTLStrategy.FIXED,
-                 auto_adjust_sizes: bool = True):
+    def __init__(
+        self,
+        max_memory_size: int = 1000,
+        max_disk_size: int = 1024 * 1024 * 100,
+        eviction_policy: CachePolicy = CachePolicy.LRU,
+        default_ttl_strategy: TTLStrategy = TTLStrategy.FIXED,
+        auto_adjust_sizes: bool = True,
+    ):
         """
         Initialize the cache manager.
 
@@ -164,7 +176,7 @@ class CacheManager:
             auto_adjust_sizes: Whether to automatically adjust cache sizes based on system resources
         """
         # Only initialize once
-        if getattr(self, '_initialized', False):
+        if getattr(self, "_initialized", False):
             return
 
         # Get logger
@@ -255,7 +267,9 @@ class CacheManager:
         """
         return pickle.loads(data)
 
-    def get(self, key: str, default: Any = None, backend: CacheBackend = CacheBackend.MEMORY) -> Any:
+    def get(
+        self, key: str, default: Any = None, backend: CacheBackend = CacheBackend.MEMORY
+    ) -> Any:
         """
         Get a value from the cache.
 
@@ -303,7 +317,9 @@ class CacheManager:
 
                     # Check if expired
                     if metadata.get("ttl") is not None:
-                        if (time.time() - metadata.get("created_at", 0)) > metadata["ttl"]:
+                        if (time.time() - metadata.get("created_at", 0)) > metadata[
+                            "ttl"
+                        ]:
                             self.delete(key, backend)
                             self._stats["disk_misses"] += 1
                             return default
@@ -348,9 +364,14 @@ class CacheManager:
 
         return default
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None,
-            backend: CacheBackend = CacheBackend.MEMORY,
-            ttl_strategy: Optional[TTLStrategy] = None) -> None:
+    def set(
+        self,
+        key: str,
+        value: Any,
+        ttl: Optional[int] = None,
+        backend: CacheBackend = CacheBackend.MEMORY,
+        ttl_strategy: Optional[TTLStrategy] = None,
+    ) -> None:
         """
         Set a value in the cache.
 
@@ -367,7 +388,10 @@ class CacheManager:
 
         if backend == CacheBackend.MEMORY:
             # Check if we need to evict
-            if len(self._memory_cache) >= self.max_memory_size and key not in self._memory_cache:
+            if (
+                len(self._memory_cache) >= self.max_memory_size
+                and key not in self._memory_cache
+            ):
                 self._evict_memory_cache()
 
             # Set in memory cache
@@ -389,7 +413,7 @@ class CacheManager:
                     "last_accessed": time.time(),
                     "ttl": ttl,
                     "ttl_strategy": ttl_strategy.value if ttl_strategy else None,
-                    "access_count": 0
+                    "access_count": 0,
                 }
 
                 # Serialize data
@@ -476,13 +500,21 @@ class CacheManager:
         Args:
             backend: Cache backend to clear (None for all)
         """
-        if backend is None or backend == CacheBackend.MEMORY or backend == CacheBackend.MULTI:
+        if (
+            backend is None
+            or backend == CacheBackend.MEMORY
+            or backend == CacheBackend.MULTI
+        ):
             # Clear memory cache
             self._memory_cache.clear()
             self.current_memory_size = 0
             self.logger.debug("Memory cache cleared")
 
-        if backend is None or backend == CacheBackend.DISK or backend == CacheBackend.MULTI:
+        if (
+            backend is None
+            or backend == CacheBackend.DISK
+            or backend == CacheBackend.MULTI
+        ):
             # Clear disk cache
             try:
                 for cache_file in self.cache_dir.glob("*.cache"):
@@ -560,22 +592,26 @@ class CacheManager:
                         metadata_bytes = f.read(metadata_size)
                         metadata = json.loads(metadata_bytes.decode())
 
-                    file_stats.append({
-                        "path": cache_file,
-                        "size": cache_file.stat().st_size,
-                        "last_accessed": metadata.get("last_accessed", 0),
-                        "created_at": metadata.get("created_at", 0),
-                        "access_count": metadata.get("access_count", 0)
-                    })
+                    file_stats.append(
+                        {
+                            "path": cache_file,
+                            "size": cache_file.stat().st_size,
+                            "last_accessed": metadata.get("last_accessed", 0),
+                            "created_at": metadata.get("created_at", 0),
+                            "access_count": metadata.get("access_count", 0),
+                        }
+                    )
                 except Exception:
                     # If we can't read metadata, assume old
-                    file_stats.append({
-                        "path": cache_file,
-                        "size": cache_file.stat().st_size,
-                        "last_accessed": 0,
-                        "created_at": 0,
-                        "access_count": 0
-                    })
+                    file_stats.append(
+                        {
+                            "path": cache_file,
+                            "size": cache_file.stat().st_size,
+                            "last_accessed": 0,
+                            "created_at": 0,
+                            "access_count": 0,
+                        }
+                    )
 
             # Sort based on eviction policy
             if self.eviction_policy == CachePolicy.LRU:
@@ -659,21 +695,31 @@ class CacheManager:
             available_memory = mem.available
 
             # Adjust memory cache size (use up to 5% of available memory)
-            max_memory_items = int((available_memory * 0.05) / 1024)  # Rough estimate: 1KB per item
-            self.max_memory_size = max(1000, min(max_memory_items, 100000))  # Between 1K and 100K items
+            max_memory_items = int(
+                (available_memory * 0.05) / 1024
+            )  # Rough estimate: 1KB per item
+            self.max_memory_size = max(
+                1000, min(max_memory_items, 100000)
+            )  # Between 1K and 100K items
 
             # Adjust disk cache size (use up to 1% of free disk space)
             disk = psutil.disk_usage(self.cache_dir)
             free_disk = disk.free
-            self.max_disk_size = max(100 * 1024 * 1024, min(free_disk * 0.01, 10 * 1024 * 1024 * 1024))  # Between 100MB and 10GB
+            self.max_disk_size = max(
+                100 * 1024 * 1024, min(free_disk * 0.01, 10 * 1024 * 1024 * 1024)
+            )  # Between 100MB and 10GB
 
-            self.logger.debug(f"Adjusted cache sizes: memory={self.max_memory_size} items, disk={self.max_disk_size/1024/1024:.1f}MB")
+            self.logger.debug(
+                f"Adjusted cache sizes: memory={self.max_memory_size} items, disk={self.max_disk_size/1024/1024:.1f}MB"
+            )
         except ImportError:
             self.logger.warning("psutil not available, using default cache sizes")
         except Exception as e:
             self.logger.error(f"Error adjusting cache sizes: {str(e)}")
 
-    def preload_frequently_accessed(self, min_access_count: int = 5, max_items: int = 100) -> int:
+    def preload_frequently_accessed(
+        self, min_access_count: int = 5, max_items: int = 100
+    ) -> int:
         """
         Preload frequently accessed items into memory cache.
 
@@ -685,8 +731,12 @@ class CacheManager:
             int: Number of items preloaded
         """
         # Get frequently accessed items
-        frequent_items = [(k, v) for k, v in self._access_frequency.items() if v >= min_access_count]
-        frequent_items.sort(key=lambda x: x[1], reverse=True)  # Sort by access count (highest first)
+        frequent_items = [
+            (k, v) for k, v in self._access_frequency.items() if v >= min_access_count
+        ]
+        frequent_items.sort(
+            key=lambda x: x[1], reverse=True
+        )  # Sort by access count (highest first)
         frequent_items = frequent_items[:max_items]  # Limit to max_items
 
         # Preload items
@@ -734,7 +784,9 @@ class CacheManager:
             return
 
         self._file_watcher_running = True
-        self._file_watcher_thread = threading.Thread(target=self._file_watcher_loop, daemon=True)
+        self._file_watcher_thread = threading.Thread(
+            target=self._file_watcher_loop, daemon=True
+        )
         self._file_watcher_thread.start()
 
     def _file_watcher_loop(self) -> None:
@@ -783,7 +835,9 @@ class CacheManager:
         for key in keys_to_invalidate:
             self.delete(key, CacheBackend.MULTI)
 
-        self.logger.debug(f"Invalidated {len(keys_to_invalidate)} cache entries for file: {file_path}")
+        self.logger.debug(
+            f"Invalidated {len(keys_to_invalidate)} cache entries for file: {file_path}"
+        )
 
     def stop_file_watcher(self) -> None:
         """
@@ -814,7 +868,10 @@ def get_cache_manager() -> CacheManager:
 
 # Module-level functions for convenience
 
-def cache_get(key: str, default: Any = None, backend: CacheBackend = CacheBackend.MEMORY) -> Any:
+
+def cache_get(
+    key: str, default: Any = None, backend: CacheBackend = CacheBackend.MEMORY
+) -> Any:
     """
     Get a value from the cache.
 
@@ -829,9 +886,13 @@ def cache_get(key: str, default: Any = None, backend: CacheBackend = CacheBacken
     return get_cache_manager().get(key, default, backend)
 
 
-def cache_set(key: str, value: Any, ttl: Optional[int] = None,
-             backend: CacheBackend = CacheBackend.MEMORY,
-             ttl_strategy: Optional[TTLStrategy] = None) -> None:
+def cache_set(
+    key: str,
+    value: Any,
+    ttl: Optional[int] = None,
+    backend: CacheBackend = CacheBackend.MEMORY,
+    ttl_strategy: Optional[TTLStrategy] = None,
+) -> None:
     """
     Set a value in the cache.
 
@@ -919,9 +980,12 @@ def stop_file_watcher() -> None:
 
 
 # Decorator for caching function results
-def cached(ttl: Optional[int] = None, key_prefix: str = "",
-          backend: CacheBackend = CacheBackend.MEMORY,
-          ttl_strategy: Optional[TTLStrategy] = None):
+def cached(
+    ttl: Optional[int] = None,
+    key_prefix: str = "",
+    backend: CacheBackend = CacheBackend.MEMORY,
+    ttl_strategy: Optional[TTLStrategy] = None,
+):
     """
     Decorator for caching function results.
 
@@ -933,6 +997,7 @@ def cached(ttl: Optional[int] = None, key_prefix: str = "",
     Returns:
         Callable: Decorated function
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             # Create a cache key from the function name and arguments
@@ -960,5 +1025,7 @@ def cached(ttl: Optional[int] = None, key_prefix: str = "",
             cache_set(cache_key, result, ttl, backend, ttl_strategy)
 
             return result
+
         return wrapper
+
     return decorator

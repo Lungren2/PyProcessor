@@ -5,31 +5,35 @@ This module provides a singleton file manager that can be used throughout the ap
 It ensures consistent file handling and operations across all modules.
 """
 
-import os
-import re
 import csv
 import json
+import mimetypes
+import os
+import re
 import shutil
-import zipfile
 import tarfile
 import threading
-import mimetypes
+import zipfile
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union, Iterator
-from contextlib import contextmanager
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
+from pyprocessor.utils.core.validation_manager import (
+    validate_path,
+    validate_regex,
+    validate_string,
+)
 from pyprocessor.utils.file_system.path_manager import (
-    normalize_path,
+    copy_file,
     ensure_dir_exists,
     list_files,
-    copy_file,
     move_file,
+    normalize_path,
+    remove_dir,
     remove_file,
-    remove_dir
 )
 from pyprocessor.utils.logging.log_manager import get_logger
-from pyprocessor.utils.core.validation_manager import validate_path, validate_string, validate_regex
 
 
 class FileManager:
@@ -101,11 +105,18 @@ class FileManager:
             ensure_dir_exists(self.input_folder)
             ensure_dir_exists(self.output_folder)
 
-            self.logger.debug(f"File manager paths updated: input={self.input_folder}, output={self.output_folder}")
+            self.logger.debug(
+                f"File manager paths updated: input={self.input_folder}, output={self.output_folder}"
+            )
         except Exception as e:
             self.logger.error(f"Error updating file manager paths: {str(e)}")
 
-    def list_files(self, directory: Union[str, Path] = None, pattern: str = "*", recursive: bool = False) -> List[Path]:
+    def list_files(
+        self,
+        directory: Union[str, Path] = None,
+        pattern: str = "*",
+        recursive: bool = False,
+    ) -> List[Path]:
         """
         List files in a directory matching a pattern.
 
@@ -129,7 +140,12 @@ class FileManager:
             self.logger.error(f"Error listing files in {directory}: {str(e)}")
             return []
 
-    def list_directories(self, directory: Union[str, Path] = None, pattern: str = "*", recursive: bool = False) -> List[Path]:
+    def list_directories(
+        self,
+        directory: Union[str, Path] = None,
+        pattern: str = "*",
+        recursive: bool = False,
+    ) -> List[Path]:
         """
         List directories in a directory matching a pattern.
 
@@ -157,7 +173,9 @@ class FileManager:
             self.logger.error(f"Error listing directories in {directory}: {str(e)}")
             return []
 
-    def copy_file(self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = True) -> Optional[Path]:
+    def copy_file(
+        self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = True
+    ) -> Optional[Path]:
         """
         Copy a file from source to destination.
 
@@ -175,7 +193,9 @@ class FileManager:
             self.logger.error(f"Error copying file {src} to {dst}: {str(e)}")
             return None
 
-    def move_file(self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = True) -> Optional[Path]:
+    def move_file(
+        self, src: Union[str, Path], dst: Union[str, Path], overwrite: bool = True
+    ) -> Optional[Path]:
         """
         Move a file from source to destination.
 
@@ -210,7 +230,9 @@ class FileManager:
 
             # Check if destination exists
             if dst.exists():
-                self.logger.warning(f"Cannot rename {src.name} to {new_name} - destination exists")
+                self.logger.warning(
+                    f"Cannot rename {src.name} to {new_name} - destination exists"
+                )
                 return None
 
             # Rename the file
@@ -320,8 +342,12 @@ class FileManager:
             self.logger.error(f"Error matching pattern {pattern}: {str(e)}")
             return None
 
-    def rename_files(self, directory: Union[str, Path] = None, pattern: str = None,
-                     file_extension: str = ".mp4") -> int:
+    def rename_files(
+        self,
+        directory: Union[str, Path] = None,
+        pattern: str = None,
+        file_extension: str = ".mp4",
+    ) -> int:
         """
         Rename files based on pattern matching.
 
@@ -342,12 +368,18 @@ class FileManager:
 
             # Use pattern from config if not specified
             if pattern is None:
-                if self.config is None or not hasattr(self.config, "file_rename_pattern"):
+                if self.config is None or not hasattr(
+                    self.config, "file_rename_pattern"
+                ):
                     raise ValueError("File rename pattern not set")
                 pattern = self.config.file_rename_pattern
 
             # Skip if auto-rename is disabled in config
-            if self.config and hasattr(self.config, "auto_rename_files") and not self.config.auto_rename_files:
+            if (
+                self.config
+                and hasattr(self.config, "auto_rename_files")
+                and not self.config.auto_rename_files
+            ):
                 self.logger.info("File renaming skipped (disabled in config)")
                 return 0
 
@@ -371,12 +403,16 @@ class FileManager:
 
                         # Skip if file already has correct name
                         if file.name == new_name:
-                            self.logger.debug(f"Skipping already correctly named file: {file.name}")
+                            self.logger.debug(
+                                f"Skipping already correctly named file: {file.name}"
+                            )
                             continue
 
                         # Check if destination exists
                         if new_path.exists():
-                            self.logger.warning(f"Cannot rename {file.name} to {new_name} - destination exists")
+                            self.logger.warning(
+                                f"Cannot rename {file.name} to {new_name} - destination exists"
+                            )
                             continue
 
                         # Rename the file
@@ -388,14 +424,20 @@ class FileManager:
                 except Exception as e:
                     self.logger.error(f"Failed to rename {file.name}: {str(e)}")
 
-            self.logger.info(f"File renaming completed: {renamed_count} of {total_files} files renamed")
+            self.logger.info(
+                f"File renaming completed: {renamed_count} of {total_files} files renamed"
+            )
             return renamed_count
         except Exception as e:
             self.logger.error(f"Error during file renaming: {str(e)}")
             return 0
 
-    def validate_files(self, directory: Union[str, Path] = None, pattern: str = None,
-                       file_extension: str = ".mp4") -> Tuple[List[Path], List[str]]:
+    def validate_files(
+        self,
+        directory: Union[str, Path] = None,
+        pattern: str = None,
+        file_extension: str = ".mp4",
+    ) -> Tuple[List[Path], List[str]]:
         """
         Validate files for correct naming pattern.
 
@@ -416,12 +458,16 @@ class FileManager:
 
             # Use pattern from config if not specified
             if pattern is None:
-                if self.config is None or not hasattr(self.config, "file_validation_pattern"):
+                if self.config is None or not hasattr(
+                    self.config, "file_validation_pattern"
+                ):
                     raise ValueError("File validation pattern not set")
                 pattern = self.config.file_validation_pattern
 
             # Validate directory
-            dir_result = validate_path(directory, "directory", must_exist=True, must_be_dir=True)
+            dir_result = validate_path(
+                directory, "directory", must_exist=True, must_be_dir=True
+            )
             if not dir_result:
                 self.logger.error(f"Invalid directory: {directory}")
                 return [], []
@@ -448,7 +494,9 @@ class FileManager:
             self.logger.error(f"Error during file validation: {str(e)}")
             return [], []
 
-    def organize_folders(self, directory: Union[str, Path] = None, pattern: str = None) -> int:
+    def organize_folders(
+        self, directory: Union[str, Path] = None, pattern: str = None
+    ) -> int:
         """
         Organize folders based on naming patterns.
 
@@ -468,12 +516,18 @@ class FileManager:
 
             # Use pattern from config if not specified
             if pattern is None:
-                if self.config is None or not hasattr(self.config, "folder_organization_pattern"):
+                if self.config is None or not hasattr(
+                    self.config, "folder_organization_pattern"
+                ):
                     raise ValueError("Folder organization pattern not set")
                 pattern = self.config.folder_organization_pattern
 
             # Skip if auto-organize is disabled in config
-            if self.config and hasattr(self.config, "auto_organize_folders") and not self.config.auto_organize_folders:
+            if (
+                self.config
+                and hasattr(self.config, "auto_organize_folders")
+                and not self.config.auto_organize_folders
+            ):
                 self.logger.info("Folder organization skipped (disabled in config)")
                 return 0
 
@@ -497,12 +551,16 @@ class FileManager:
 
                         # Skip if already in correct location
                         if str(folder.parent) == str(parent_folder):
-                            self.logger.debug(f"Folder already correctly organized: {folder.name}")
+                            self.logger.debug(
+                                f"Folder already correctly organized: {folder.name}"
+                            )
                             continue
 
                         # Check if destination exists
                         if dest.exists():
-                            self.logger.warning(f"Cannot move {folder.name} - destination exists")
+                            self.logger.warning(
+                                f"Cannot move {folder.name} - destination exists"
+                            )
                             continue
 
                         # Move the folder
@@ -510,16 +568,21 @@ class FileManager:
                         self.logger.info(f"Moved {folder.name} to {parent_folder}")
                         moved_count += 1
                 except Exception as e:
-                    self.logger.error(f"Failed to organize folder {folder.name}: {str(e)}")
+                    self.logger.error(
+                        f"Failed to organize folder {folder.name}: {str(e)}"
+                    )
 
-            self.logger.info(f"Folder organization completed: {moved_count} folders moved")
+            self.logger.info(
+                f"Folder organization completed: {moved_count} folders moved"
+            )
             return moved_count
         except Exception as e:
             self.logger.error(f"Error during folder organization: {str(e)}")
             return 0
 
-    def get_input_files_info(self, directory: Union[str, Path] = None,
-                             file_extension: str = ".mp4") -> Dict[str, Any]:
+    def get_input_files_info(
+        self, directory: Union[str, Path] = None, file_extension: str = ".mp4"
+    ) -> Dict[str, Any]:
         """
         Get information about input files.
 
@@ -538,7 +601,9 @@ class FileManager:
                 directory = self.input_folder
 
             files = list(normalize_path(directory).glob(f"*{file_extension}"))
-            valid_files, invalid_files = self.validate_files(directory, file_extension=file_extension)
+            valid_files, invalid_files = self.validate_files(
+                directory, file_extension=file_extension
+            )
 
             total_size = sum(self.get_file_size(f) for f in files)
             # Convert to MB
@@ -559,9 +624,12 @@ class FileManager:
                 "total_size_mb": 0,
             }
 
-    def clean_input_directory(self, directory: Union[str, Path] = None,
-                              output_directory: Union[str, Path] = None,
-                              dry_run: bool = True) -> Tuple[int, List[Path]]:
+    def clean_input_directory(
+        self,
+        directory: Union[str, Path] = None,
+        output_directory: Union[str, Path] = None,
+        dry_run: bool = True,
+    ) -> Tuple[int, List[Path]]:
         """
         Clean up processed files from input directory.
 
@@ -603,7 +671,9 @@ class FileManager:
                 return 0, []
 
             if dry_run:
-                self.logger.warning(f"Would delete {len(to_delete)} processed files from input directory")
+                self.logger.warning(
+                    f"Would delete {len(to_delete)} processed files from input directory"
+                )
                 return 0, to_delete
 
             # Actually delete the files
@@ -616,13 +686,17 @@ class FileManager:
                 except Exception as e:
                     self.logger.error(f"Failed to delete file {file.name}: {str(e)}")
 
-            self.logger.info(f"Cleaned up {deleted_count} processed files from input directory")
+            self.logger.info(
+                f"Cleaned up {deleted_count} processed files from input directory"
+            )
             return deleted_count, to_delete
         except Exception as e:
             self.logger.error(f"Error cleaning input directory: {str(e)}")
             return 0, []
 
-    def create_temp_directory(self, base_dir: Union[str, Path] = None, prefix: str = "pyprocessor_") -> Optional[Path]:
+    def create_temp_directory(
+        self, base_dir: Union[str, Path] = None, prefix: str = "pyprocessor_"
+    ) -> Optional[Path]:
         """
         Create a temporary directory.
 
@@ -649,7 +723,9 @@ class FileManager:
             self.logger.error(f"Error creating temporary directory: {str(e)}")
             return None
 
-    def clean_temp_directories(self, base_dir: Union[str, Path] = None, prefix: str = "pyprocessor_") -> int:
+    def clean_temp_directories(
+        self, base_dir: Union[str, Path] = None, prefix: str = "pyprocessor_"
+    ) -> int:
         """
         Clean up temporary directories.
 
@@ -679,7 +755,9 @@ class FileManager:
                     self.logger.debug(f"Removed temporary directory: {temp_dir}")
                     removed_count += 1
                 except Exception as e:
-                    self.logger.error(f"Failed to remove temporary directory {temp_dir}: {str(e)}")
+                    self.logger.error(
+                        f"Failed to remove temporary directory {temp_dir}: {str(e)}"
+                    )
 
             self.logger.info(f"Cleaned up {removed_count} temporary directories")
             return removed_count
@@ -689,7 +767,9 @@ class FileManager:
 
     # File Content Operations
 
-    def read_text(self, path: Union[str, Path], encoding: str = "utf-8") -> Optional[str]:
+    def read_text(
+        self, path: Union[str, Path], encoding: str = "utf-8"
+    ) -> Optional[str]:
         """
         Read text content from a file.
 
@@ -728,7 +808,13 @@ class FileManager:
             self.logger.error(f"Error reading binary data from {path}: {str(e)}")
             return None
 
-    def write_text(self, path: Union[str, Path], content: str, encoding: str = "utf-8", append: bool = False) -> bool:
+    def write_text(
+        self,
+        path: Union[str, Path],
+        content: str,
+        encoding: str = "utf-8",
+        append: bool = False,
+    ) -> bool:
         """
         Write text content to a file.
 
@@ -752,7 +838,9 @@ class FileManager:
             self.logger.error(f"Error writing text to {path}: {str(e)}")
             return False
 
-    def write_binary(self, path: Union[str, Path], content: bytes, append: bool = False) -> bool:
+    def write_binary(
+        self, path: Union[str, Path], content: bytes, append: bool = False
+    ) -> bool:
         """
         Write binary content to a file.
 
@@ -775,7 +863,9 @@ class FileManager:
             self.logger.error(f"Error writing binary data to {path}: {str(e)}")
             return False
 
-    def read_lines(self, path: Union[str, Path], encoding: str = "utf-8") -> Optional[List[str]]:
+    def read_lines(
+        self, path: Union[str, Path], encoding: str = "utf-8"
+    ) -> Optional[List[str]]:
         """
         Read lines from a text file.
 
@@ -795,7 +885,13 @@ class FileManager:
             self.logger.error(f"Error reading lines from {path}: {str(e)}")
             return None
 
-    def write_lines(self, path: Union[str, Path], lines: List[str], encoding: str = "utf-8", append: bool = False) -> bool:
+    def write_lines(
+        self,
+        path: Union[str, Path],
+        lines: List[str],
+        encoding: str = "utf-8",
+        append: bool = False,
+    ) -> bool:
         """
         Write lines to a text file.
 
@@ -820,7 +916,9 @@ class FileManager:
             self.logger.error(f"Error writing lines to {path}: {str(e)}")
             return False
 
-    def read_json(self, path: Union[str, Path], encoding: str = "utf-8") -> Optional[Any]:
+    def read_json(
+        self, path: Union[str, Path], encoding: str = "utf-8"
+    ) -> Optional[Any]:
         """
         Read JSON content from a file.
 
@@ -840,7 +938,13 @@ class FileManager:
             self.logger.error(f"Error reading JSON from {path}: {str(e)}")
             return None
 
-    def write_json(self, path: Union[str, Path], content: Any, encoding: str = "utf-8", indent: int = 2) -> bool:
+    def write_json(
+        self,
+        path: Union[str, Path],
+        content: Any,
+        encoding: str = "utf-8",
+        indent: int = 2,
+    ) -> bool:
         """
         Write JSON content to a file.
 
@@ -863,7 +967,13 @@ class FileManager:
             self.logger.error(f"Error writing JSON to {path}: {str(e)}")
             return False
 
-    def read_csv(self, path: Union[str, Path], delimiter: str = ",", encoding: str = "utf-8", has_header: bool = True) -> Optional[List[Dict[str, str]]]:
+    def read_csv(
+        self,
+        path: Union[str, Path],
+        delimiter: str = ",",
+        encoding: str = "utf-8",
+        has_header: bool = True,
+    ) -> Optional[List[Dict[str, str]]]:
         """
         Read CSV content from a file.
 
@@ -884,12 +994,22 @@ class FileManager:
                     return list(reader)
                 else:
                     reader = csv.reader(f, delimiter=delimiter)
-                    return [dict(zip([f"column_{i}" for i in range(len(row))], row)) for row in reader]
+                    return [
+                        dict(zip([f"column_{i}" for i in range(len(row))], row))
+                        for row in reader
+                    ]
         except Exception as e:
             self.logger.error(f"Error reading CSV from {path}: {str(e)}")
             return None
 
-    def write_csv(self, path: Union[str, Path], data: List[Dict[str, Any]], fieldnames: Optional[List[str]] = None, delimiter: str = ",", encoding: str = "utf-8") -> bool:
+    def write_csv(
+        self,
+        path: Union[str, Path],
+        data: List[Dict[str, Any]],
+        fieldnames: Optional[List[str]] = None,
+        delimiter: str = ",",
+        encoding: str = "utf-8",
+    ) -> bool:
         """
         Write CSV content to a file.
 
@@ -925,7 +1045,13 @@ class FileManager:
 
     # File Compression Operations
 
-    def create_zip(self, zip_path: Union[str, Path], files_to_add: List[Union[str, Path]], base_dir: Optional[Union[str, Path]] = None, compression: int = zipfile.ZIP_DEFLATED) -> bool:
+    def create_zip(
+        self,
+        zip_path: Union[str, Path],
+        files_to_add: List[Union[str, Path]],
+        base_dir: Optional[Union[str, Path]] = None,
+        compression: int = zipfile.ZIP_DEFLATED,
+    ) -> bool:
         """
         Create a ZIP archive containing the specified files.
 
@@ -970,7 +1096,9 @@ class FileManager:
             self.logger.error(f"Error creating ZIP archive {zip_path}: {str(e)}")
             return False
 
-    def extract_zip(self, zip_path: Union[str, Path], extract_dir: Union[str, Path]) -> bool:
+    def extract_zip(
+        self, zip_path: Union[str, Path], extract_dir: Union[str, Path]
+    ) -> bool:
         """
         Extract a ZIP archive to the specified directory.
 
@@ -995,7 +1123,13 @@ class FileManager:
             self.logger.error(f"Error extracting ZIP archive {zip_path}: {str(e)}")
             return False
 
-    def create_tar(self, tar_path: Union[str, Path], files_to_add: List[Union[str, Path]], base_dir: Optional[Union[str, Path]] = None, compression: str = "gz") -> bool:
+    def create_tar(
+        self,
+        tar_path: Union[str, Path],
+        files_to_add: List[Union[str, Path]],
+        base_dir: Optional[Union[str, Path]] = None,
+        compression: str = "gz",
+    ) -> bool:
         """
         Create a TAR archive containing the specified files.
 
@@ -1050,7 +1184,9 @@ class FileManager:
             self.logger.error(f"Error creating TAR archive {tar_path}: {str(e)}")
             return False
 
-    def extract_tar(self, tar_path: Union[str, Path], extract_dir: Union[str, Path]) -> bool:
+    def extract_tar(
+        self, tar_path: Union[str, Path], extract_dir: Union[str, Path]
+    ) -> bool:
         """
         Extract a TAR archive to the specified directory.
 
@@ -1078,7 +1214,9 @@ class FileManager:
     # File Streaming Operations
 
     @contextmanager
-    def open_text(self, path: Union[str, Path], mode: str = "r", encoding: str = "utf-8"):
+    def open_text(
+        self, path: Union[str, Path], mode: str = "r", encoding: str = "utf-8"
+    ):
         """
         Open a text file and return a context manager.
 
@@ -1126,7 +1264,9 @@ class FileManager:
             self.logger.error(f"Error opening binary file {path}: {str(e)}")
             raise
 
-    def stream_read_lines(self, path: Union[str, Path], encoding: str = "utf-8") -> Iterator[str]:
+    def stream_read_lines(
+        self, path: Union[str, Path], encoding: str = "utf-8"
+    ) -> Iterator[str]:
         """
         Stream lines from a text file.
 
@@ -1147,7 +1287,9 @@ class FileManager:
             self.logger.error(f"Error streaming lines from {path}: {str(e)}")
             raise
 
-    def stream_read_chunks(self, path: Union[str, Path], chunk_size: int = 8192) -> Iterator[bytes]:
+    def stream_read_chunks(
+        self, path: Union[str, Path], chunk_size: int = 8192
+    ) -> Iterator[bytes]:
         """
         Stream chunks from a binary file.
 
@@ -1239,7 +1381,9 @@ class FileManager:
                 "accessed": accessed.isoformat(),
                 "is_hidden": path.name.startswith("."),
                 "is_readonly": not os.access(path, os.W_OK),
-                "is_executable": os.access(path, os.X_OK) if not path.is_dir() else False,
+                "is_executable": (
+                    os.access(path, os.X_OK) if not path.is_dir() else False
+                ),
             }
         except Exception as e:
             self.logger.error(f"Error getting metadata for {path}: {str(e)}")
@@ -1292,7 +1436,9 @@ class FileManager:
             self.logger.error(f"Error getting directory size for {path}: {str(e)}")
             return 0
 
-    def get_file_hash(self, path: Union[str, Path], algorithm: str = "sha256") -> Optional[str]:
+    def get_file_hash(
+        self, path: Union[str, Path], algorithm: str = "sha256"
+    ) -> Optional[str]:
         """
         Calculate a hash for a file.
 
@@ -1322,7 +1468,9 @@ class FileManager:
             elif algorithm == "sha512":
                 hash_obj = hashlib.sha512()
             else:
-                self.logger.warning(f"Unsupported hash algorithm: {algorithm}. Using sha256.")
+                self.logger.warning(
+                    f"Unsupported hash algorithm: {algorithm}. Using sha256."
+                )
                 hash_obj = hashlib.sha256()
 
             # Calculate the hash
@@ -1335,7 +1483,12 @@ class FileManager:
             self.logger.error(f"Error calculating hash for {path}: {str(e)}")
             return None
 
-    def set_file_times(self, path: Union[str, Path], accessed: Optional[datetime] = None, modified: Optional[datetime] = None) -> bool:
+    def set_file_times(
+        self,
+        path: Union[str, Path],
+        accessed: Optional[datetime] = None,
+        modified: Optional[datetime] = None,
+    ) -> bool:
         """
         Set access and modification times for a file.
 

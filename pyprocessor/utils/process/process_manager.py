@@ -8,29 +8,45 @@ This module provides a centralized way to manage processes, including:
 - Inter-process communication
 """
 
-import os
-import sys
-import time
-import signal
+import pickle
 import subprocess
 import threading
+import time
 import uuid
-import pickle
-from pathlib import Path
-from typing import Dict, List, Optional, Union, Callable, Tuple, Any
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, Future, CancelledError, TimeoutError
-from multiprocessing import Manager, Queue, Event, Lock as ProcessLock, Value as SharedValue
+from concurrent.futures import (
+    CancelledError,
+    Future,
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    TimeoutError,
+)
 from contextlib import contextmanager
+from multiprocessing import (
+    Event,
+)
+from multiprocessing import Lock as ProcessLock
+from multiprocessing import (
+    Manager,
+)
+from multiprocessing import Value as SharedValue
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
 
+from pyprocessor.utils.error_manager import (
+    ErrorSeverity,
+    PyProcessorError,
+    with_error_handling,
+)
 from pyprocessor.utils.log_manager import get_logger
-from pyprocessor.utils.path_manager import get_temp_dir, normalize_path
-from pyprocessor.utils.error_manager import with_error_handling, PyProcessorError, ErrorSeverity
-from pyprocessor.utils.security.process_sandbox import run_sandboxed_process, terminate_sandboxed_process
+from pyprocessor.utils.path_manager import normalize_path
+from pyprocessor.utils.security.process_sandbox import (
+    run_sandboxed_process,
+    terminate_sandboxed_process,
+)
 
 
 class ProcessError(PyProcessorError):
     """Error related to process management."""
-    pass
 
 
 class ProcessManager:
@@ -66,12 +82,12 @@ class ProcessManager:
 
         # Initialize process tracking
         self._processes = {}  # Dict of active processes
-        self._futures = {}    # Dict of futures from executors
+        self._futures = {}  # Dict of futures from executors
         self._executors = {}  # Dict of executors
 
         # Initialize IPC
         self._manager = Manager()
-        self._queues = {}     # Dict of queues for IPC
+        self._queues = {}  # Dict of queues for IPC
 
         # Initialize locks
         self._process_lock = threading.Lock()
@@ -87,14 +103,18 @@ class ProcessManager:
         self.logger.debug("Process manager initialized")
 
     @with_error_handling
-    def run_process(self, cmd: List[str], shell: bool = False,
-                   cwd: Optional[Union[str, Path]] = None,
-                   env: Optional[Dict[str, str]] = None,
-                   input_data: Optional[str] = None,
-                   timeout: Optional[float] = None,
-                   capture_output: bool = True,
-                   process_id: Optional[str] = None,
-                   callback: Optional[Callable] = None) -> Dict[str, Any]:
+    def run_process(
+        self,
+        cmd: List[str],
+        shell: bool = False,
+        cwd: Optional[Union[str, Path]] = None,
+        env: Optional[Dict[str, str]] = None,
+        input_data: Optional[str] = None,
+        timeout: Optional[float] = None,
+        capture_output: bool = True,
+        process_id: Optional[str] = None,
+        callback: Optional[Callable] = None,
+    ) -> Dict[str, Any]:
         """
         Run a process and return its output.
 
@@ -177,11 +197,13 @@ class ProcessManager:
             # Update process status
             with self._process_lock:
                 if process_id in self._processes:
-                    self._processes[process_id].update({
-                        "status": "completed",
-                        "returncode": process.returncode,
-                        "duration": duration,
-                    })
+                    self._processes[process_id].update(
+                        {
+                            "status": "completed",
+                            "returncode": process.returncode,
+                            "duration": duration,
+                        }
+                    )
 
             # Prepare result
             result = {
@@ -199,7 +221,9 @@ class ProcessManager:
                 try:
                     callback(result)
                 except Exception as e:
-                    self.logger.error(f"Error in process callback: {str(e)}", process_id=process_id)
+                    self.logger.error(
+                        f"Error in process callback: {str(e)}", process_id=process_id
+                    )
 
             # Log completion
             self.logger.debug(
@@ -218,10 +242,12 @@ class ProcessManager:
             # Update process status
             with self._process_lock:
                 if process_id in self._processes:
-                    self._processes[process_id].update({
-                        "status": "timeout",
-                        "duration": time.time() - start_time,
-                    })
+                    self._processes[process_id].update(
+                        {
+                            "status": "timeout",
+                            "duration": time.time() - start_time,
+                        }
+                    )
 
             # Log timeout
             self.logger.warning(
@@ -237,7 +263,7 @@ class ProcessManager:
                     "process_id": process_id,
                     "command": cmd,
                     "timeout": timeout,
-                }
+                },
             )
 
         except Exception as e:
@@ -245,11 +271,13 @@ class ProcessManager:
             # Update process status
             with self._process_lock:
                 if process_id in self._processes:
-                    self._processes[process_id].update({
-                        "status": "error",
-                        "error": str(e),
-                        "duration": time.time() - start_time,
-                    })
+                    self._processes[process_id].update(
+                        {
+                            "status": "error",
+                            "error": str(e),
+                            "duration": time.time() - start_time,
+                        }
+                    )
 
             # Log error
             self.logger.error(
@@ -265,16 +293,20 @@ class ProcessManager:
                 details={
                     "process_id": process_id,
                     "command": cmd,
-                }
+                },
             )
 
     @with_error_handling
-    def run_process_async(self, cmd: List[str], shell: bool = False,
-                         cwd: Optional[Union[str, Path]] = None,
-                         env: Optional[Dict[str, str]] = None,
-                         input_data: Optional[str] = None,
-                         process_id: Optional[str] = None,
-                         callback: Optional[Callable] = None) -> str:
+    def run_process_async(
+        self,
+        cmd: List[str],
+        shell: bool = False,
+        cwd: Optional[Union[str, Path]] = None,
+        env: Optional[Dict[str, str]] = None,
+        input_data: Optional[str] = None,
+        process_id: Optional[str] = None,
+        callback: Optional[Callable] = None,
+    ) -> str:
         """
         Run a process asynchronously.
 
@@ -350,11 +382,13 @@ class ProcessManager:
             # Update process status
             with self._process_lock:
                 if process_id in self._processes:
-                    self._processes[process_id].update({
-                        "status": "error",
-                        "error": str(e),
-                        "duration": time.time() - start_time,
-                    })
+                    self._processes[process_id].update(
+                        {
+                            "status": "error",
+                            "error": str(e),
+                            "duration": time.time() - start_time,
+                        }
+                    )
 
             # Log error
             self.logger.error(
@@ -370,7 +404,7 @@ class ProcessManager:
                 details={
                     "process_id": process_id,
                     "command": cmd,
-                }
+                },
             )
 
     def _monitor_process(self, process_id: str, process: subprocess.Popen):
@@ -393,13 +427,15 @@ class ProcessManager:
                     callback = self._processes[process_id].get("callback")
 
                     # Update process status
-                    self._processes[process_id].update({
-                        "status": "completed",
-                        "returncode": process.returncode,
-                        "duration": duration,
-                        "stdout": stdout_data,
-                        "stderr": stderr_data,
-                    })
+                    self._processes[process_id].update(
+                        {
+                            "status": "completed",
+                            "returncode": process.returncode,
+                            "duration": duration,
+                            "stdout": stdout_data,
+                            "stderr": stderr_data,
+                        }
+                    )
                 else:
                     # Process not found
                     return
@@ -420,7 +456,9 @@ class ProcessManager:
                 try:
                     callback(result)
                 except Exception as e:
-                    self.logger.error(f"Error in process callback: {str(e)}", process_id=process_id)
+                    self.logger.error(
+                        f"Error in process callback: {str(e)}", process_id=process_id
+                    )
 
             # Log completion
             self.logger.debug(
@@ -434,10 +472,12 @@ class ProcessManager:
             # Error monitoring process
             with self._process_lock:
                 if process_id in self._processes:
-                    self._processes[process_id].update({
-                        "status": "error",
-                        "error": str(e),
-                    })
+                    self._processes[process_id].update(
+                        {
+                            "status": "error",
+                            "error": str(e),
+                        }
+                    )
 
             # Log error
             self.logger.error(
@@ -471,19 +511,25 @@ class ProcessManager:
                 return True
 
             # Try to terminate gracefully
-            self.logger.debug(f"Terminating process {process_id}", process_id=process_id)
+            self.logger.debug(
+                f"Terminating process {process_id}", process_id=process_id
+            )
             process.terminate()
 
             # Wait for the process to terminate
             try:
                 process.wait(timeout=timeout)
-                self.logger.debug(f"Process {process_id} terminated gracefully", process_id=process_id)
+                self.logger.debug(
+                    f"Process {process_id} terminated gracefully", process_id=process_id
+                )
 
                 # Update process status
-                process_info.update({
-                    "status": "terminated",
-                    "duration": time.time() - process_info["start_time"],
-                })
+                process_info.update(
+                    {
+                        "status": "terminated",
+                        "duration": time.time() - process_info["start_time"],
+                    }
+                )
 
                 return True
 
@@ -499,10 +545,12 @@ class ProcessManager:
                 process.wait()
 
                 # Update process status
-                process_info.update({
-                    "status": "killed",
-                    "duration": time.time() - process_info["start_time"],
-                })
+                process_info.update(
+                    {
+                        "status": "killed",
+                        "duration": time.time() - process_info["start_time"],
+                    }
+                )
 
                 return True
 
@@ -564,14 +612,17 @@ class ProcessManager:
             return result
 
     @with_error_handling
-    def run_sandboxed_process(self, cmd: List[str],
-                           cwd: Optional[Union[str, Path]] = None,
-                           env: Optional[Dict[str, str]] = None,
-                           input_data: Optional[str] = None,
-                           process_id: Optional[str] = None,
-                           wait: bool = True,
-                           timeout: Optional[float] = None,
-                           sandbox_policy=None) -> Union[Dict[str, Any], str]:
+    def run_sandboxed_process(
+        self,
+        cmd: List[str],
+        cwd: Optional[Union[str, Path]] = None,
+        env: Optional[Dict[str, str]] = None,
+        input_data: Optional[str] = None,
+        process_id: Optional[str] = None,
+        wait: bool = True,
+        timeout: Optional[float] = None,
+        sandbox_policy=None,
+    ) -> Union[Dict[str, Any], str]:
         """
         Run a process in a sandbox with security restrictions.
 
@@ -599,7 +650,9 @@ class ProcessManager:
 
         # Log the command
         cmd_str = " ".join(cmd) if isinstance(cmd, list) else cmd
-        self.logger.debug(f"Running sandboxed process: {cmd_str}", process_id=process_id)
+        self.logger.debug(
+            f"Running sandboxed process: {cmd_str}", process_id=process_id
+        )
 
         try:
             # Run the process in a sandbox
@@ -611,7 +664,7 @@ class ProcessManager:
                 process_id=process_id,
                 wait=wait,
                 timeout=timeout,
-                policy=sandbox_policy
+                policy=sandbox_policy,
             )
 
             # If wait=True, result is a dict with process information
@@ -620,12 +673,14 @@ class ProcessManager:
                 self.logger.debug(
                     f"Sandboxed process completed with exit code {result.get('exit_code')}",
                     process_id=process_id,
-                    duration=result.get('duration'),
-                    exit_code=result.get('exit_code'),
+                    duration=result.get("duration"),
+                    exit_code=result.get("exit_code"),
                 )
             else:
                 # If wait=False, result is the process ID
-                self.logger.debug(f"Started sandboxed process with ID {result}", process_id=result)
+                self.logger.debug(
+                    f"Started sandboxed process with ID {result}", process_id=result
+                )
 
             return result
 
@@ -644,11 +699,13 @@ class ProcessManager:
                 details={
                     "process_id": process_id,
                     "command": cmd,
-                }
+                },
             )
 
     @with_error_handling
-    def terminate_sandboxed_process(self, process_id: str, timeout: float = 5.0) -> bool:
+    def terminate_sandboxed_process(
+        self, process_id: str, timeout: float = 5.0
+    ) -> bool:
         """
         Terminate a sandboxed process.
 
@@ -659,16 +716,22 @@ class ProcessManager:
         Returns:
             True if the process was terminated, False if it was not found
         """
-        self.logger.debug(f"Terminating sandboxed process {process_id}", process_id=process_id)
+        self.logger.debug(
+            f"Terminating sandboxed process {process_id}", process_id=process_id
+        )
 
         try:
             # Terminate the sandboxed process
             result = terminate_sandboxed_process(process_id, timeout)
 
             if result:
-                self.logger.debug(f"Sandboxed process {process_id} terminated", process_id=process_id)
+                self.logger.debug(
+                    f"Sandboxed process {process_id} terminated", process_id=process_id
+                )
             else:
-                self.logger.warning(f"Sandboxed process {process_id} not found", process_id=process_id)
+                self.logger.warning(
+                    f"Sandboxed process {process_id} not found", process_id=process_id
+                )
 
             return result
 
@@ -685,7 +748,7 @@ class ProcessManager:
                 original_exception=e,
                 details={
                     "process_id": process_id,
-                }
+                },
             )
 
     @with_error_handling
@@ -732,7 +795,9 @@ class ProcessManager:
             return count
 
     @with_error_handling
-    def create_process_pool(self, max_workers: int = None, executor_id: str = None) -> str:
+    def create_process_pool(
+        self, max_workers: int = None, executor_id: str = None
+    ) -> str:
         """
         Create a process pool executor.
 
@@ -760,11 +825,15 @@ class ProcessManager:
                 "futures": {},
             }
 
-        self.logger.debug(f"Created process pool executor: {executor_id}", executor_id=executor_id)
+        self.logger.debug(
+            f"Created process pool executor: {executor_id}", executor_id=executor_id
+        )
         return executor_id
 
     @with_error_handling
-    def create_thread_pool(self, max_workers: int = None, executor_id: str = None) -> str:
+    def create_thread_pool(
+        self, max_workers: int = None, executor_id: str = None
+    ) -> str:
         """
         Create a thread pool executor.
 
@@ -792,7 +861,9 @@ class ProcessManager:
                 "futures": {},
             }
 
-        self.logger.debug(f"Created thread pool executor: {executor_id}", executor_id=executor_id)
+        self.logger.debug(
+            f"Created thread pool executor: {executor_id}", executor_id=executor_id
+        )
         return executor_id
 
     @with_error_handling
@@ -805,7 +876,9 @@ class ProcessManager:
         """
         with self._executor_lock:
             if self._default_process_executor is None:
-                self._default_process_executor = self.create_process_pool(executor_id="default_process_pool")
+                self._default_process_executor = self.create_process_pool(
+                    executor_id="default_process_pool"
+                )
             return self._default_process_executor
 
     @with_error_handling
@@ -818,11 +891,20 @@ class ProcessManager:
         """
         with self._executor_lock:
             if self._default_thread_executor is None:
-                self._default_thread_executor = self.create_thread_pool(executor_id="default_thread_pool")
+                self._default_thread_executor = self.create_thread_pool(
+                    executor_id="default_thread_pool"
+                )
             return self._default_thread_executor
 
     @with_error_handling
-    def submit_task(self, func: Callable, *args, executor_id: str = None, task_id: str = None, **kwargs) -> str:
+    def submit_task(
+        self,
+        func: Callable,
+        *args,
+        executor_id: str = None,
+        task_id: str = None,
+        **kwargs,
+    ) -> str:
         """
         Submit a task to an executor.
 
@@ -850,7 +932,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Executor not found: {executor_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"executor_id": executor_id}
+                    details={"executor_id": executor_id},
                 )
 
             executor_info = self._executors[executor_id]
@@ -911,11 +993,14 @@ class ProcessManager:
                     status = "cancelled"
 
                 # Update the status
-                self._futures[task_id].update({
-                    "status": status,
-                    "completed_at": time.time(),
-                    "duration": time.time() - self._futures[task_id]["submitted_at"],
-                })
+                self._futures[task_id].update(
+                    {
+                        "status": status,
+                        "completed_at": time.time(),
+                        "duration": time.time()
+                        - self._futures[task_id]["submitted_at"],
+                    }
+                )
 
                 if error is not None:
                     self._futures[task_id]["error"] = error
@@ -924,15 +1009,25 @@ class ProcessManager:
                 executor_id = self._futures[task_id]["executor_id"]
 
                 # Update the executor's futures dict
-                if executor_id in self._executors and task_id in self._executors[executor_id]["futures"]:
-                    self._executors[executor_id]["futures"][task_id].update({
-                        "status": status,
-                        "completed_at": time.time(),
-                        "duration": time.time() - self._executors[executor_id]["futures"][task_id]["submitted_at"],
-                    })
+                if (
+                    executor_id in self._executors
+                    and task_id in self._executors[executor_id]["futures"]
+                ):
+                    self._executors[executor_id]["futures"][task_id].update(
+                        {
+                            "status": status,
+                            "completed_at": time.time(),
+                            "duration": time.time()
+                            - self._executors[executor_id]["futures"][task_id][
+                                "submitted_at"
+                            ],
+                        }
+                    )
 
                     if error is not None:
-                        self._executors[executor_id]["futures"][task_id]["error"] = error
+                        self._executors[executor_id]["futures"][task_id][
+                            "error"
+                        ] = error
 
     @with_error_handling
     def get_task_result(self, task_id: str, timeout: Optional[float] = None) -> Any:
@@ -954,7 +1049,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Task not found: {task_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"task_id": task_id}
+                    details={"task_id": task_id},
                 )
 
             # Get the executor ID
@@ -965,7 +1060,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Executor not found: {executor_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"executor_id": executor_id, "task_id": task_id}
+                    details={"executor_id": executor_id, "task_id": task_id},
                 )
 
             # Get the future
@@ -978,20 +1073,20 @@ class ProcessManager:
             raise ProcessError(
                 f"Task timed out: {task_id}",
                 severity=ErrorSeverity.WARNING,
-                details={"task_id": task_id, "timeout": timeout}
+                details={"task_id": task_id, "timeout": timeout},
             )
         except CancelledError:
             raise ProcessError(
                 f"Task was cancelled: {task_id}",
                 severity=ErrorSeverity.WARNING,
-                details={"task_id": task_id}
+                details={"task_id": task_id},
             )
         except Exception as e:
             raise ProcessError(
                 f"Task failed: {task_id}",
                 severity=ErrorSeverity.ERROR,
                 original_exception=e,
-                details={"task_id": task_id}
+                details={"task_id": task_id},
             )
 
     @with_error_handling
@@ -1016,7 +1111,10 @@ class ProcessManager:
             executor_id = task_info["executor_id"]
 
             # Get the executor
-            if executor_id in self._executors and task_id in self._executors[executor_id]["futures"]:
+            if (
+                executor_id in self._executors
+                and task_id in self._executors[executor_id]["futures"]
+            ):
                 # Get the future
                 future = self._executors[executor_id]["futures"][task_id]["future"]
 
@@ -1059,7 +1157,10 @@ class ProcessManager:
             executor_id = self._futures[task_id]["executor_id"]
 
             # Get the executor
-            if executor_id not in self._executors or task_id not in self._executors[executor_id]["futures"]:
+            if (
+                executor_id not in self._executors
+                or task_id not in self._executors[executor_id]["futures"]
+            ):
                 return False
 
             # Get the future
@@ -1070,11 +1171,18 @@ class ProcessManager:
                 # Update the status
                 self._futures[task_id]["status"] = "cancelled"
                 self._futures[task_id]["completed_at"] = time.time()
-                self._futures[task_id]["duration"] = time.time() - self._futures[task_id]["submitted_at"]
+                self._futures[task_id]["duration"] = (
+                    time.time() - self._futures[task_id]["submitted_at"]
+                )
 
                 self._executors[executor_id]["futures"][task_id]["status"] = "cancelled"
-                self._executors[executor_id]["futures"][task_id]["completed_at"] = time.time()
-                self._executors[executor_id]["futures"][task_id]["duration"] = time.time() - self._executors[executor_id]["futures"][task_id]["submitted_at"]
+                self._executors[executor_id]["futures"][task_id][
+                    "completed_at"
+                ] = time.time()
+                self._executors[executor_id]["futures"][task_id]["duration"] = (
+                    time.time()
+                    - self._executors[executor_id]["futures"][task_id]["submitted_at"]
+                )
 
                 self.logger.debug(f"Cancelled task {task_id}", task_id=task_id)
                 return True
@@ -1116,7 +1224,9 @@ class ProcessManager:
                     if task_id in self._futures:
                         self._futures[task_id]["status"] = "cancelled"
                         self._futures[task_id]["completed_at"] = time.time()
-                        self._futures[task_id]["duration"] = time.time() - self._futures[task_id]["submitted_at"]
+                        self._futures[task_id]["duration"] = (
+                            time.time() - self._futures[task_id]["submitted_at"]
+                        )
 
             # Remove the executor
             del self._executors[executor_id]
@@ -1127,7 +1237,9 @@ class ProcessManager:
             elif executor_id == self._default_thread_executor:
                 self._default_thread_executor = None
 
-            self.logger.debug(f"Shutdown executor {executor_id}", executor_id=executor_id)
+            self.logger.debug(
+                f"Shutdown executor {executor_id}", executor_id=executor_id
+            )
             return True
 
     @with_error_handling
@@ -1196,7 +1308,13 @@ class ProcessManager:
         return queue_id
 
     @with_error_handling
-    def put_queue_item(self, queue_id: str, item: Any, block: bool = True, timeout: Optional[float] = None) -> bool:
+    def put_queue_item(
+        self,
+        queue_id: str,
+        item: Any,
+        block: bool = True,
+        timeout: Optional[float] = None,
+    ) -> bool:
         """
         Put an item in a queue.
 
@@ -1217,7 +1335,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Queue not found: {queue_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"queue_id": queue_id}
+                    details={"queue_id": queue_id},
                 )
 
             queue = self._queues[queue_id]["queue"]
@@ -1234,13 +1352,13 @@ class ProcessManager:
                 f"Item is not serializable: {str(e)}",
                 severity=ErrorSeverity.ERROR,
                 original_exception=e,
-                details={"queue_id": queue_id}
+                details={"queue_id": queue_id},
             )
         except TimeoutError:
             raise ProcessError(
                 f"Timed out putting item in queue: {queue_id}",
                 severity=ErrorSeverity.WARNING,
-                details={"queue_id": queue_id, "timeout": timeout}
+                details={"queue_id": queue_id, "timeout": timeout},
             )
         except Exception as e:
             if not block and str(e).startswith("Full"):
@@ -1251,11 +1369,13 @@ class ProcessManager:
                 f"Error putting item in queue: {str(e)}",
                 severity=ErrorSeverity.ERROR,
                 original_exception=e,
-                details={"queue_id": queue_id}
+                details={"queue_id": queue_id},
             )
 
     @with_error_handling
-    def get_queue_item(self, queue_id: str, block: bool = True, timeout: Optional[float] = None) -> Any:
+    def get_queue_item(
+        self, queue_id: str, block: bool = True, timeout: Optional[float] = None
+    ) -> Any:
         """
         Get an item from a queue.
 
@@ -1275,7 +1395,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Queue not found: {queue_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"queue_id": queue_id}
+                    details={"queue_id": queue_id},
                 )
 
             queue = self._queues[queue_id]["queue"]
@@ -1287,7 +1407,7 @@ class ProcessManager:
             raise ProcessError(
                 f"Timed out getting item from queue: {queue_id}",
                 severity=ErrorSeverity.WARNING,
-                details={"queue_id": queue_id, "timeout": timeout}
+                details={"queue_id": queue_id, "timeout": timeout},
             )
         except Exception as e:
             if not block and str(e).startswith("Empty"):
@@ -1295,14 +1415,14 @@ class ProcessManager:
                 raise ProcessError(
                     f"Queue is empty: {queue_id}",
                     severity=ErrorSeverity.WARNING,
-                    details={"queue_id": queue_id}
+                    details={"queue_id": queue_id},
                 )
 
             raise ProcessError(
                 f"Error getting item from queue: {str(e)}",
                 severity=ErrorSeverity.ERROR,
                 original_exception=e,
-                details={"queue_id": queue_id}
+                details={"queue_id": queue_id},
             )
 
     @with_error_handling
@@ -1324,7 +1444,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Queue not found: {queue_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"queue_id": queue_id}
+                    details={"queue_id": queue_id},
                 )
 
             queue = self._queues[queue_id]["queue"]
@@ -1350,7 +1470,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Queue not found: {queue_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"queue_id": queue_id}
+                    details={"queue_id": queue_id},
                 )
 
             queue = self._queues[queue_id]["queue"]
@@ -1376,7 +1496,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Queue not found: {queue_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"queue_id": queue_id}
+                    details={"queue_id": queue_id},
                 )
 
             queue = self._queues[queue_id]["queue"]
@@ -1402,7 +1522,7 @@ class ProcessManager:
                 raise ProcessError(
                     f"Queue not found: {queue_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"queue_id": queue_id}
+                    details={"queue_id": queue_id},
                 )
 
             queue = self._queues[queue_id]["queue"]
@@ -1482,7 +1602,9 @@ class ProcessManager:
             return result
 
     @with_error_handling
-    def create_shared_value(self, value_id: str = None, value_type: str = "i", initial_value: Any = 0) -> str:
+    def create_shared_value(
+        self, value_id: str = None, value_type: str = "i", initial_value: Any = 0
+    ) -> str:
         """
         Create a shared value for inter-process communication.
 
@@ -1528,11 +1650,14 @@ class ProcessManager:
             ProcessError: If the shared value is not found
         """
         with self._queue_lock:
-            if value_id not in self._queues or self._queues[value_id].get("type") != "shared_value":
+            if (
+                value_id not in self._queues
+                or self._queues[value_id].get("type") != "shared_value"
+            ):
                 raise ProcessError(
                     f"Shared value not found: {value_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"value_id": value_id}
+                    details={"value_id": value_id},
                 )
 
             shared_value = self._queues[value_id]["value"]
@@ -1552,11 +1677,14 @@ class ProcessManager:
             ProcessError: If the shared value is not found
         """
         with self._queue_lock:
-            if value_id not in self._queues or self._queues[value_id].get("type") != "shared_value":
+            if (
+                value_id not in self._queues
+                or self._queues[value_id].get("type") != "shared_value"
+            ):
                 raise ProcessError(
                     f"Shared value not found: {value_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"value_id": value_id}
+                    details={"value_id": value_id},
                 )
 
             shared_value = self._queues[value_id]["value"]
@@ -1604,11 +1732,14 @@ class ProcessManager:
             ProcessError: If the event is not found
         """
         with self._queue_lock:
-            if event_id not in self._queues or self._queues[event_id].get("type") != "event":
+            if (
+                event_id not in self._queues
+                or self._queues[event_id].get("type") != "event"
+            ):
                 raise ProcessError(
                     f"Event not found: {event_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"event_id": event_id}
+                    details={"event_id": event_id},
                 )
 
             event = self._queues[event_id]["event"]
@@ -1627,11 +1758,14 @@ class ProcessManager:
             ProcessError: If the event is not found
         """
         with self._queue_lock:
-            if event_id not in self._queues or self._queues[event_id].get("type") != "event":
+            if (
+                event_id not in self._queues
+                or self._queues[event_id].get("type") != "event"
+            ):
                 raise ProcessError(
                     f"Event not found: {event_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"event_id": event_id}
+                    details={"event_id": event_id},
                 )
 
             event = self._queues[event_id]["event"]
@@ -1654,11 +1788,14 @@ class ProcessManager:
             ProcessError: If the event is not found
         """
         with self._queue_lock:
-            if event_id not in self._queues or self._queues[event_id].get("type") != "event":
+            if (
+                event_id not in self._queues
+                or self._queues[event_id].get("type") != "event"
+            ):
                 raise ProcessError(
                     f"Event not found: {event_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"event_id": event_id}
+                    details={"event_id": event_id},
                 )
 
             event = self._queues[event_id]["event"]
@@ -1680,11 +1817,14 @@ class ProcessManager:
             ProcessError: If the event is not found
         """
         with self._queue_lock:
-            if event_id not in self._queues or self._queues[event_id].get("type") != "event":
+            if (
+                event_id not in self._queues
+                or self._queues[event_id].get("type") != "event"
+            ):
                 raise ProcessError(
                     f"Event not found: {event_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"event_id": event_id}
+                    details={"event_id": event_id},
                 )
 
             event = self._queues[event_id]["event"]
@@ -1742,7 +1882,7 @@ class ProcessManager:
             raise ProcessError(
                 f"Could not acquire lock: {lock_id}",
                 severity=ErrorSeverity.WARNING,
-                details={"lock_id": lock_id, "timeout": timeout}
+                details={"lock_id": lock_id, "timeout": timeout},
             )
 
         try:
@@ -1768,11 +1908,14 @@ class ProcessManager:
             ProcessError: If the lock is not found
         """
         with self._queue_lock:
-            if lock_id not in self._queues or self._queues[lock_id].get("type") != "lock":
+            if (
+                lock_id not in self._queues
+                or self._queues[lock_id].get("type") != "lock"
+            ):
                 raise ProcessError(
                     f"Lock not found: {lock_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"lock_id": lock_id}
+                    details={"lock_id": lock_id},
                 )
 
             lock = self._queues[lock_id]["lock"]
@@ -1791,11 +1934,14 @@ class ProcessManager:
             ProcessError: If the lock is not found
         """
         with self._queue_lock:
-            if lock_id not in self._queues or self._queues[lock_id].get("type") != "lock":
+            if (
+                lock_id not in self._queues
+                or self._queues[lock_id].get("type") != "lock"
+            ):
                 raise ProcessError(
                     f"Lock not found: {lock_id}",
                     severity=ErrorSeverity.ERROR,
-                    details={"lock_id": lock_id}
+                    details={"lock_id": lock_id},
                 )
 
             lock = self._queues[lock_id]["lock"]
@@ -1826,14 +1972,18 @@ def get_process_manager() -> ProcessManager:
 
 # Module-level functions for convenience
 
-def run_process(cmd: List[str], shell: bool = False,
-               cwd: Optional[Union[str, Path]] = None,
-               env: Optional[Dict[str, str]] = None,
-               input_data: Optional[str] = None,
-               timeout: Optional[float] = None,
-               capture_output: bool = True,
-               process_id: Optional[str] = None,
-               callback: Optional[Callable] = None) -> Dict[str, Any]:
+
+def run_process(
+    cmd: List[str],
+    shell: bool = False,
+    cwd: Optional[Union[str, Path]] = None,
+    env: Optional[Dict[str, str]] = None,
+    input_data: Optional[str] = None,
+    timeout: Optional[float] = None,
+    capture_output: bool = True,
+    process_id: Optional[str] = None,
+    callback: Optional[Callable] = None,
+) -> Dict[str, Any]:
     """
     Run a process and return its output.
 
@@ -1856,12 +2006,15 @@ def run_process(cmd: List[str], shell: bool = False,
     )
 
 
-def run_process_async(cmd: List[str], shell: bool = False,
-                     cwd: Optional[Union[str, Path]] = None,
-                     env: Optional[Dict[str, str]] = None,
-                     input_data: Optional[str] = None,
-                     process_id: Optional[str] = None,
-                     callback: Optional[Callable] = None) -> str:
+def run_process_async(
+    cmd: List[str],
+    shell: bool = False,
+    cwd: Optional[Union[str, Path]] = None,
+    env: Optional[Dict[str, str]] = None,
+    input_data: Optional[str] = None,
+    process_id: Optional[str] = None,
+    callback: Optional[Callable] = None,
+) -> str:
     """
     Run a process asynchronously.
 
@@ -1942,14 +2095,16 @@ def terminate_all_processes(timeout: float = 5.0) -> int:
     return get_process_manager().terminate_all_processes(timeout)
 
 
-def run_sandboxed_process(cmd: List[str],
-                        cwd: Optional[Union[str, Path]] = None,
-                        env: Optional[Dict[str, str]] = None,
-                        input_data: Optional[str] = None,
-                        process_id: Optional[str] = None,
-                        wait: bool = True,
-                        timeout: Optional[float] = None,
-                        sandbox_policy=None) -> Union[Dict[str, Any], str]:
+def run_sandboxed_process(
+    cmd: List[str],
+    cwd: Optional[Union[str, Path]] = None,
+    env: Optional[Dict[str, str]] = None,
+    input_data: Optional[str] = None,
+    process_id: Optional[str] = None,
+    wait: bool = True,
+    timeout: Optional[float] = None,
+    sandbox_policy=None,
+) -> Union[Dict[str, Any], str]:
     """
     Run a process in a sandbox with security restrictions.
 
@@ -1987,6 +2142,7 @@ def terminate_sandboxed_process(process_id: str, timeout: float = 5.0) -> bool:
 
 
 # Process Pool Management Functions
+
 
 def create_process_pool(max_workers: int = None, executor_id: str = None) -> str:
     """
@@ -2036,7 +2192,9 @@ def get_default_thread_pool() -> str:
     return get_process_manager().get_default_thread_pool()
 
 
-def submit_task(func: Callable, *args, executor_id: str = None, task_id: str = None, **kwargs) -> str:
+def submit_task(
+    func: Callable, *args, executor_id: str = None, task_id: str = None, **kwargs
+) -> str:
     """
     Submit a task to an executor.
 
@@ -2050,7 +2208,9 @@ def submit_task(func: Callable, *args, executor_id: str = None, task_id: str = N
     Returns:
         Task ID that can be used to check status or get results
     """
-    return get_process_manager().submit_task(func, *args, executor_id=executor_id, task_id=task_id, **kwargs)
+    return get_process_manager().submit_task(
+        func, *args, executor_id=executor_id, task_id=task_id, **kwargs
+    )
 
 
 def get_task_result(task_id: str, timeout: Optional[float] = None) -> Any:
@@ -2122,6 +2282,7 @@ def list_executors() -> List[Dict[str, Any]]:
 
 # Inter-Process Communication (IPC) Functions
 
+
 def create_queue(queue_id: str = None, maxsize: int = 0) -> str:
     """
     Create a queue for inter-process communication.
@@ -2136,7 +2297,9 @@ def create_queue(queue_id: str = None, maxsize: int = 0) -> str:
     return get_process_manager().create_queue(queue_id, maxsize)
 
 
-def put_queue_item(queue_id: str, item: Any, block: bool = True, timeout: Optional[float] = None) -> bool:
+def put_queue_item(
+    queue_id: str, item: Any, block: bool = True, timeout: Optional[float] = None
+) -> bool:
     """
     Put an item in a queue.
 
@@ -2155,7 +2318,9 @@ def put_queue_item(queue_id: str, item: Any, block: bool = True, timeout: Option
     return get_process_manager().put_queue_item(queue_id, item, block, timeout)
 
 
-def get_queue_item(queue_id: str, block: bool = True, timeout: Optional[float] = None) -> Any:
+def get_queue_item(
+    queue_id: str, block: bool = True, timeout: Optional[float] = None
+) -> Any:
     """
     Get an item from a queue.
 
@@ -2260,7 +2425,9 @@ def list_queues() -> List[Dict[str, Any]]:
     return get_process_manager().list_queues()
 
 
-def create_shared_value(value_id: str = None, value_type: str = "i", initial_value: Any = 0) -> str:
+def create_shared_value(
+    value_id: str = None, value_type: str = "i", initial_value: Any = 0
+) -> str:
     """
     Create a shared value for inter-process communication.
 
@@ -2272,7 +2439,9 @@ def create_shared_value(value_id: str = None, value_type: str = "i", initial_val
     Returns:
         Value ID that can be used to get and set the value
     """
-    return get_process_manager().create_shared_value(value_id, value_type, initial_value)
+    return get_process_manager().create_shared_value(
+        value_id, value_type, initial_value
+    )
 
 
 def get_shared_value(value_id: str) -> Any:

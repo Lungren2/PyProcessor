@@ -12,33 +12,39 @@ This module provides functionality for managing temporary files, including:
 """
 
 import os
-import time
 import shutil
-import threading
-import uuid
 import tempfile
+import threading
+import time
+import uuid
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Union, Set, Tuple, Callable
-from datetime import datetime, timedelta
-import logging
+from typing import Callable, Dict, Optional, Union
 
 # Import path manager for path handling
 from pyprocessor.utils.file_system.path_manager import get_path_manager
 from pyprocessor.utils.logging.log_manager import get_logger
 
+
 # Import resource manager for disk space monitoring
 # Use a deferred import to avoid circular imports
 def get_resource_manager():
     from pyprocessor.utils.process.resource_manager import get_resource_manager
+
     return get_resource_manager()
+
 
 def get_resource_types():
     from pyprocessor.utils.process.resource_manager import ResourceType
+
     return ResourceType
+
 
 def get_resource_states():
     from pyprocessor.utils.process.resource_manager import ResourceState
+
     return ResourceState
+
 
 # Placeholder for temporary file registry
 # This will track all temporary files created by the application
@@ -51,6 +57,7 @@ _stop_cleanup_event = threading.Event()
 # Default thresholds
 DEFAULT_WARNING_THRESHOLD = 0.8  # 80% disk usage
 DEFAULT_CRITICAL_THRESHOLD = 0.95  # 95% disk usage
+
 
 class TempFileManager:
     """
@@ -77,7 +84,7 @@ class TempFileManager:
     def __init__(self, logger=None):
         """Initialize the temporary file manager."""
         # Only initialize once
-        if getattr(self, '_initialized', False):
+        if getattr(self, "_initialized", False):
             return
 
         # Get logger
@@ -107,7 +114,9 @@ class TempFileManager:
         self._initialized = True
         self.logger.debug("Temporary file manager initialized")
 
-    def configure_temp_dir(self, temp_dir: Union[str, Path] = None, create_if_missing: bool = True) -> Path:
+    def configure_temp_dir(
+        self, temp_dir: Union[str, Path] = None, create_if_missing: bool = True
+    ) -> Path:
         """
         Configure the temporary file directory.
 
@@ -144,8 +153,12 @@ class TempFileManager:
             return self.configure_temp_dir()
         return self._temp_dir
 
-    def create_temp_file(self, prefix: str = "pyprocessor_", suffix: str = "",
-                        parent_dir: Optional[Union[str, Path]] = None) -> Path:
+    def create_temp_file(
+        self,
+        prefix: str = "pyprocessor_",
+        suffix: str = "",
+        parent_dir: Optional[Union[str, Path]] = None,
+    ) -> Path:
         """
         Create a temporary file and register it for tracking.
 
@@ -166,26 +179,31 @@ class TempFileManager:
                 parent_dir.mkdir(parents=True, exist_ok=True)
 
         # Create temporary file
-        fd, temp_file_path = tempfile.mkstemp(suffix=suffix, prefix=prefix, dir=str(parent_dir))
+        fd, temp_file_path = tempfile.mkstemp(
+            suffix=suffix, prefix=prefix, dir=str(parent_dir)
+        )
         os.close(fd)  # Close the file descriptor
         temp_file = Path(temp_file_path)
 
         # Register the temporary file
         file_id = str(uuid.uuid4())
         self._temp_files[file_id] = {
-            'path': temp_file,
-            'created': datetime.now(),
-            'type': 'file',
-            'size': 0,  # Initial size
-            'last_accessed': datetime.now(),
-            'in_use': True
+            "path": temp_file,
+            "created": datetime.now(),
+            "type": "file",
+            "size": 0,  # Initial size
+            "last_accessed": datetime.now(),
+            "in_use": True,
         }
 
         self.logger.debug(f"Created temporary file: {temp_file}")
         return temp_file
 
-    def create_temp_dir(self, prefix: str = "pyprocessor_",
-                       parent_dir: Optional[Union[str, Path]] = None) -> Path:
+    def create_temp_dir(
+        self,
+        prefix: str = "pyprocessor_",
+        parent_dir: Optional[Union[str, Path]] = None,
+    ) -> Path:
         """
         Create a temporary directory and register it for tracking.
 
@@ -210,18 +228,20 @@ class TempFileManager:
         # Register the temporary directory
         dir_id = str(uuid.uuid4())
         self._temp_files[dir_id] = {
-            'path': temp_dir,
-            'created': datetime.now(),
-            'type': 'directory',
-            'size': 0,  # Initial size
-            'last_accessed': datetime.now(),
-            'in_use': True
+            "path": temp_dir,
+            "created": datetime.now(),
+            "type": "directory",
+            "size": 0,  # Initial size
+            "last_accessed": datetime.now(),
+            "in_use": True,
         }
 
         self.logger.debug(f"Created temporary directory: {temp_dir}")
         return temp_dir
 
-    def mark_temp_file_in_use(self, file_path: Union[str, Path], in_use: bool = True) -> bool:
+    def mark_temp_file_in_use(
+        self, file_path: Union[str, Path], in_use: bool = True
+    ) -> bool:
         """
         Mark a temporary file as in use or not in use.
 
@@ -236,9 +256,9 @@ class TempFileManager:
 
         # Find the file in the registry
         for file_id, file_info in self._temp_files.items():
-            if self.path_manager.is_same_path(file_info['path'], file_path):
-                file_info['in_use'] = in_use
-                file_info['last_accessed'] = datetime.now()
+            if self.path_manager.is_same_path(file_info["path"], file_path):
+                file_info["in_use"] = in_use
+                file_info["last_accessed"] = datetime.now()
                 return True
 
         return False
@@ -257,15 +277,19 @@ class TempFileManager:
 
         # Find the file in the registry
         for file_id, file_info in self._temp_files.items():
-            if self.path_manager.is_same_path(file_info['path'], file_path):
+            if self.path_manager.is_same_path(file_info["path"], file_path):
                 try:
-                    if file_info['type'] == 'file':
+                    if file_info["type"] == "file":
                         size = file_path.stat().st_size
                     else:  # directory
-                        size = sum(f.stat().st_size for f in file_path.glob('**/*') if f.is_file())
+                        size = sum(
+                            f.stat().st_size
+                            for f in file_path.glob("**/*")
+                            if f.is_file()
+                        )
 
-                    file_info['size'] = size
-                    file_info['last_accessed'] = datetime.now()
+                    file_info["size"] = size
+                    file_info["last_accessed"] = datetime.now()
                     return size
                 except (FileNotFoundError, PermissionError):
                     return -1
@@ -296,27 +320,27 @@ class TempFileManager:
 
             # Determine state based on thresholds
             if utilization >= self._critical_threshold:
-                state = 'critical'
+                state = "critical"
             elif utilization >= self._warning_threshold:
-                state = 'warning'
+                state = "warning"
             else:
-                state = 'normal'
+                state = "normal"
 
             return {
-                'path': str(path),
-                'total': usage.total,
-                'used': usage.used,
-                'free': usage.free,
-                'utilization': utilization,
-                'state': state,
-                'timestamp': datetime.now().isoformat()
+                "path": str(path),
+                "total": usage.total,
+                "used": usage.used,
+                "free": usage.free,
+                "utilization": utilization,
+                "state": state,
+                "timestamp": datetime.now().isoformat(),
             }
         except Exception as e:
             self.logger.error(f"Error getting disk space info for {path}: {str(e)}")
             return {
-                'path': str(path),
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
+                "path": str(path),
+                "error": str(e),
+                "timestamp": datetime.now().isoformat(),
             }
 
     def cleanup_temp_file(self, file_path: Union[str, Path]) -> bool:
@@ -334,7 +358,7 @@ class TempFileManager:
         # Find the file in the registry
         file_id_to_remove = None
         for file_id, file_info in self._temp_files.items():
-            if self.path_manager.is_same_path(file_info['path'], file_path):
+            if self.path_manager.is_same_path(file_info["path"], file_path):
                 file_id_to_remove = file_id
                 break
 
@@ -343,13 +367,15 @@ class TempFileManager:
             return False
 
         # Check if the file is in use
-        if self._temp_files[file_id_to_remove]['in_use']:
-            self.logger.warning(f"Cannot clean up temporary file that is in use: {file_path}")
+        if self._temp_files[file_id_to_remove]["in_use"]:
+            self.logger.warning(
+                f"Cannot clean up temporary file that is in use: {file_path}"
+            )
             return False
 
         try:
             # Remove the file or directory
-            if self._temp_files[file_id_to_remove]['type'] == 'file':
+            if self._temp_files[file_id_to_remove]["type"] == "file":
                 if file_path.exists():
                     file_path.unlink()
             else:  # directory
@@ -359,7 +385,9 @@ class TempFileManager:
             # Remove from registry
             del self._temp_files[file_id_to_remove]
 
-            self.logger.debug(f"Cleaned up temporary {self._temp_files[file_id_to_remove]['type']}: {file_path}")
+            self.logger.debug(
+                f"Cleaned up temporary {self._temp_files[file_id_to_remove]['type']}: {file_path}"
+            )
             return True
         except Exception as e:
             self.logger.error(f"Error cleaning up temporary file {file_path}: {str(e)}")
@@ -381,12 +409,12 @@ class TempFileManager:
         now = datetime.now()
         for file_id, file_info in self._temp_files.items():
             # Skip files that are in use
-            if file_info['in_use']:
+            if file_info["in_use"]:
                 continue
 
             # Check age if older_than is specified
             if older_than is not None:
-                age = (now - file_info['last_accessed']).total_seconds()
+                age = (now - file_info["last_accessed"]).total_seconds()
                 if age < older_than:
                     continue
 
@@ -397,18 +425,22 @@ class TempFileManager:
         for file_id in files_to_remove:
             file_info = self._temp_files[file_id]
             try:
-                if file_info['type'] == 'file':
-                    if file_info['path'].exists():
-                        file_info['path'].unlink()
+                if file_info["type"] == "file":
+                    if file_info["path"].exists():
+                        file_info["path"].unlink()
                 else:  # directory
-                    if file_info['path'].exists():
-                        shutil.rmtree(file_info['path'])
+                    if file_info["path"].exists():
+                        shutil.rmtree(file_info["path"])
 
                 del self._temp_files[file_id]
                 count += 1
-                self.logger.debug(f"Cleaned up temporary {file_info['type']}: {file_info['path']}")
+                self.logger.debug(
+                    f"Cleaned up temporary {file_info['type']}: {file_info['path']}"
+                )
             except Exception as e:
-                self.logger.error(f"Error cleaning up temporary file {file_info['path']}: {str(e)}")
+                self.logger.error(
+                    f"Error cleaning up temporary file {file_info['path']}: {str(e)}"
+                )
 
         return count
 
@@ -424,14 +456,16 @@ class TempFileManager:
 
         # If disk space is still critical, clean up older in-use files
         disk_info = self.get_disk_space_info()
-        if disk_info.get('state') == 'critical':
-            self.logger.warning("Disk space still critical after cleaning unused files. Cleaning older in-use files.")
+        if disk_info.get("state") == "critical":
+            self.logger.warning(
+                "Disk space still critical after cleaning unused files. Cleaning older in-use files."
+            )
 
             # Find older in-use files (older than 1 hour)
             files_to_remove = []
             now = datetime.now()
             for file_id, file_info in self._temp_files.items():
-                age = (now - file_info['created']).total_seconds()
+                age = (now - file_info["created"]).total_seconds()
                 if age > 3600:  # 1 hour
                     files_to_remove.append(file_id)
 
@@ -439,18 +473,22 @@ class TempFileManager:
             for file_id in files_to_remove:
                 file_info = self._temp_files[file_id]
                 try:
-                    if file_info['type'] == 'file':
-                        if file_info['path'].exists():
-                            file_info['path'].unlink()
+                    if file_info["type"] == "file":
+                        if file_info["path"].exists():
+                            file_info["path"].unlink()
                     else:  # directory
-                        if file_info['path'].exists():
-                            shutil.rmtree(file_info['path'])
+                        if file_info["path"].exists():
+                            shutil.rmtree(file_info["path"])
 
                     del self._temp_files[file_id]
                     count += 1
-                    self.logger.warning(f"Emergency cleanup of in-use temporary {file_info['type']}: {file_info['path']}")
+                    self.logger.warning(
+                        f"Emergency cleanup of in-use temporary {file_info['type']}: {file_info['path']}"
+                    )
                 except Exception as e:
-                    self.logger.error(f"Error in emergency cleanup of {file_info['path']}: {str(e)}")
+                    self.logger.error(
+                        f"Error in emergency cleanup of {file_info['path']}: {str(e)}"
+                    )
 
         return count
 
@@ -474,7 +512,9 @@ class TempFileManager:
         if callback not in self._critical_callbacks:
             self._critical_callbacks.append(callback)
 
-    def start_monitoring(self, interval: int = 60, cleanup_interval: int = 3600) -> None:
+    def start_monitoring(
+        self, interval: int = 60, cleanup_interval: int = 3600
+    ) -> None:
         """
         Start monitoring disk space and scheduled cleanup.
 
@@ -491,13 +531,13 @@ class TempFileManager:
 
         # Start monitoring thread
         self._monitoring_thread = threading.Thread(
-            target=self._monitoring_loop,
-            daemon=True,
-            name="TempFileMonitor"
+            target=self._monitoring_loop, daemon=True, name="TempFileMonitor"
         )
         self._monitoring_thread.start()
 
-        self.logger.debug(f"Started temporary file monitoring with interval {interval}s")
+        self.logger.debug(
+            f"Started temporary file monitoring with interval {interval}s"
+        )
 
     def stop_monitoring(self) -> None:
         """
@@ -509,7 +549,7 @@ class TempFileManager:
         self._monitoring_enabled = False
 
         # Wait for monitoring thread to stop
-        if hasattr(self, '_monitoring_thread') and self._monitoring_thread.is_alive():
+        if hasattr(self, "_monitoring_thread") and self._monitoring_thread.is_alive():
             self._monitoring_thread.join(timeout=2.0)
 
         self.logger.debug("Stopped temporary file monitoring")
@@ -526,14 +566,14 @@ class TempFileManager:
                 disk_info = self.get_disk_space_info()
 
                 # Call callbacks based on state
-                if disk_info.get('state') == 'warning':
+                if disk_info.get("state") == "warning":
                     for callback in self._warning_callbacks:
                         try:
                             callback(disk_info)
                         except Exception as e:
                             self.logger.error(f"Error in warning callback: {str(e)}")
 
-                elif disk_info.get('state') == 'critical':
+                elif disk_info.get("state") == "critical":
                     # Call critical callbacks
                     for callback in self._critical_callbacks:
                         try:
@@ -550,7 +590,9 @@ class TempFileManager:
                     # Clean up files older than 24 hours
                     count = self.cleanup_all_temp_files(older_than=86400)  # 24 hours
                     if count > 0:
-                        self.logger.info(f"Scheduled cleanup removed {count} temporary files")
+                        self.logger.info(
+                            f"Scheduled cleanup removed {count} temporary files"
+                        )
 
                     last_cleanup_time = current_time
 
@@ -578,49 +620,73 @@ class TempFileManager:
         # Calculate statistics
         for file_id, file_info in self._temp_files.items():
             # Update file size
-            if file_info['path'].exists():
-                self.update_temp_file_size(file_info['path'])
+            if file_info["path"].exists():
+                self.update_temp_file_size(file_info["path"])
 
-            total_size += file_info['size']
+            total_size += file_info["size"]
 
-            if file_info['type'] == 'file':
+            if file_info["type"] == "file":
                 file_count += 1
             else:  # directory
                 dir_count += 1
 
-            if file_info['in_use']:
+            if file_info["in_use"]:
                 in_use_count += 1
 
             # Track oldest and newest files
-            if oldest_file is None or file_info['created'] < self._temp_files[oldest_file]['created']:
+            if (
+                oldest_file is None
+                or file_info["created"] < self._temp_files[oldest_file]["created"]
+            ):
                 oldest_file = file_id
 
-            if newest_file is None or file_info['created'] > self._temp_files[newest_file]['created']:
+            if (
+                newest_file is None
+                or file_info["created"] > self._temp_files[newest_file]["created"]
+            ):
                 newest_file = file_id
 
         # Get disk space info
         disk_info = self.get_disk_space_info()
 
         return {
-            'total_files': file_count,
-            'total_directories': dir_count,
-            'in_use_count': in_use_count,
-            'total_size': total_size,
-            'oldest_file': str(self._temp_files[oldest_file]['path']) if oldest_file else None,
-            'oldest_file_age': (datetime.now() - self._temp_files[oldest_file]['created']).total_seconds() if oldest_file else None,
-            'newest_file': str(self._temp_files[newest_file]['path']) if newest_file else None,
-            'newest_file_age': (datetime.now() - self._temp_files[newest_file]['created']).total_seconds() if newest_file else None,
-            'disk_space': disk_info,
-            'temp_dir': str(self.get_temp_dir()),
-            'monitoring_enabled': self._monitoring_enabled,
-            'monitoring_interval': self._monitoring_interval,
-            'cleanup_interval': self._cleanup_interval,
-            'warning_threshold': self._warning_threshold,
-            'critical_threshold': self._critical_threshold
+            "total_files": file_count,
+            "total_directories": dir_count,
+            "in_use_count": in_use_count,
+            "total_size": total_size,
+            "oldest_file": (
+                str(self._temp_files[oldest_file]["path"]) if oldest_file else None
+            ),
+            "oldest_file_age": (
+                (
+                    datetime.now() - self._temp_files[oldest_file]["created"]
+                ).total_seconds()
+                if oldest_file
+                else None
+            ),
+            "newest_file": (
+                str(self._temp_files[newest_file]["path"]) if newest_file else None
+            ),
+            "newest_file_age": (
+                (
+                    datetime.now() - self._temp_files[newest_file]["created"]
+                ).total_seconds()
+                if newest_file
+                else None
+            ),
+            "disk_space": disk_info,
+            "temp_dir": str(self.get_temp_dir()),
+            "monitoring_enabled": self._monitoring_enabled,
+            "monitoring_interval": self._monitoring_interval,
+            "cleanup_interval": self._cleanup_interval,
+            "warning_threshold": self._warning_threshold,
+            "critical_threshold": self._critical_threshold,
         }
+
 
 # Singleton instance
 _temp_file_manager = None
+
 
 def get_temp_file_manager(logger=None) -> TempFileManager:
     """
@@ -637,9 +703,13 @@ def get_temp_file_manager(logger=None) -> TempFileManager:
         _temp_file_manager = TempFileManager(logger)
     return _temp_file_manager
 
+
 # Module-level functions for convenience
 
-def configure_temp_dir(temp_dir: Union[str, Path], create_if_missing: bool = True) -> Path:
+
+def configure_temp_dir(
+    temp_dir: Union[str, Path], create_if_missing: bool = True
+) -> Path:
     """
     Configure the temporary file directory.
 
@@ -652,6 +722,7 @@ def configure_temp_dir(temp_dir: Union[str, Path], create_if_missing: bool = Tru
     """
     return get_temp_file_manager().configure_temp_dir(temp_dir, create_if_missing)
 
+
 def get_temp_dir() -> Path:
     """
     Get the configured temporary directory.
@@ -661,8 +732,12 @@ def get_temp_dir() -> Path:
     """
     return get_temp_file_manager().get_temp_dir()
 
-def create_temp_file(prefix: str = "pyprocessor_", suffix: str = "",
-                    parent_dir: Optional[Union[str, Path]] = None) -> Path:
+
+def create_temp_file(
+    prefix: str = "pyprocessor_",
+    suffix: str = "",
+    parent_dir: Optional[Union[str, Path]] = None,
+) -> Path:
     """
     Create a temporary file and register it for tracking.
 
@@ -676,8 +751,10 @@ def create_temp_file(prefix: str = "pyprocessor_", suffix: str = "",
     """
     return get_temp_file_manager().create_temp_file(prefix, suffix, parent_dir)
 
-def create_temp_dir(prefix: str = "pyprocessor_",
-                   parent_dir: Optional[Union[str, Path]] = None) -> Path:
+
+def create_temp_dir(
+    prefix: str = "pyprocessor_", parent_dir: Optional[Union[str, Path]] = None
+) -> Path:
     """
     Create a temporary directory and register it for tracking.
 
@@ -689,6 +766,7 @@ def create_temp_dir(prefix: str = "pyprocessor_",
         Path: Path to the created temporary directory
     """
     return get_temp_file_manager().create_temp_dir(prefix, parent_dir)
+
 
 def mark_temp_file_in_use(file_path: Union[str, Path], in_use: bool = True) -> bool:
     """
@@ -703,6 +781,7 @@ def mark_temp_file_in_use(file_path: Union[str, Path], in_use: bool = True) -> b
     """
     return get_temp_file_manager().mark_temp_file_in_use(file_path, in_use)
 
+
 def cleanup_temp_file(file_path: Union[str, Path]) -> bool:
     """
     Clean up a specific temporary file.
@@ -714,6 +793,7 @@ def cleanup_temp_file(file_path: Union[str, Path]) -> bool:
         bool: True if successful, False otherwise
     """
     return get_temp_file_manager().cleanup_temp_file(file_path)
+
 
 def cleanup_all_temp_files(older_than: Optional[int] = None) -> int:
     """
@@ -727,6 +807,7 @@ def cleanup_all_temp_files(older_than: Optional[int] = None) -> int:
     """
     return get_temp_file_manager().cleanup_all_temp_files(older_than)
 
+
 def emergency_cleanup() -> int:
     """
     Perform emergency cleanup when disk space is critically low.
@@ -735,6 +816,7 @@ def emergency_cleanup() -> int:
         int: Number of files cleaned up
     """
     return get_temp_file_manager().emergency_cleanup()
+
 
 def start_monitoring(interval: int = 60, cleanup_interval: int = 3600) -> None:
     """
@@ -746,9 +828,11 @@ def start_monitoring(interval: int = 60, cleanup_interval: int = 3600) -> None:
     """
     return get_temp_file_manager().start_monitoring(interval, cleanup_interval)
 
+
 def stop_monitoring() -> None:
     """Stop monitoring disk space and scheduled cleanup."""
     return get_temp_file_manager().stop_monitoring()
+
 
 def get_disk_space_info(path: Optional[Union[str, Path]] = None) -> Dict:
     """
@@ -762,6 +846,7 @@ def get_disk_space_info(path: Optional[Union[str, Path]] = None) -> Dict:
     """
     return get_temp_file_manager().get_disk_space_info(path)
 
+
 def register_warning_callback(callback: Callable[[Dict], None]) -> None:
     """
     Register a callback for disk space warning.
@@ -770,6 +855,7 @@ def register_warning_callback(callback: Callable[[Dict], None]) -> None:
         callback: Callback function that takes disk space info as argument
     """
     return get_temp_file_manager().register_warning_callback(callback)
+
 
 def register_critical_callback(callback: Callable[[Dict], None]) -> None:
     """
@@ -780,6 +866,7 @@ def register_critical_callback(callback: Callable[[Dict], None]) -> None:
     """
     return get_temp_file_manager().register_critical_callback(callback)
 
+
 def get_temp_file_stats() -> Dict:
     """
     Get statistics about temporary files.
@@ -789,8 +876,11 @@ def get_temp_file_stats() -> Dict:
     """
     return get_temp_file_manager().get_temp_file_stats()
 
-def set_thresholds(warning_threshold: float = DEFAULT_WARNING_THRESHOLD,
-                  critical_threshold: float = DEFAULT_CRITICAL_THRESHOLD) -> None:
+
+def set_thresholds(
+    warning_threshold: float = DEFAULT_WARNING_THRESHOLD,
+    critical_threshold: float = DEFAULT_CRITICAL_THRESHOLD,
+) -> None:
     """
     Set disk space thresholds for warnings and critical alerts.
 
