@@ -16,6 +16,11 @@
     "audio_bitrates": ["192k", "128k", "96k", "64k"]
   },
   "max_parallel_jobs": 4,
+  "batch_processing": {
+    "enabled": true,
+    "batch_size": null,
+    "max_memory_percent": 80
+  },
   "auto_rename_files": true,
   "auto_organize_folders": true,
   "file_rename_pattern": "(\\d+-\\d+)(?:[_-].*?)?\\.mp4$",

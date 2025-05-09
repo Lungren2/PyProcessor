@@ -1,6 +1,6 @@
 # PyProcessor User Guide
 
-This guide provides instructions for using the PyProcessor application for video processing and HLS encoding.
+This guide provides instructions for using the PyProcessor library and CLI tool for video processing and HLS encoding.
 
 ## Installation
 
@@ -8,7 +8,7 @@ This guide provides instructions for using the PyProcessor application for video
 
 1. Download the latest PyProcessorInstaller.exe from the releases page
 2. Run the installer and follow the on-screen instructions
-3. Launch PyProcessor from the Start menu or desktop shortcut
+3. Launch PyProcessor from the command line
 
 ### From Source
 
@@ -23,23 +23,21 @@ python -m pyprocessor
 
 ## Getting Started
 
-### Main Interface
+### Command Line Interface
 
-When you launch PyProcessor, you'll see the main interface with the following components:
+PyProcessor is primarily used through the command line interface:
 
-- Input path selection
-- Output path selection
-- Encoding settings tabs
-- Progress indicators
-- Start/Stop buttons
+```bash
+pyprocessor --input /path/to/input --output /path/to/output [options]
+```
 
 ### Basic Workflow
 
-1. **Select Input**: Click the "Browse" button next to the input field to select a directory containing video files
-2. **Select Output**: Click the "Browse" button next to the output field to select a directory for processed files
-3. **Configure Settings**: Adjust encoding settings in the tabs as needed
-4. **Start Processing**: Click the "Start" button to begin processing
-5. **Monitor Progress**: Watch the progress indicators for real-time updates
+1. **Specify Input**: Provide the input directory containing video files
+2. **Specify Output**: Provide the output directory for processed files
+3. **Configure Settings**: Set encoding options via command line arguments or a profile
+4. **Start Processing**: Run the command to begin processing
+5. **Monitor Progress**: Watch the progress indicators in the console
 
 ## Configuration Options
 
@@ -89,24 +87,25 @@ All files are validated against the `file_validation_pattern` before processing.
 - **Pattern**: `file_validation_pattern`
 - **Example**: With the default pattern `^\d+-\d+\.mp4$`, only files named like `123-456.mp4` will be processed
 
-You can customize these patterns in the Advanced Settings tab to match your specific naming conventions.
+You can customize these patterns in the configuration file or via command line arguments to match your specific naming conventions.
 
 ## Using Profiles
 
 Profiles allow you to save and reuse configurations for different encoding scenarios.
 
-### Saving a Profile
+### Using a Profile
 
-1. Configure your settings as desired
-2. Click "Save Profile" in the File menu
-3. Enter a name for the profile
-4. Click "Save"
+```bash
+pyprocessor --profile high_quality --input /path/to/input --output /path/to/output
+```
 
-### Loading a Profile
+### Available Profiles
 
-1. Click "Load Profile" in the File menu
-2. Select a profile from the list
-3. Click "Load"
+The following profiles are included by default:
+
+- `default`: Standard encoding settings
+- `high_quality`: High quality encoding settings
+- `fast`: Fast encoding with lower quality
 
 ## Server Optimization
 
@@ -114,19 +113,15 @@ PyProcessor includes tools to optimize your web server for HLS content delivery.
 
 ### Optimizing IIS Server
 
-1. Go to the "Server Optimization" tab
-2. Select "IIS" as the server type
-3. Enter your site name and video path
-4. Select optimization options
-5. Click "Optimize Server"
+```bash
+pyprocessor optimize-server --server-type iis --site-name "Default Web Site" --video-path "C:\inetpub\wwwroot\media"
+```
 
 ### Optimizing Nginx Server
 
-1. Go to the "Server Optimization" tab
-2. Select "Nginx" as the server type
-3. Enter your server name and output configuration path
-4. Select optimization options
-5. Click "Optimize Server"
+```bash
+pyprocessor optimize-server --server-type nginx --server-name "example.com" --output-path "/etc/nginx/sites-available/media.conf"
+```
 
 ## Troubleshooting
 
@@ -138,7 +133,11 @@ PyProcessor includes tools to optimize your web server for HLS content delivery.
 
 ### Viewing Logs
 
-You can view logs either through the GUI (Tools > View Logs) or by examining the log files in the `pyprocessor/logs/` directory.
+You can examine the log files in the `pyprocessor/logs/` directory or use the log command:
+
+```bash
+pyprocessor logs --level error --last 50
+```
 
 ## Getting Help
 

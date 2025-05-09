@@ -1,0 +1,19 @@
+# Include all package data
+include pyprocessor/profiles/*
+include pyprocessor/logs/.gitkeep
+
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+
+# Include scripts
+recursive-include scripts *.py
+
+# Include optimization utilities
+recursive-include optimization-utils *
+
+# Exclude unnecessary files
+global-exclude *.py[cod] __pycache__ *.so *.dylib .DS_Store
+global-exclude *.log

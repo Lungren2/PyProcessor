@@ -21,7 +21,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e .
 
 # Install development dependencies
-pip install pytest pytest-cov flake8 black isort mypy autoflake vulture
+pip install flake8 black isort mypy autoflake vulture
 ```
 
 ### 2. Creating a Feature Branch
@@ -38,6 +38,7 @@ git checkout -b feature/your-feature-name
 ```
 
 Use a descriptive branch name that reflects the changes you're making:
+
 - `feature/new-feature-name` for new features
 - `bugfix/issue-description` for bug fixes
 - `docs/documentation-update` for documentation changes
@@ -50,13 +51,12 @@ When making changes:
 - Follow the [code style guidelines](CODE_STYLE.md)
 - Keep changes focused on a single task
 - Make regular commits with clear messages
-- Write or update tests for your changes
 
 #### Commit Messages
 
 Write clear, concise commit messages that explain the purpose of the change:
 
-```
+```text
 Short summary of changes (50 chars or less)
 
 More detailed explanation of the changes if needed. Wrap lines at
@@ -65,22 +65,11 @@ More detailed explanation of the changes if needed. Wrap lines at
 Fixes #123
 ```
 
-### 4. Testing Your Changes
+### 4. Verifying Your Changes
 
-Always test your changes before submitting them:
+Always verify your changes work as expected before submitting them.
 
-```bash
-# Run all tests
-python -m pytest
-
-# Run tests with coverage
-python -m pytest --cov=pyprocessor
-
-# Run tests for a specific module
-python -m pytest tests/test_encoder.py
-```
-
-Make sure your changes don't break existing functionality and that they're covered by tests.
+Make sure your changes don't break existing functionality.
 
 ### 5. Code Quality Checks
 
@@ -182,9 +171,7 @@ The release process is managed by project maintainers:
 
 We use GitHub Actions for continuous integration:
 
-- Automated tests run on all pull requests
 - Code quality checks are performed automatically
-- Test coverage is reported
 
 ## Getting Help
 

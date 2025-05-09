@@ -1,0 +1,52 @@
+name: Quality & Testing
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - "**.py"
+      - "requirements*.txt"
+      - "setup.py"
+      - ".github/workflows/quality.yml"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "**.py"
+      - "requirements*.txt"
+      - "setup.py"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, "3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libdbus-1-dev libglib2.0-dev
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python scripts/dev_tools.py deps --install --extras dev
+
+      - name: Format code
+        run: |
+          # Format code with Black
+          python -m black pyprocessor scripts
+
+      - name: Check code quality
+        run: |
+          # Run all code quality checks
+          python scripts/dev_tools.py lint --check

@@ -1,9 +1,7 @@
 import argparse
 import sys
-import time
-from pathlib import Path
 
-from pyprocessor.utils.application_context import ApplicationContext
+from pyprocessor.utils.core.application_context import ApplicationContext
 
 # Signal handling is now managed by ApplicationContext
 
@@ -40,15 +38,30 @@ def parse_args():
     )
     parser.add_argument("--jobs", type=int, help="Number of parallel jobs")
 
+    # Batch processing options
+    batch_group = parser.add_argument_group("Batch Processing")
+    batch_group.add_argument(
+        "--batch-mode",
+        choices=["enabled", "disabled"],
+        help="Enable or disable batch processing mode",
+    )
+    batch_group.add_argument(
+        "--batch-size", type=int, help="Number of videos to process in a single batch"
+    )
+    batch_group.add_argument(
+        "--max-memory",
+        type=int,
+        help="Maximum memory usage percentage before throttling batches",
+    )
+
     # Execution options
-    parser.add_argument("--no-gui", action="store_true", help="Run without GUI")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
 
     # Server optimization options
     server_group = parser.add_argument_group("Server Optimization")
     server_group.add_argument(
         "--optimize-server",
-        choices=["iis", "nginx", "linux"],
+        choices=["iis", "nginx", "apache", "linux"],
         help="Optimize server for video streaming",
     )
     server_group.add_argument(
@@ -98,160 +111,30 @@ def parse_args():
         help="Apply changes directly (for --optimize-server=linux)",
     )
 
+    # Security options
+    security_group = parser.add_argument_group("Security Options")
+    security_group.add_argument(
+        "--enable-encryption",
+        action="store_true",
+        help="Enable content encryption",
+    )
+    security_group.add_argument(
+        "--encrypt-output",
+        action="store_true",
+        help="Encrypt output files",
+    )
+    security_group.add_argument(
+        "--encryption-key",
+        help="Encryption key ID to use (uses default key if not specified)",
+    )
+
     return parser.parse_args()
 
 
-def apply_args_to_config(args, config):
-    """Apply command line arguments to configuration"""
-    if args.input:
-        config.input_folder = Path(args.input)
-
-    if args.output:
-        config.output_folder = Path(args.output)
-
-    if args.encoder:
-        config.ffmpeg_params["video_encoder"] = args.encoder
-
-    if args.preset:
-        config.ffmpeg_params["preset"] = args.preset
-
-    if args.tune:
-        config.ffmpeg_params["tune"] = args.tune
-
-    if args.fps:
-        config.ffmpeg_params["fps"] = args.fps
-
-    if args.no_audio:
-        config.ffmpeg_params["include_audio"] = False
-
-    if args.jobs:
-        config.max_parallel_jobs = max(1, args.jobs)
-
-    # Apply server optimization options
-    if args.optimize_server:
-        config.server_optimization["enabled"] = True
-        config.server_optimization["server_type"] = args.optimize_server
-
-        # IIS options
-        if args.optimize_server == "iis":
-            if args.site_name:
-                config.server_optimization["iis"]["site_name"] = args.site_name
-            if args.video_path:
-                config.server_optimization["iis"]["video_path"] = args.video_path
-            if args.enable_http2 is not None:
-                config.server_optimization["iis"]["enable_http2"] = args.enable_http2
-            if args.enable_http3 is not None:
-                config.server_optimization["iis"]["enable_http3"] = args.enable_http3
-            if args.enable_cors is not None:
-                config.server_optimization["iis"]["enable_cors"] = args.enable_cors
-            if args.cors_origin:
-                config.server_optimization["iis"]["cors_origin"] = args.cors_origin
-
-        # Nginx options
-        elif args.optimize_server == "nginx":
-            if args.output_config:
-                config.server_optimization["nginx"]["output_path"] = args.output_config
-            if args.server_name:
-                config.server_optimization["nginx"]["server_name"] = args.server_name
-            if args.enable_http3 is not None:
-                config.server_optimization["nginx"]["enable_http3"] = args.enable_http3
-
-        # Linux options
-        elif args.optimize_server == "linux":
-            if args.apply_changes is not None:
-                config.server_optimization["linux"][
-                    "apply_changes"
-                ] = args.apply_changes
+# Command line argument processing is now handled by ApplicationContext._apply_args_to_config
 
 
-def run_cli_mode(app_context):
-    """Run in command-line mode"""
-    try:
-        app_context.logger.info("Running in command-line mode")
-
-        # Check if server optimization is requested
-        if app_context.config.server_optimization.get("enabled", False):
-            from pyprocessor.utils.server_optimizer import ServerOptimizer
-
-            server_optimizer = ServerOptimizer(app_context.config, app_context.logger)
-
-            server_type = app_context.config.server_optimization["server_type"]
-            app_context.logger.info(f"Running server optimization for {server_type}")
-
-            success = False
-            message = ""
-            script_path = None
-
-            try:
-                if server_type == "iis":
-                    iis_config = app_context.config.server_optimization["iis"]
-                    success, message = server_optimizer.optimize_iis(
-                        site_name=iis_config["site_name"],
-                        video_path=iis_config["video_path"],
-                        enable_http2=iis_config["enable_http2"],
-                        enable_cors=iis_config["enable_cors"],
-                        cors_origin=iis_config["cors_origin"],
-                    )
-                elif server_type == "nginx":
-                    nginx_config = app_context.config.server_optimization["nginx"]
-                    success, message = server_optimizer.optimize_nginx(
-                        output_path=nginx_config["output_path"],
-                        server_name=nginx_config["server_name"],
-                        ssl_enabled=nginx_config.get("ssl_enabled", True),
-                    )
-                elif server_type == "linux":
-                    linux_config = app_context.config.server_optimization["linux"]
-                    success, message, script_path = server_optimizer.optimize_linux(
-                        apply_changes=linux_config["apply_changes"]
-                    )
-            except Exception as e:
-                success = False
-                message = f"Error during server optimization: {str(e)}"
-                app_context.logger.error(message)
-
-            if success:
-                app_context.logger.info(f"Server optimization successful: {message}")
-                if script_path:
-                    app_context.logger.info(f"Generated script at: {script_path}")
-                return 0
-            else:
-                app_context.logger.error(f"Server optimization failed: {message}")
-                return 1
-
-        # Validate input/output directories
-        if not app_context.config.input_folder.exists():
-            app_context.logger.error(f"Input directory does not exist: {app_context.config.input_folder}")
-            return 1
-
-        # Ensure output directory exists
-        app_context.config.output_folder.mkdir(parents=True, exist_ok=True)
-
-        # Process files
-        start_time = time.time()
-
-        # Step 1: Rename files (if enabled)
-        if app_context.config.auto_rename_files:
-            app_context.logger.info("Renaming files...")
-            app_context.file_manager.rename_files()
-
-        # Step 2: Process videos
-        app_context.logger.info("Processing videos...")
-        success = app_context.scheduler.process_videos()
-
-        # Step 3: Organize folders (if enabled)
-        if app_context.config.auto_organize_folders:
-            app_context.logger.info("Organizing folders...")
-            app_context.file_manager.organize_folders()
-
-        # Log summary
-        elapsed_time = time.time() - start_time
-        app_context.logger.info(f"Processing completed in {elapsed_time/60:.2f} minutes")
-
-        return 0 if success else 1
-
-    except Exception as e:
-        app_context.logger.error(f"Error in command-line mode: {str(e)}")
-        return 1
+# CLI mode processing is now handled by ApplicationContext.run_cli_mode
 
 
 def main():
@@ -264,11 +147,8 @@ def main():
     if not app_context.initialize(args):
         return 1
 
-    # Run in CLI or GUI mode
-    if args.no_gui:
-        return run_cli_mode(app_context)
-    else:
-        return app_context.run_gui_mode()
+    # Run in CLI mode
+    return app_context.run_cli_mode()
 
 
 if __name__ == "__main__":

@@ -9,7 +9,6 @@ Thank you for your interest in contributing to the Video Processor project! This
 - [Project Architecture](#project-architecture)
 - [Development Workflow](#development-workflow)
 - [Coding Standards](#coding-standards)
-- [Testing](#testing)
 - [Documentation](#documentation)
 - [Submitting Changes](#submitting-changes)
 
@@ -53,14 +52,14 @@ The project aims to provide a user-friendly, cross-platform solution for video e
 
 4. Install development dependencies:
    ```bash
-   pip install pytest pytest-cov flake8 black
+   pip install flake8 black
    ```
 
 ## Project Architecture
 
 The project follows a modular architecture with clear separation of concerns:
 
-- **GUI Module**: Handles user interface components
+- **CLI Module**: Handles command-line interface
 - **Processing Module**: Contains core processing logic
 - **Utils Module**: Provides utility functions and configuration management
 
@@ -75,19 +74,14 @@ For a detailed overview of the architecture, see [ARCHITECTURE.md](ARCHITECTURE.
 
 2. **Make Changes**: Implement your changes following the coding standards
 
-3. **Write Tests**: Add tests for your changes to ensure they work as expected
+3. **Verify Changes**: Ensure your changes work as expected
 
-4. **Run Tests**: Ensure all tests pass
-   ```bash
-   python -m pytest
-   ```
-
-5. **Format Code**: Ensure your code follows the project's style guidelines
+4. **Format Code**: Ensure your code follows the project's style guidelines
    ```bash
    black pyprocessor
    ```
 
-6. **Submit a Pull Request**: Push your changes and create a pull request
+5. **Submit a Pull Request**: Push your changes and create a pull request
 
 ## Coding Standards
 
@@ -100,20 +94,6 @@ We follow PEP 8 style guidelines for Python code. Some key points:
 - Add type hints where appropriate
 
 We use Black for code formatting and flake8 for linting.
-
-## Testing
-
-We use pytest for testing. All new features should include tests, and all tests should pass before submitting a pull request.
-
-To run tests:
-```bash
-python -m pytest
-```
-
-To run tests with coverage:
-```bash
-python -m pytest --cov=pyprocessor
-```
 
 ## Documentation
 

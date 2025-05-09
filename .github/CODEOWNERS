@@ -1,0 +1,31 @@
+# This file defines the code owners for different parts of the repository
+# Code owners are automatically requested for review when someone opens a PR
+# that modifies code they own
+# Learn more: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+* @Lungren2
+
+# Core modules
+/pyprocessor/core/ @Lungren2
+
+# Processing modules
+/pyprocessor/processing/ @Lungren2
+
+# Utility modules
+/pyprocessor/utils/ @Lungren2
+
+# Configuration and profiles
+/pyprocessor/profiles/ @Lungren2
+
+# Documentation
+/docs/ @Lungren2
+
+# Build and packaging scripts
+/scripts/ @Lungren2
+
+# GitHub workflows
+/.github/workflows/ @Lungren2
+
+# Tests
+/tests/ @Lungren2

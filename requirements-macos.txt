@@ -1,0 +1,12 @@
+# Base requirements
+tqdm>=4.60.0
+
+# macOS-specific dependencies
+pyobjc-core>=9.2; sys_platform == 'darwin'
+pyobjc-framework-Cocoa>=9.2; sys_platform == 'darwin'
+
+# Development dependencies (optional)
+# pyinstaller>=5.13.0; sys_platform == 'darwin'
+# black>=23.7.0
+# flake8>=6.1.0
+# isort>=5.12.0
