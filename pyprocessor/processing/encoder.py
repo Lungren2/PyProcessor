@@ -402,7 +402,11 @@ class FFmpegEncoder:
 
             # Move files from temp directory to output folder
             self.logger.info(
+<<<<<<< HEAD
                 "Moving encoded files from temporary directory to output folder"
+=======
+                f"Moving encoded files from temporary directory to output folder"
+>>>>>>> 13558cbf2d7a9d5083b2e35a75ae5f4147bdb6c2
             )
 
             # Check disk space in output folder before moving files

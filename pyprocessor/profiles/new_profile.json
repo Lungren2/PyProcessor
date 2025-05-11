@@ -1,0 +1,52 @@
+{
+    "input_folder": "\\profile\\input",
+    "output_folder": "\\profile\\output",
+    "ffmpeg_params": {
+        "video_encoder": "libx265",
+        "preset": "ultrafast",
+        "tune": "zerolatency",
+        "fps": 60,
+        "include_audio": true,
+        "bitrates": {
+            "1080p": "11000k",
+            "720p": "6500k",
+            "480p": "4000k",
+            "360p": "1500k"
+        },
+        "audio_bitrates": [
+            "192k",
+            "128k",
+            "96k",
+            "64k"
+        ]
+    },
+    "max_parallel_jobs": 6,
+    "auto_rename_files": true,
+    "auto_organize_folders": true,
+    "file_rename_pattern": ".*?(\\d+-\\d+).*?\\.mp4$",
+    "file_validation_pattern": "^\\d+-\\d+\\.mp4$",
+    "folder_organization_pattern": "^(\\d+)-\\d+",
+    "last_used_profile": "default",
+    "server_optimization": {
+        "enabled": false,
+        "server_type": "iis",
+        "iis": {
+            "site_name": "Default Web Site",
+            "video_path": "C:\\inetpub\\wwwroot\\media\\output",
+            "enable_http2": true,
+            "enable_http3": false,
+            "enable_cors": true,
+            "cors_origin": "*"
+        },
+        "nginx": {
+            "output_path": "C:\\inetpub\\wwwroot\\media\\output\\nginx.conf",
+            "server_name": "yourdomain.com",
+            "ssl_enabled": true,
+            "enable_http3": false
+        },
+        "linux": {
+            "apply_changes": false
+        }
+    },
+    "saved_at": "2025-04-13T15:37:53.881695"
+}

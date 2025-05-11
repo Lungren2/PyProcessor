@@ -17,8 +17,6 @@ import functools
 # import sys
 import os
 import time
-import threading
-import logging
 
 # import json
 import traceback
@@ -29,11 +27,6 @@ from typing import Any, Callable, Dict, List, Optional, Type, TypeVar, Union
 # Import from existing error manager
 from pyprocessor.utils.logging.error_manager import (
     PyProcessorError,
-    ErrorCategory,
-    ErrorSeverity,
-    get_error_manager,
-    convert_exception,
-    handle_error,
 )
 from pyprocessor.utils.logging.log_manager import get_logger
 

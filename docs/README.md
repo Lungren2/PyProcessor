@@ -1,24 +1,43 @@
-# Video Processor Documentation
+# PyProcessor Documentation
 
-Welcome to the Video Processor documentation. This directory contains comprehensive documentation for contributors and developers working with the Video Processor project.
+Welcome to the PyProcessor documentation. This directory contains comprehensive documentation for users, contributors, and developers working with the PyProcessor project.
 
-## Documentation Index
+## Documentation Structure
 
-### Getting Started
+### User Documentation
 
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute to the project
-- [Development Workflow](DEVELOPMENT_WORKFLOW.md) - Recommended development process
+Documentation for end users of the application:
 
-### Architecture and Design
+- [User Guide](user/USER_GUIDE.md) - Comprehensive guide for using PyProcessor
 
-- [Architecture Overview](ARCHITECTURE.md) - Detailed explanation of the project architecture
-- [Code Style Guide](CODE_STYLE.md) - Coding standards and style guidelines
+### Developer Documentation
+
+Documentation for developers contributing to the project:
+
+- [Contributing Guide](developer/CONTRIBUTING.md) - How to contribute to the project
+- [Development Workflow](developer/DEVELOPMENT_WORKFLOW.md) - Recommended development process
+- [Architecture Overview](developer/ARCHITECTURE.md) - Detailed explanation of the project architecture
+- [Configuration](developer/CONFIGURATION.md) - Detailed explanation of configuration options and flag-pattern relationships
+- [Code Style Guide](developer/CODE_STYLE.md) - Coding standards and style guidelines
+- [Logging System](developer/LOGGING.md) - Details about the logging system
+- [FFmpeg Integration](developer/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
+
+- [Packaging](developer/PACKAGING.md) - How to package the application into an executable with bundled FFmpeg
+- [NSIS Packaging](developer/NSIS_PACKAGING.md) - Detailed guide for creating an installer with NSIS
+- [Server Optimization](developer/SERVER_OPTIMIZATION.md) - Prerequisites and details for server optimization
+
+### API Documentation
+
+Documentation for the PyProcessor API:
+
+- [API Reference](api/API_REFERENCE.md) - Reference for the PyProcessor API
 
 ### Technical Documentation
 
-- [Logging System](LOGGING.md) - Details about the logging system
-- [FFmpeg Integration](FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
-- [Theme Support](THEME_SUPPORT.md) - Information about dark/light theme support
+Detailed technical documentation on specific features:
+
+- [Regex Patterns](regex_patterns.md) - Explanation of regex patterns used for file renaming, validation, and folder organization
+- [Configuration Schema](config_schema.json) - JSON Schema for configuration files and profiles
 
 ## Additional Resources
 

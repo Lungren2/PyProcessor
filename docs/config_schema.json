@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PyProcessor Configuration Schema",
+  "description": "Schema for PyProcessor configuration files and profiles",
+  "type": "object",
+  "properties": {
+    "input_folder": {
+      "type": "string",
+      "description": "Path to the directory containing input video files"
+    },
+    "output_folder": {
+      "type": "string",
+      "description": "Path to the directory where processed videos will be saved"
+    },
+    "ffmpeg_params": {
+      "type": "object",
+      "description": "FFmpeg encoding parameters",
+      "properties": {
+        "video_encoder": {
+          "type": "string",
+          "description": "Video encoder to use (e.g., libx265, h264_nvenc, libx264)",
+          "enum": ["libx265", "h264_nvenc", "libx264"]
+        },
+        "preset": {
+          "type": ["string", "null"],
+          "description": "Encoding preset (e.g., ultrafast, medium, slow)"
+        },
+        "tune": {
+          "type": ["string", "null"],
+          "description": "Encoding tune parameter (e.g., film, animation, zerolatency)"
+        },
+        "fps": {
+          "type": "integer",
+          "description": "Target frames per second for the output video"
+        },
+        "include_audio": {
+          "type": "boolean",
+          "description": "Whether to include audio in the output video"
+        },
+        "bitrates": {
+          "type": "object",
+          "description": "Video bitrates for different resolutions",
+          "properties": {
+            "1080p": {
+              "type": "string",
+              "description": "Bitrate for 1080p resolution (e.g., 15000k)"
+            },
+            "720p": {
+              "type": "string",
+              "description": "Bitrate for 720p resolution (e.g., 8500k)"
+            },
+            "480p": {
+              "type": "string",
+              "description": "Bitrate for 480p resolution (e.g., 5000k)"
+            },
+            "360p": {
+              "type": "string",
+              "description": "Bitrate for 360p resolution (e.g., 2500k)"
+            }
+          }
+        },
+        "audio_bitrates": {
+          "type": "array",
+          "description": "Audio bitrates for different quality levels",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "max_parallel_jobs": {
+      "type": "integer",
+      "description": "Maximum number of parallel encoding jobs to run"
+    },
+    "auto_rename_files": {
+      "type": "boolean",
+      "description": "When enabled, input files will be renamed according to the file_rename_pattern before processing. The pattern extracts parts of the filename (e.g., '123-456' from 'video-123-456.mp4') and renames the file to match the expected format."
+    },
+    "auto_organize_folders": {
+      "type": "boolean",
+      "description": "When enabled, output folders will be organized according to the folder_organization_pattern after processing. The pattern extracts parts of the folder name (e.g., '123' from '123-456') to create a hierarchical folder structure."
+    },
+    "file_rename_pattern": {
+      "type": "string",
+      "description": "Regular expression pattern used to extract parts of filenames for renaming. Used when auto_rename_files is true. Must include a capture group that will be used as the new filename. Example: '(\\d+-\\d+)(?:[_-].*?)?\\.mp4$' extracts '123-456' from 'video-123-456.mp4' or '123-456_720p.mp4'."
+    },
+    "file_validation_pattern": {
+      "type": "string",
+      "description": "Regular expression pattern used to validate filenames before processing. Files that don't match this pattern will be considered invalid and skipped. Example: '^\\d+-\\d+\\.mp4$' requires filenames to be in the format '123-456.mp4'."
+    },
+    "folder_organization_pattern": {
+      "type": "string",
+      "description": "Regular expression pattern used to organize folders after processing. Used when auto_organize_folders is true. Must include a capture group that will be used as the parent folder name. Example: '^(\\d+)-\\d+' extracts '123' from '123-456' to create a folder structure like '123/123-456'."
+    },
+    "last_used_profile": {
+      "type": "string",
+      "description": "Name of the last used profile"
+    },
+    "server_optimization": {
+      "type": "object",
+      "description": "Server optimization settings",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether server optimization is enabled"
+        },
+        "server_type": {
+          "type": "string",
+          "description": "Type of server to optimize",
+          "enum": ["iis", "nginx", "linux"]
+        },
+        "iis": {
+          "type": "object",
+          "description": "IIS server optimization settings",
+          "properties": {
+            "site_name": {
+              "type": "string",
+              "description": "Name of the IIS website to configure"
+            },
+            "video_path": {
+              "type": "string",
+              "description": "Physical path to the video content directory"
+            },
+            "enable_http2": {
+              "type": "boolean",
+              "description": "Enable HTTP/2 protocol support"
+            },
+            "enable_http3": {
+              "type": "boolean",
+              "description": "Enable HTTP/3 with Alt-Svc headers for auto-upgrading"
+            },
+            "enable_cors": {
+              "type": "boolean",
+              "description": "Enable CORS headers"
+            },
+            "cors_origin": {
+              "type": "string",
+              "description": "Value for Access-Control-Allow-Origin header"
+            }
+          }
+        },
+        "nginx": {
+          "type": "object",
+          "description": "Nginx server optimization settings",
+          "properties": {
+            "output_path": {
+              "type": "string",
+              "description": "Path to save the Nginx configuration file"
+            },
+            "server_name": {
+              "type": "string",
+              "description": "Server name for the Nginx configuration"
+            },
+            "ssl_enabled": {
+              "type": "boolean",
+              "description": "Enable SSL/TLS support"
+            },
+            "enable_http3": {
+              "type": "boolean",
+              "description": "Enable HTTP/3 with Alt-Svc headers"
+            }
+          }
+        },
+        "linux": {
+          "type": "object",
+          "description": "Linux system optimization settings",
+          "properties": {
+            "apply_changes": {
+              "type": "boolean",
+              "description": "Whether to apply system changes or just show what would be done"
+            }
+          }
+        }
+      }
+    },
+    "saved_at": {
+      "type": "string",
+      "description": "Timestamp when the configuration was last saved"
+    }
+  },
+  "required": [
+    "input_folder",
+    "output_folder",
+    "ffmpeg_params",
+    "max_parallel_jobs"
+  ]
+}

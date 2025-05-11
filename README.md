@@ -1,30 +1,51 @@
-# Video Processor
+# [PyProcessor](https://pyprocessor.netlify.app/) &middot; [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Lungren2/PyProcessor/blob/main/LICENSE) [![Build & Release](https://github.com/Lungren2/PyProcessor/actions/workflows/build.yml/badge.svg)](https://github.com/Lungren2/PyProcessor/actions/workflows/build.yml) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Lungren2/PyProcessor/blob/main/docs/developer/CONTRIBUTING.md)
 
-A Python application for video processing and HLS encoding based on FFmpeg. This tool provides both a graphical user interface and command-line interface for processing video files with various encoding options, supporting parallel processing for improved performance.
+A cross-platform Python library and CLI tool for media processing and HLS encoding based on FFmpeg. PyProcessor supports processing video files with various encoding options, utilizing parallel processing for improved performance, and works seamlessly on Windows, macOS, and Linux.
+
+## Overview
+
+PyProcessor is designed to be a powerful yet flexible media processing engine that can handle everything from simple video encoding to complex adaptive streaming package creation. It features intelligent resource management, batch processing capabilities, and a plugin system for extensibility.
+
+The library is built with a focus on:
+
+- **Performance**: Optimized for speed with parallel processing and GPU acceleration
+- **Flexibility**: Configurable for various use cases through profiles and command-line options
+- **Extensibility**: Plugin system allows adding custom functionality
+- **Security**: Content encryption for protecting sensitive media files
+- **Cross-Platform**: Works consistently across Windows, macOS, and Linux
 
 ## Features
 
-- Graphical user interface for easy configuration and monitoring
-- Command-line interface for automation and scripting
-- Fast parallel processing of multiple video files
-- Support for multiple encoders (libx265, h264_nvenc, libx264)
-- HLS packaging with multiple quality levels
-- Automatic file organization and renaming
-- Configuration profiles for different encoding scenarios
-- Detailed logging system
-- Dark/light theme that follows system settings
+### Core Features
+
+- **Cross-Platform Compatibility**: Works on Windows, macOS, and Linux
+- **Command-line Interface**: For automation and scripting
+- **Fast Parallel Processing**: Process multiple video files simultaneously
+- **Multiple Encoder Support**: libx265, h264_nvenc, libx264, and more
+- **HLS Packaging**: Create adaptive streaming packages with multiple quality levels
+- **Automatic Organization**: File renaming and folder organization
+- **Configuration Profiles**: Save and reuse encoding settings
+- **Detailed Logging**: Comprehensive logging system
+
+### Advanced Features
+
+- **Intelligent Batch Processing**: Dynamically adjusts batch sizes based on system resources
+- **Resource Monitoring**: Monitors CPU, memory, and GPU usage during processing
+- **Plugin System**: Extend functionality through custom plugins
+- **Server Optimization**: Tools for IIS (Windows), Nginx (Linux/macOS), and Apache
+- **HTTP/3 Support**: Modern protocol support with Alt-Svc headers for auto-upgrading
+- **Content Encryption**: AES-256 encryption for protecting sensitive media files
 
 ## Requirements
 
 - Python 3.6 or higher
 - FFmpeg installed and available in PATH
-- PyQt5 for the graphical interface
-- tqdm for progress display in CLI mode
-
-### Optional Dependencies
-
-- darkdetect for system theme detection
-- pyqtdarktheme for high-quality dark/light themes
+- Platform-specific dependencies (automatically installed)
+  - Windows: pywin32, winshell
+  - macOS: pyobjc-core, pyobjc-framework-Cocoa
+  - Linux: python-xlib, dbus-python
+- Base dependencies (automatically installed)
+  - tqdm for progress display
 
 ## Installation
 
@@ -32,63 +53,165 @@ A Python application for video processing and HLS encoding based on FFmpeg. This
 
 ```bash
 git clone https://github.com/Lungren2/PyProcessor.git
-cd video_processor
+cd PyProcessor
+
+# Install with base dependencies
 pip install -e .
+
+# Or install with development dependencies
+pip install -e ".[dev]"
+
+# Or install with FFmpeg Python bindings
+pip install -e ".[ffmpeg]"
+
+# Or install with all extras
+pip install -e ".[dev,ffmpeg]"
 ```
 
-This will install the package in development mode, making the `video_processor` command available in your environment.
+This will install the package in development mode, making the `pyprocessor` command available in your environment.
+
+### Using the Dependency Management Script
+
+For more control over dependencies, you can use the dependency management script:
+
+```bash
+# Check for missing dependencies
+python scripts/manage_dependencies.py --check
+
+# Install dependencies for your platform
+python scripts/manage_dependencies.py --install
+
+# Install dependencies with extras
+python scripts/manage_dependencies.py --install --extras dev
+
+# Update dependencies
+python scripts/manage_dependencies.py --update
+```
+
+### Standalone Packages
+
+Standalone packages are available for all supported platforms. To build the package for your platform:
+
+```bash
+python scripts/build.py
+```
+
+This will create an executable in the `dist` directory. To create an installer package:
+
+```bash
+python scripts/package.py
+```
+
+This will create platform-specific packages in the `packages` directory:
+
+- Windows: NSIS installer (.exe)
+- macOS: Application bundle (.app) and disk image (.dmg)
+- Linux: Debian package (.deb) and RPM package (.rpm)
+
+See [Packaging](docs/PACKAGING.md) for more details.
 
 ## Project Architecture
 
-The project is organized into several modules:
+The project is organized into the following structure:
 
 ```text
-video_processor/
-├── main.py                 # Entry point
-├── __main__.py             # Package entry point
-├── gui/                    # GUI components
-│   ├── main_window.py      # Main application window
-│   ├── config_dialog.py    # Configuration dialog
-│   ├── log_viewer.py       # Log viewing dialog
-│   └── progress_widget.py  # Progress visualization
-├── processing/             # Core processing logic
-│   ├── encoder.py          # FFmpeg wrapper
-│   ├── file_manager.py     # File operations
-│   └── scheduler.py        # Parallelism management
-├── utils/                  # Utility functions
-│   ├── config.py           # Configuration handling
-│   └── logging.py          # Logging system
-├── resources/              # Application resources
-│   └── defaults.json       # Default configuration values
-├── profiles/               # Configuration profiles directory
-└── logs/                   # Log files directory
+PyProcessor/
+├── docs/                      # Documentation
+│   ├── user/                  # User documentation
+│   ├── developer/             # Developer documentation
+│   └── api/                   # API documentation
+├── scripts/                   # Utility scripts
+│   ├── build_tools.py         # Build and packaging tools
+│   ├── dev_tools.py           # Development tools
+│   └── manage_dependencies.py # Dependency management
+├── pyprocessor/               # Main package
+│   ├── processing/            # Processing logic
+│   ├── utils/                 # Utility functions
+│   ├── profiles/              # Profile storage
+│   └── logs/                  # Log storage
+├── optimization-utils/        # Server optimization utilities
+├── .github/                   # GitHub workflows and templates
+│   └── workflows/             # CI/CD workflows
+├── .gitignore                 # Git ignore file
+├── LICENSE                    # License file
+├── Makefile                   # Makefile for common tasks
+├── README.md                  # Main README
+├── MANIFEST.in                # Package manifest
+├── requirements.txt           # Dependencies
+├── setup.py                   # Package setup
+└── run_pyprocessor.py         # Cross-platform launcher script
 ```
 
 ## Usage
 
-### Graphical Interface
+### Basic Usage
 
-To start the application with the graphical interface:
+To use the application:
 
 ```bash
-video_processor
+pyprocessor [options]
 ```
 
 or
 
 ```bash
-python -m video_processor
+python -m pyprocessor [options]
 ```
 
-### Command Line Interface
+### Quick Start Examples
 
-To use the command-line interface:
+#### Basic Video Processing
 
 ```bash
-video_processor --no-gui [options]
+# Process all videos in input directory with default settings
+pyprocessor --input /path/to/videos --output /path/to/output
+
+# Use a specific encoder and preset
+pyprocessor --input /path/to/videos --output /path/to/output --encoder libx265 --preset medium
+
+# Process videos with a saved profile
+pyprocessor --input /path/to/videos --output /path/to/output --profile high_quality
 ```
 
-Available command-line options:
+#### Batch Processing
+
+```bash
+# Enable batch processing with automatic batch sizing
+pyprocessor --input /path/to/videos --output /path/to/output --batch-mode enabled
+
+# Specify a fixed batch size
+pyprocessor --input /path/to/videos --output /path/to/output --batch-mode enabled --batch-size 10
+
+# Limit memory usage for batch processing
+pyprocessor --input /path/to/videos --output /path/to/output --batch-mode enabled --max-memory 70
+```
+
+#### Server Optimization
+
+```bash
+# Optimize IIS server
+pyprocessor --optimize-server iis --site-name "My Video Site" --video-path "C:\inetpub\wwwroot\videos" --enable-http3
+
+# Generate Nginx configuration
+pyprocessor --optimize-server nginx --server-name example.com --output-config /etc/nginx/sites-available/videos.conf
+
+# Apply Linux system optimizations
+pyprocessor --optimize-server linux --apply-changes
+```
+
+#### Content Encryption
+
+```bash
+# Enable encryption for output files
+pyprocessor --input /path/to/videos --output /path/to/output --enable-encryption --encrypt-output
+
+# Use a specific encryption key
+pyprocessor --input /path/to/videos --output /path/to/output --enable-encryption --encrypt-output --encryption-key KEY_ID
+```
+
+### Available Command-Line Options
+
+#### Core Options
 
 ```text
 --input PATH         Input directory path
@@ -101,20 +224,102 @@ Available command-line options:
 --fps NUMBER         Frames per second
 --no-audio           Disable audio in output
 --jobs NUMBER        Number of parallel encoding jobs
---no-gui             Run without GUI
 --verbose            Enable verbose logging
+```
+
+#### Batch Processing Options
+
+```text
+--batch-mode         Enable or disable batch processing mode (enabled, disabled)
+--batch-size         Number of videos to process in a single batch
+--max-memory         Maximum memory usage percentage before throttling batches
+```
+
+#### Server Optimization Options
+
+```text
+--optimize-server    Server type to optimize (iis, nginx, apache, linux)
+--site-name          IIS site name (for IIS optimization)
+--video-path         Path to video content directory (for IIS)
+--enable-http2       Enable HTTP/2 protocol (for IIS)
+--enable-http3       Enable HTTP/3 with Alt-Svc headers (for IIS or Nginx)
+--enable-cors        Enable CORS headers (for IIS)
+--cors-origin        CORS origin value (for IIS)
+--output-config      Output path for server configuration (for Nginx)
+--server-name        Server name for configuration (for Nginx)
+--apply-changes      Apply changes directly (for Linux)
+```
+
+#### Security Options
+
+```text
+--enable-encryption  Enable content encryption
+--encrypt-output     Encrypt output files
+--encryption-key     Encryption key ID to use
 ```
 
 ## Configuration
 
-The application uses a configuration system that supports:
+PyProcessor uses a flexible, hierarchical configuration system that allows you to customize every aspect of the application's behavior.
+
+### Configuration Hierarchy
+
+The configuration system follows this hierarchy (from lowest to highest precedence):
 
 1. **Default Configuration**: Built-in defaults for all settings
-2. **User Configuration**: Saved in JSON format
-3. **Profiles**: Multiple named configurations for different scenarios
-4. **Command-line Overrides**: Options specified via command line take precedence
+2. **User Configuration**: Saved in JSON format in the user's configuration directory
+3. **Profiles**: Named configurations for different scenarios
+4. **Environment Variables**: Settings specified via environment variables
+5. **Command-line Overrides**: Options specified via command line take precedence over all other settings
 
-### Configuration Options
+### Configuration Profiles
+
+Profiles allow you to save and reuse configurations for different encoding scenarios. They are stored as JSON files in the `pyprocessor/profiles/` directory.
+
+#### Default Profile
+
+The default profile (`default.json`) includes sensible defaults for most settings:
+
+```json
+{
+  "input_folder": "${MEDIA_ROOT}/input",
+  "output_folder": "${MEDIA_ROOT}/output",
+  "ffmpeg_params": {
+    "video_encoder": "libx265",
+    "preset": "ultrafast",
+    "tune": "zerolatency",
+    "fps": 60,
+    "include_audio": true,
+    "bitrates": {
+      "1080p": "11000k",
+      "720p": "6500k",
+      "480p": "4000k",
+      "360p": "1500k"
+    },
+    "audio_bitrates": ["192k", "128k", "96k", "64k"]
+  },
+  "max_parallel_jobs": 4,
+  "batch_processing": {
+    "enabled": true,
+    "batch_size": null,
+    "max_memory_percent": 80
+  },
+  "auto_rename_files": true,
+  "auto_organize_folders": true
+}
+```
+
+#### Creating Custom Profiles
+
+To create a custom profile:
+
+1. Create a new JSON file in the `pyprocessor/profiles/` directory (e.g., `high_quality.json`)
+2. Add your custom settings (you only need to specify settings that differ from the defaults)
+3. Use the profile with the `--profile` command-line option
+
+### Configuration Categories
+
+#### Core Settings
 
 - **Input/Output Folders**: Directories for source and processed files
 - **FFmpeg Parameters**:
@@ -125,49 +330,166 @@ The application uses a configuration system that supports:
   - Audio inclusion/exclusion
   - Bitrates for different resolutions (1080p, 720p, 480p, 360p)
   - Audio bitrates
-- **Processing Options**:
-  - Maximum parallel jobs
-  - Auto-rename files
-  - Auto-organize folders
 
-### Configuration Files
+#### Processing Options
 
-Configuration files are stored as JSON in the `video_processor/profiles/` directory. You can create multiple profiles for different encoding scenarios.
+- **Parallel Processing**: Maximum number of parallel jobs
+- **Batch Processing**: Batch size and memory usage limits
+- **File Organization**: Auto-rename files and auto-organize folders
+- **Pattern Matching**: Regular expressions for file validation, renaming, and organization
+
+#### Advanced Configuration Options
+
+- **Server Optimization**:
+  - Server type (IIS, Nginx, Apache, Linux)
+  - HTTP/3 support with Alt-Svc headers for auto-upgrading
+  - Server-specific configuration options
+  - Network and performance optimizations
+- **Security**:
+  - Content encryption with AES-256
+  - Key management and rotation
+  - Password-based encryption
+
+### File Processing Patterns
+
+PyProcessor uses regular expression patterns to handle file naming and organization. These patterns are controlled by configuration flags:
+
+- `auto_rename_files`: When enabled, input files are renamed according to the `file_rename_pattern`
+- `auto_organize_folders`: When enabled, output folders are organized according to the `folder_organization_pattern`
+- `file_validation_pattern`: Files that don't match this pattern are considered invalid and will be skipped
+
+### Environment Variables
+
+You can use environment variables in configuration files and on the command line. For example:
+
+- `${MEDIA_ROOT}`: Root directory for media files
+- `${PYPROCESSOR_DATA_DIR}`: PyProcessor data directory
+
+For detailed information about configuration options and flag-pattern relationships, see the [Configuration Documentation](docs/developer/CONFIGURATION.md) and [Regex Patterns Documentation](docs/regex_patterns.md).
 
 ## Logging
 
-The application maintains detailed logs in the `video_processor/logs/` directory. Log files include timestamps, log levels, and detailed information about the processing operations.
+The application maintains detailed logs in the `pyprocessor/logs/` directory. Log files include timestamps, log levels, and detailed information about the processing operations.
+
+## Documentation
+
+PyProcessor includes comprehensive documentation for both users and developers.
+
+### User Documentation
+
+- [User Guide](docs/user/USER_GUIDE.md) - Comprehensive guide for using PyProcessor
+- [Batch Processing](docs/user/BATCH_PROCESSING.md) - How to use the batch processing system
+- [Server Optimization](docs/user/SERVER_OPTIMIZATION.md) - How to optimize servers for video streaming
+- [Content Encryption](docs/user/CONTENT_ENCRYPTION.md) - How to use content encryption features
+
+### Developer Documentation
+
+- [Contributing Guide](docs/developer/CONTRIBUTING.md) - How to contribute to the project
+- [Architecture Overview](docs/developer/ARCHITECTURE.md) - Detailed explanation of the project architecture
+- [Code Style Guide](docs/developer/CODE_STYLE.md) - Coding standards and style guidelines
+- [Development Workflow](docs/developer/DEVELOPMENT_WORKFLOW.md) - Recommended development process
+- [Plugin System](docs/developer/PLUGIN_SYSTEM.md) - How to create and use plugins
+- [Logging System](docs/developer/LOGGING.md) - Details about the logging system
+- [FFmpeg Integration](docs/developer/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
+- [Packaging](docs/developer/PACKAGING.md) - How to package the application into an executable
+- [NSIS Packaging](docs/developer/NSIS_PACKAGING.md) - Creating an installer with NSIS
+- [Dependencies](docs/developer/DEPENDENCIES.md) - Managing dependencies across platforms
+- [Path Handling](docs/developer/PATH_HANDLING.md) - How paths and environment variables are handled
+- [Application Context](docs/developer/APPLICATION_CONTEXT.md) - How application state and lifecycle are managed
+
+### API Documentation
+
+- [API Reference](docs/api/API_REFERENCE.md) - Reference for the PyProcessor API
+
+### Security Documentation
+
+- [Content Encryption](docs/security/CONTENT_ENCRYPTION.md) - Technical details of content encryption
+- [Security Best Practices](docs/security/SECURITY_BEST_PRACTICES.md) - Security recommendations
 
 ## Development
 
-For detailed information about development, please refer to the documentation in the `docs/` directory:
+### GitHub Workflows
 
-- [Contributing Guide](docs/CONTRIBUTING.md) - How to contribute to the project
-- [Architecture Overview](docs/ARCHITECTURE.md) - Detailed explanation of the project architecture
-- [Code Style Guide](docs/CODE_STYLE.md) - Coding standards and style guidelines
-- [Development Workflow](docs/DEVELOPMENT_WORKFLOW.md) - Recommended development process
-- [Logging System](docs/LOGGING.md) - Details about the logging system
-- [FFmpeg Integration](docs/FFMPEG_INTEGRATION.md) - How the application integrates with FFmpeg
+PyProcessor uses GitHub Actions for continuous integration and deployment:
 
-### Running Tests
+- **Quality & Testing**: Runs code quality checks (linting, formatting, type checking) on Python files
+- **Build & Release**: Builds the application and creates releases for tagged versions
+- **Update Dependencies**: Automatically updates dependencies weekly
+
+### Development Setup
+
+We provide several utility scripts to make development easier:
+
+#### Using the Development Tools Script
 
 ```bash
-python -m unittest discover tests
+python scripts/dev_tools.py setup [--no-venv] [--no-ffmpeg] [--no-hooks]
 ```
+
+This script will:
+
+1. Create a virtual environment
+2. Install development dependencies
+3. Download FFmpeg binaries
+4. Set up pre-commit hooks
+5. Create necessary directories
+
+#### Other Development Commands
+
+```bash
+python scripts/dev_tools.py clean [--all] [--ffmpeg] [--logs]  # Clean up temporary files
+python scripts/dev_tools.py lint [--check]                      # Run linting tools
+python scripts/dev_tools.py deps [--check] [--install] [--update] [--extras EXTRAS]  # Manage dependencies
+```
+
+#### Building and Packaging
+
+```bash
+python scripts/build_tools.py ffmpeg                # Download FFmpeg binaries
+python scripts/build_tools.py build [--skip-ffmpeg]  # Build executable
+python scripts/build_tools.py package [--skip-build] # Package executable
+```
+
+#### Using the Makefile (Linux/macOS)
+
+```bash
+make setup  # Set up development environment
+make clean  # Clean up temporary files
+make build  # Build executable
+make run    # Run the application
+```
+
+## TODO
+
+The project has several ongoing development tasks organized by category. Each task has its own detailed markdown file in the `docs/todo/` directory.
+
+When a task is completed, simply remove its corresponding file from the `docs/todo/` directory.
+
+### Recently Completed
+
+- ✅ Implement intelligent batch processing with dynamic sizing based on system resources
+- ✅ Create a resource monitoring and allocation system for optimal hardware utilization
+- ✅ Implement AES-256 content encryption for protecting sensitive media files
+
+### In Progress
+
+See the individual task files in the [docs/todo](docs/todo/) directory for detailed information on each task.
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **ModuleNotFoundError**: If you encounter `ModuleNotFoundError: No module named 'video_processor'`, make sure you've installed the package with `pip install -e .`
+1. **ModuleNotFoundError**: If you encounter `ModuleNotFoundError: No module named 'pyprocessor'`, make sure you've installed the package with `pip install -e .`
 
 2. **FFmpeg Not Found**: Ensure FFmpeg is installed and available in your system PATH
 
 3. **Permission Errors**: Make sure the application has write permissions for the output directory
 
+4. **Path Issues**: If you encounter path-related issues, check the [Path Handling](docs/developer/PATH_HANDLING.md) documentation for information on using environment variables and platform-agnostic paths
+
 ### Viewing Logs
 
-You can view logs either through the GUI (Tools > View Logs) or by examining the log files in the `video_processor/logs/` directory.
+You can view logs by examining the log files in the `pyprocessor/logs/` directory.
 
 ## License
 

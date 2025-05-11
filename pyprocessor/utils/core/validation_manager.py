@@ -171,7 +171,7 @@ class ValidationManager:
 
         # Check if required
         if required and (value is None or value == ""):
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None or empty
@@ -231,7 +231,7 @@ class ValidationManager:
 
         # Check if required
         if required and value is None:
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None
@@ -246,7 +246,7 @@ class ValidationManager:
                 else:
                     value = float(value)
             except ValueError:
-                result.add_error("Value must be a valid number", field)
+                result.add_error(f"Value must be a valid number", field)
                 return result
 
         # Check type
@@ -290,7 +290,7 @@ class ValidationManager:
 
         # Check if required
         if required and value is None:
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None
@@ -305,7 +305,7 @@ class ValidationManager:
             elif value in ("false", "no", "0", "n", "f"):
                 value = False
             else:
-                result.add_error("Value must be a valid boolean", field)
+                result.add_error(f"Value must be a valid boolean", field)
                 return result
 
         # Check type
@@ -344,7 +344,7 @@ class ValidationManager:
 
         # Check if required
         if required and (value is None or value == ""):
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None or empty
@@ -403,7 +403,7 @@ class ValidationManager:
 
         # Check if required
         if required and value is None:
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None
@@ -463,7 +463,7 @@ class ValidationManager:
 
         # Check if required
         if required and value is None:
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None
@@ -523,7 +523,7 @@ class ValidationManager:
 
         # Check if required
         if required and (value is None or value == ""):
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None or empty
@@ -540,7 +540,7 @@ class ValidationManager:
         # Simple email pattern
         pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         if not re.match(pattern, value):
-            result.add_error("Invalid email address", field)
+            result.add_error(f"Invalid email address", field)
 
         return result
 
@@ -563,7 +563,7 @@ class ValidationManager:
 
         # Check if required
         if required and (value is None or value == ""):
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None or empty
@@ -580,7 +580,7 @@ class ValidationManager:
         # Simple URL pattern
         pattern = r"^(https?|ftp)://[^\s/$.?#].[^\s]*$"
         if not re.match(pattern, value):
-            result.add_error("Invalid URL", field)
+            result.add_error(f"Invalid URL", field)
 
         return result
 
@@ -610,7 +610,7 @@ class ValidationManager:
 
         # Check if required
         if required and value is None:
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None
@@ -653,7 +653,7 @@ class ValidationManager:
 
         # Check if required
         if required and (value is None or value == ""):
-            result.add_error("Value is required", field)
+            result.add_error(f"Value is required", field)
             return result
 
         # Skip further validation if value is None or empty
@@ -772,7 +772,7 @@ class ValidationManager:
             if any(
                 field_schema.get("required", False) for field_schema in schema.values()
             ):
-                result.add_error("Object is required", field)
+                result.add_error(f"Object is required", field)
             return result
 
         # Check type
@@ -791,7 +791,7 @@ class ValidationManager:
 
             # Check if required
             if field_required and field_value is None:
-                result.add_error("Field is required", field_path)
+                result.add_error(f"Field is required", field_path)
                 continue
 
             # Skip further validation if value is None
@@ -884,7 +884,7 @@ class ValidationManager:
                     )
                 else:
                     field_result = ValidationResult()
-                    field_result.add_error("Missing custom rule name", field_path)
+                    field_result.add_error(f"Missing custom rule name", field_path)
             else:
                 field_result = ValidationResult()
                 field_result.add_error(f"Unknown field type: {field_type}", field_path)

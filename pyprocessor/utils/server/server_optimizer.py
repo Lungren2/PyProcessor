@@ -382,7 +382,7 @@ AddType video/mp2t .ts
             Header set Cache-Control "public, max-age=1800"
         </FilesMatch>
     </Directory>
-{f"</VirtualHost>" if ssl_enabled else "# </VirtualHost>"}
+{"</VirtualHost>" if ssl_enabled else "# </VirtualHost>"}
 """
 
             # Create output directory if it doesn't exist
