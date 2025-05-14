@@ -152,7 +152,7 @@ In case of a security incident:
 
 If you discover a security vulnerability in PyProcessor, please report it responsibly by contacting the maintainers directly rather than creating a public issue.
 
-Email: security@example.com (replace with actual contact)
+Email: ethanogle012@outlook.com
 
 Please include:
 
